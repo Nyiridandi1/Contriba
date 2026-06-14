@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, StatusBar, SafeAreaView, Image,
-  Dimensions, ActivityIndicator, Alert,
+  Dimensions, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { createEvent } from '../api';
+import { createEvent, getToken } from '../api';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +20,9 @@ const BLACK      = '#1A1A1A';
 const GRAY       = '#888888';
 const BORDER     = '#E5E5E5';
 
+const SUPABASE_URL = 'https://etswwbmrfqeokmobvhwy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
+
 const eventTypes = [
   { id: '1', label: 'Wedding',      icon: 'heart-circle-outline', type: 'Wedding'      },
   { id: '2', label: 'Birthday',     icon: 'gift-outline',         type: 'Birthday'     },
@@ -28,23 +31,64 @@ const eventTypes = [
 ];
 
 const paymentMethods = [
-  { id: 'mtn',    label: 'MTN MoMo',    icon: 'phone-portrait-outline', color: '#FFC403' },
+  { id: 'mtn',    label: 'MTN MoMo',     icon: 'phone-portrait-outline', color: '#FFC403' },
   { id: 'airtel', label: 'Airtel Money', icon: 'phone-portrait-outline', color: '#FF0000' },
 ];
 
+// Upload photo to Supabase Storage
+const uploadPhotoToSupabase = async (uri, fileName) => {
+  try {
+    console.log('Starting upload for:', fileName);
+    console.log('URI:', uri);
+
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    console.log('Blob type:', blob.type, 'size:', blob.size);
+
+    const uploadResponse = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/event-photos/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': blob.type || 'image/jpeg',
+          'x-upsert': 'true',
+        },
+        body: blob,
+      }
+    );
+
+    console.log('Upload status:', uploadResponse.status);
+    const uploadText = await uploadResponse.text();
+    console.log('Upload response:', uploadText);
+
+    if (uploadResponse.ok) {
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/event-photos/${fileName}`;
+      console.log('Public URL:', publicUrl);
+      return publicUrl;
+    }
+    console.error('Upload failed:', uploadText);
+    return null;
+  } catch (error) {
+    console.error('Upload error:', error);
+    return null;
+  }
+};
+
 export default function CreateEventScreen({ navigation }) {
-  const [selectedType, setSelectedType]       = useState('1');
-  const [title, setTitle]                     = useState('');
-  const [date, setDate]                       = useState(new Date());
-  const [showDatePicker, setShowDatePicker]   = useState(false);
-  const [location, setLocation]               = useState('');
-  const [message, setMessage]                 = useState('');
-  const [goalAmount, setGoalAmount]           = useState('');
-  const [ownerPhone, setOwnerPhone]           = useState('');
+  const [selectedType, setSelectedType]             = useState('1');
+  const [title, setTitle]                           = useState('');
+  const [date, setDate]                             = useState(new Date());
+  const [showDatePicker, setShowDatePicker]         = useState(false);
+  const [location, setLocation]                     = useState('');
+  const [message, setMessage]                       = useState('');
+  const [goalAmount, setGoalAmount]                 = useState('');
+  const [ownerPhone, setOwnerPhone]                 = useState('');
   const [ownerPaymentMethod, setOwnerPaymentMethod] = useState('mtn');
-  const [photo1, setPhoto1]                   = useState(null);
-  const [photo2, setPhoto2]                   = useState(null);
-  const [loading, setLoading]                 = useState(false);
+  const [photo1, setPhoto1]                         = useState(null);
+  const [photo2, setPhoto2]                         = useState(null);
+  const [loading, setLoading]                       = useState(false);
+  const [uploadProgress, setUploadProgress]         = useState('');
 
   const formatDateDisplay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const formatDateAPI = (d) => {
@@ -60,21 +104,40 @@ export default function CreateEventScreen({ navigation }) {
   };
 
   const handlePickPhoto = async (photoNum) => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow access to your photo library.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-    if (!result.canceled) {
-      if (photoNum === 1) setPhoto1(result.assets[0].uri);
-      else setPhoto2(result.assets[0].uri);
-    }
+    Alert.alert(
+      'Add Photo',
+      'Choose an option',
+      [
+        {
+          text: 'Choose from Library',
+          onPress: async () => {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true, aspect: [16, 9], quality: 0.8,
+            });
+            if (!result.canceled) {
+              if (photoNum === 1) setPhoto1(result.assets[0].uri);
+              else setPhoto2(result.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
+            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [16, 9], quality: 0.8 });
+            if (!result.canceled) {
+              if (photoNum === 1) setPhoto1(result.assets[0].uri);
+              else setPhoto2(result.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const getPhotoLabels = () => {
@@ -91,7 +154,27 @@ export default function CreateEventScreen({ navigation }) {
 
     const selectedEventType = eventTypes.find(t => t.id === selectedType);
     setLoading(true);
+
     try {
+      let coverImageUrl = null;
+      let photo2Url = null;
+
+      if (photo1) {
+        setUploadProgress('Uploading cover photo...');
+        const fileName = `event-${Date.now()}-cover.jpg`;
+        coverImageUrl = await uploadPhotoToSupabase(photo1, fileName);
+        console.log('Cover image URL:', coverImageUrl);
+      }
+
+      if (photo2) {
+        setUploadProgress('Uploading second photo...');
+        const fileName = `event-${Date.now()}-photo2.jpg`;
+        photo2Url = await uploadPhotoToSupabase(photo2, fileName);
+        console.log('Photo2 URL:', photo2Url);
+      }
+
+      setUploadProgress('Creating event...');
+
       const result = await createEvent({
         title,
         type: selectedEventType.type,
@@ -101,30 +184,30 @@ export default function CreateEventScreen({ navigation }) {
         goal_amount: goalAmount ? parseInt(goalAmount) : 0,
         owner_phone: ownerPhone,
         owner_payment_method: ownerPaymentMethod,
+        cover_image: coverImageUrl,
+        photo2_url: photo2Url,
       });
+
+      console.log('Create event result:', JSON.stringify(result));
 
       if (result.success) {
         Alert.alert(
           'Event Created! 🎉',
           `Your event "${title}" has been created successfully!`,
           [
-            {
-              text: 'View Event',
-              onPress: () => navigation.navigate('EventPage', { event: result.event }),
-            },
-            {
-              text: 'Go Home',
-              onPress: () => navigation.navigate('Home'),
-            },
+            { text: 'View Event', onPress: () => navigation.navigate('EventPage', { event: result.event }) },
+            { text: 'Go Home', onPress: () => navigation.navigate('Home') },
           ]
         );
       } else {
         Alert.alert('Error', result.message || 'Failed to create event');
       }
     } catch (error) {
+      console.error('Create event error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+      setUploadProgress('');
     }
   };
 
@@ -190,7 +273,7 @@ export default function CreateEventScreen({ navigation }) {
         <Text style={styles.label}>Short Message <Text style={styles.optional}>(optional)</Text></Text>
         <TextInput style={styles.textarea} placeholder="We are getting married and would love you to be part of our special day." placeholderTextColor="#BBBBBB" value={message} onChangeText={setMessage} multiline numberOfLines={4} textAlignVertical="top" />
 
-        {/* Receive Payments Section */}
+        {/* Receive Payments */}
         <View style={styles.sectionDivider}>
           <Ionicons name="cash-outline" size={18} color={WINE} />
           <Text style={styles.sectionDividerText}>Where to Receive Contributions</Text>
@@ -222,26 +305,29 @@ export default function CreateEventScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Event Photos Section */}
+        {/* Event Photos */}
         <View style={styles.sectionDivider}>
           <Ionicons name="images-outline" size={18} color={WINE} />
           <Text style={styles.sectionDividerText}>Event Photos</Text>
         </View>
 
+        <Text style={styles.photosHint}>📸 Add real photos to make your event stand out!</Text>
+
         <Text style={styles.label}>{photoLabels[0]}</Text>
         <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(1)} activeOpacity={0.8}>
           {photo1 ? (
-            <Image source={{ uri: photo1 }} style={styles.photoPreview} resizeMode="cover" />
+            <>
+              <Image source={{ uri: photo1 }} style={styles.photoPreview} resizeMode="cover" />
+              <View style={styles.photoOverlay}>
+                <Ionicons name="camera-outline" size={20} color={WHITE} />
+                <Text style={styles.changePhotoText}>Tap to change</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.photoPlaceholder}>
-              <Ionicons name="camera-outline" size={32} color={GRAY} />
+              <Ionicons name="camera-outline" size={36} color={WINE} />
               <Text style={styles.photoPlaceholderText}>Tap to add {photoLabels[0]}</Text>
-            </View>
-          )}
-          {photo1 && (
-            <View style={styles.photoOverlay}>
-              <Ionicons name="camera-outline" size={20} color={WHITE} />
-              <Text style={styles.changePhotoText}>Tap to change</Text>
+              <Text style={styles.photoPlaceholderSub}>JPG, PNG supported</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -249,26 +335,33 @@ export default function CreateEventScreen({ navigation }) {
         <Text style={styles.label}>{photoLabels[1]}</Text>
         <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(2)} activeOpacity={0.8}>
           {photo2 ? (
-            <Image source={{ uri: photo2 }} style={styles.photoPreview} resizeMode="cover" />
+            <>
+              <Image source={{ uri: photo2 }} style={styles.photoPreview} resizeMode="cover" />
+              <View style={styles.photoOverlay}>
+                <Ionicons name="camera-outline" size={20} color={WHITE} />
+                <Text style={styles.changePhotoText}>Tap to change</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.photoPlaceholder}>
-              <Ionicons name="camera-outline" size={32} color={GRAY} />
+              <Ionicons name="camera-outline" size={36} color={WINE} />
               <Text style={styles.photoPlaceholderText}>Tap to add {photoLabels[1]}</Text>
-            </View>
-          )}
-          {photo2 && (
-            <View style={styles.photoOverlay}>
-              <Ionicons name="camera-outline" size={20} color={WHITE} />
-              <Text style={styles.changePhotoText}>Tap to change</Text>
+              <Text style={styles.photoPlaceholderSub}>JPG, PNG supported</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Create Event Button */}
       <View style={styles.bottomBtn}>
+        {uploadProgress ? (
+          <View style={styles.uploadProgressBox}>
+            <ActivityIndicator color={WINE} size="small" />
+            <Text style={styles.uploadProgressText}>{uploadProgress}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity
           style={[styles.createBtn, loading && { opacity: 0.7 }]}
           onPress={handleCreate}
@@ -318,13 +411,17 @@ const styles = StyleSheet.create({
   paymentMethodIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   paymentMethodLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: GRAY },
   paymentMethodLabelActive: { color: WINE },
-  photoBox: { width: '100%', height: 160, borderRadius: 14, overflow: 'hidden', backgroundColor: '#F5F5F5', marginBottom: 20, position: 'relative', borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed' },
+  photosHint: { fontSize: 13, color: WINE, fontWeight: '600', marginBottom: 16, backgroundColor: WINE_LIGHT, padding: 10, borderRadius: 10 },
+  photoBox: { width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', backgroundColor: '#F5F5F5', marginBottom: 20, position: 'relative', borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed' },
   photoPreview: { width: '100%', height: '100%' },
   photoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  photoPlaceholderText: { fontSize: 14, color: GRAY, fontWeight: '500' },
+  photoPlaceholderText: { fontSize: 14, color: GRAY, fontWeight: '600' },
+  photoPlaceholderSub: { fontSize: 12, color: '#BBBBBB' },
   photoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 6 },
   changePhotoText: { fontSize: 13, color: WHITE, fontWeight: '600' },
-  bottomBtn: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER },
+  bottomBtn: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER },
+  uploadProgressBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  uploadProgressText: { fontSize: 13, color: WINE, fontWeight: '600' },
   createBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   createBtnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
 });
