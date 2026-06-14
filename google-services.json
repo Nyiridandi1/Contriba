@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "445164086766",
+    "project_id": "contriba-d42e9",
+    "storage_bucket": "contriba-d42e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445164086766:android:7838bf598facaa7489daff",
+        "android_client_info": {
+          "package_name": "com.contriba.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhz7npQY3CUoI9G25ZvXpoSPbe9BHTGis"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

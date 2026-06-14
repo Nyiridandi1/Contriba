@@ -6,6 +6,7 @@ import {
   StatusBar, SafeAreaView, FlatList, Image, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvents, getDashboard } from '../api';
 
 const { width } = Dimensions.get('window');
@@ -18,14 +19,14 @@ const GRAY       = '#888888';
 const BORDER     = '#F0F0F0';
 
 export default function HomeScreen({ navigation }) {
-  const [events, setEvents]           = useState([]);
-  const [myEvents, setMyEvents]       = useState([]);
-  const [dashboard, setDashboard]     = useState(null);
-  const [loading, setLoading]         = useState(true);
+  const [events, setEvents]       = useState([]);
+  const [myEvents, setMyEvents]   = useState([]);
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [user, setUser]           = useState(null);
 
   useEffect(() => {
     loadData();
-    // Refresh when screen comes back into focus
     const unsubscribe = navigation.addListener('focus', loadData);
     return unsubscribe;
   }, [navigation]);
@@ -33,6 +34,11 @@ export default function HomeScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // Load user from AsyncStorage
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) setUser(JSON.parse(userData));
+
       const [eventsResult, dashboardResult] = await Promise.all([
         getEvents(),
         getDashboard(),
@@ -50,9 +56,20 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const formatAmount = (amount) => {
-    return `RWF ${amount?.toLocaleString() || 0}`;
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
+
+  const getUserName = () => {
+    if (user?.name) return user.name.split(' ')[0];
+    if (user?.phone) return user.phone;
+    return 'there';
+  };
+
+  const formatAmount = (amount) => `RWF ${amount?.toLocaleString() || 0}`;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -65,6 +82,12 @@ export default function HomeScreen({ navigation }) {
     return Math.min((event.total_raised || 0) / event.goal_amount, 1);
   };
 
+  const getInitials = (name, phone) => {
+    if (name) return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    if (phone) return phone.slice(-2);
+    return '?';
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
@@ -74,7 +97,7 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello 👋</Text>
+            <Text style={styles.greeting}>{getGreeting()}, {getUserName()} 👋</Text>
             <Text style={styles.subGreeting}>What are we celebrating today?</Text>
           </View>
           <View style={styles.headerRight}>
@@ -83,7 +106,15 @@ export default function HomeScreen({ navigation }) {
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <Image source={require('../../assets/couple.png')} style={styles.profileAvatar} />
+              {user?.avatar_url ? (
+                <Image source={{ uri: user.avatar_url }} style={styles.profileAvatar} />
+              ) : (
+                <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
+                  <Text style={styles.profileAvatarInitials}>
+                    {getInitials(user?.name, user?.phone)}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -120,7 +151,9 @@ export default function HomeScreen({ navigation }) {
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>My Events</Text>
-              <TouchableOpacity><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
             </View>
 
             <FlatList
@@ -208,10 +241,10 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.quickActionsRow}>
           {[
-            { icon: 'people',       label: 'Contributors', screen: 'Dashboard'     },
-            { icon: 'qr-code',      label: 'Share QR',     screen: 'ShareEvent'    },
-            { icon: 'wallet',       label: 'My Wallet',    screen: 'Wallet'        },
-            { icon: 'grid-outline', label: 'Dashboard',    screen: 'Dashboard'     },
+            { icon: 'people',       label: 'Contributors', screen: 'Dashboard'  },
+            { icon: 'qr-code',      label: 'Share QR',     screen: 'ShareEvent' },
+            { icon: 'wallet',       label: 'My Wallet',    screen: 'Wallet'     },
+            { icon: 'grid-outline', label: 'Dashboard',    screen: 'Dashboard'  },
           ].map((action, index) => (
             <TouchableOpacity
               key={index}
@@ -258,12 +291,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
   scroll: { paddingHorizontal: 20, paddingTop: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  greeting: { fontSize: 24, fontWeight: '800', color: BLACK },
+  greeting: { fontSize: 22, fontWeight: '800', color: BLACK },
   subGreeting: { fontSize: 14, color: GRAY, marginTop: 4 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellBtn: { position: 'relative', padding: 4 },
   bellDot: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: WINE },
   profileAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: WINE },
+  profileAvatarPlaceholder: { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
+  profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: WINE_LIGHT, borderRadius: 14, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 13, fontWeight: '800', color: WINE, marginBottom: 4 },

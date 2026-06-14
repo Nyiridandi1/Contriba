@@ -6,6 +6,7 @@ import {
   StatusBar, SafeAreaView, Dimensions, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { verifyOTP, sendOTP, saveToken } from '../api';
 
 const { width } = Dimensions.get('window');
@@ -25,13 +26,12 @@ const KEYS = [
 
 export default function OTPScreen({ navigation, route }) {
   const phone = route?.params?.phone || '+250 781 234 567';
-  const [code, setCode]           = useState(['', '', '', '', '', '']);
+  const [code, setCode]               = useState(['', '', '', '', '', '']);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [timer, setTimer]         = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [loading, setLoading]     = useState(false);
+  const [timer, setTimer]             = useState(30);
+  const [canResend, setCanResend]     = useState(false);
+  const [loading, setLoading]         = useState(false);
 
-  // ── Countdown ──
   useEffect(() => {
     if (timer === 0) { setCanResend(true); return; }
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
@@ -44,7 +44,6 @@ export default function OTPScreen({ navigation, route }) {
     return `${m}:${s}`;
   };
 
-  // ── Verify OTP with real API ──
   const handleVerify = async (otpCode) => {
     setLoading(true);
     try {
@@ -53,6 +52,8 @@ export default function OTPScreen({ navigation, route }) {
       if (result.success) {
         // Save JWT token
         await saveToken(result.token);
+        // Save user data to AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(result.user));
         // Navigate to Home
         navigation.replace('Home');
       } else {
@@ -67,7 +68,6 @@ export default function OTPScreen({ navigation, route }) {
     }
   };
 
-  // ── Handle key press ──
   const handleKey = (key) => {
     if (loading) return;
 
@@ -93,7 +93,6 @@ export default function OTPScreen({ navigation, route }) {
       const next = activeIndex + 1;
       setActiveIndex(next);
 
-      // Auto verify when all 6 digits entered
       if (next === 6) {
         const otpString = [...newCode].join('');
         setTimeout(() => handleVerify(otpString), 300);
@@ -101,7 +100,6 @@ export default function OTPScreen({ navigation, route }) {
     }
   };
 
-  // ── Resend OTP ──
   const handleResend = async () => {
     if (!canResend) return;
     setCode(['', '', '', '', '', '']);
@@ -121,23 +119,16 @@ export default function OTPScreen({ navigation, route }) {
 
       <View style={styles.content}>
 
-        {/* Back arrow */}
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={BLACK} />
         </TouchableOpacity>
 
-        {/* Title */}
         <Text style={styles.title}>Verify your number</Text>
         <Text style={styles.subtitle}>
           Enter the 6-digit code sent to{'\n'}
           <Text style={styles.phoneText}>{phone}</Text>
         </Text>
 
-        {/* OTP boxes */}
         <View style={styles.otpRow}>
           {code.map((digit, i) => (
             <View
@@ -153,7 +144,6 @@ export default function OTPScreen({ navigation, route }) {
           ))}
         </View>
 
-        {/* Loading indicator */}
         {loading && (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={WINE} size="small" />
@@ -161,7 +151,6 @@ export default function OTPScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Resend */}
         {!loading && (
           <TouchableOpacity onPress={handleResend} disabled={!canResend}>
             <Text style={styles.resendText}>
@@ -176,7 +165,6 @@ export default function OTPScreen({ navigation, route }) {
 
       </View>
 
-      {/* Custom keypad */}
       <View style={styles.keypad}>
         {KEYS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.keyRow}>

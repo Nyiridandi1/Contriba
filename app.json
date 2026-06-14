@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gutwerera",
-    "slug": "gutwerera",
+    "name": "Contriba",
+    "slug": "contriba",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.gutwerera",
+      "bundleIdentifier": "com.contriba.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow Contriba to access your photos to set event cover photos.",
         "NSCameraUsageDescription": "Allow Contriba to access your camera to take event cover photos.",
@@ -27,17 +28,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "package": "com.contriba.app",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ],
-      "package": "com.anonymous.gutwerera"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -50,6 +48,13 @@
         {
           "photosPermission": "Allow Contriba to access your photos to set event cover photos.",
           "cameraPermission": "Allow Contriba to access your camera to take event cover photos."
+        }
+      ],
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.2587634943-vr1d200lsoe8prm76h9pouk0aus2se36"
         }
       ]
     ]

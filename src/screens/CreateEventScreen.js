@@ -107,7 +107,16 @@ export default function CreateEventScreen({ navigation }) {
         Alert.alert(
           'Event Created! 🎉',
           `Your event "${title}" has been created successfully!`,
-          [{ text: 'View Event', onPress: () => navigation.navigate('EventPage', { event: result.event }) }]
+          [
+            {
+              text: 'View Event',
+              onPress: () => navigation.navigate('EventPage', { event: result.event }),
+            },
+            {
+              text: 'Go Home',
+              onPress: () => navigation.navigate('Home'),
+            },
+          ]
         );
       } else {
         Alert.alert('Error', result.message || 'Failed to create event');
@@ -181,25 +190,16 @@ export default function CreateEventScreen({ navigation }) {
         <Text style={styles.label}>Short Message <Text style={styles.optional}>(optional)</Text></Text>
         <TextInput style={styles.textarea} placeholder="We are getting married and would love you to be part of our special day." placeholderTextColor="#BBBBBB" value={message} onChangeText={setMessage} multiline numberOfLines={4} textAlignVertical="top" />
 
-        {/* ── RECEIVE PAYMENTS SECTION ── */}
+        {/* Receive Payments Section */}
         <View style={styles.sectionDivider}>
           <Ionicons name="cash-outline" size={18} color={WINE} />
           <Text style={styles.sectionDividerText}>Where to Receive Contributions</Text>
         </View>
 
-        {/* Owner Phone */}
         <Text style={styles.label}>Your Phone Number <Text style={styles.required}>*</Text></Text>
         <Text style={styles.labelSub}>Contributions will be sent directly to this number</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="0781 234 567"
-          placeholderTextColor="#BBBBBB"
-          value={ownerPhone}
-          onChangeText={setOwnerPhone}
-          keyboardType="phone-pad"
-        />
+        <TextInput style={styles.input} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" value={ownerPhone} onChangeText={setOwnerPhone} keyboardType="phone-pad" />
 
-        {/* Payment Method */}
         <Text style={styles.label}>Payment Method <Text style={styles.required}>*</Text></Text>
         <View style={styles.paymentMethodRow}>
           {paymentMethods.map((method) => (
@@ -222,13 +222,12 @@ export default function CreateEventScreen({ navigation }) {
           ))}
         </View>
 
-        {/* ── EVENT PHOTOS SECTION ── */}
+        {/* Event Photos Section */}
         <View style={styles.sectionDivider}>
           <Ionicons name="images-outline" size={18} color={WINE} />
           <Text style={styles.sectionDividerText}>Event Photos</Text>
         </View>
 
-        {/* Photo 1 */}
         <Text style={styles.label}>{photoLabels[0]}</Text>
         <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(1)} activeOpacity={0.8}>
           {photo1 ? (
@@ -247,7 +246,6 @@ export default function CreateEventScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
-        {/* Photo 2 */}
         <Text style={styles.label}>{photoLabels[1]}</Text>
         <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(2)} activeOpacity={0.8}>
           {photo2 ? (
