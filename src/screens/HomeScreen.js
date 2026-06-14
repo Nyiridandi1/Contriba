@@ -86,6 +86,11 @@ export default function HomeScreen({ navigation }) {
     return '?';
   };
 
+  const getEventImage = (item) => {
+    if (item.cover_image) return { uri: item.cover_image };
+    return require('../../assets/couple.png');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
@@ -171,7 +176,11 @@ export default function HomeScreen({ navigation }) {
                   activeOpacity={0.85}
                   onPress={() => navigation.navigate('EventPage', { event: item })}
                 >
-                  <Image source={require('../../assets/couple.png')} style={styles.upcomingImage} resizeMode="cover" />
+                  <Image
+                    source={getEventImage(item)}
+                    style={styles.upcomingImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.upcomingInfo}>
                     <Text style={styles.upcomingName}>{item.title}</Text>
                     <Text style={styles.upcomingType}>{item.type}</Text>
@@ -214,7 +223,11 @@ export default function HomeScreen({ navigation }) {
                 activeOpacity={0.85}
                 onPress={() => navigation.navigate('EventPage', { event: item })}
               >
-                <Image source={require('../../assets/couple.png')} style={styles.featuredImage} resizeMode="cover" />
+                <Image
+                  source={getEventImage(item)}
+                  style={styles.featuredImage}
+                  resizeMode="cover"
+                />
                 <View style={styles.featuredInfo}>
                   <Text style={styles.featuredName}>{item.title}</Text>
                   <Text style={styles.featuredType}>{item.type}</Text>

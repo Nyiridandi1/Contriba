@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, StatusBar, ActivityIndicator, FlatList, RefreshControl,
+  Image, StatusBar, ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,6 +41,11 @@ const getInitials = (name) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
 
+const getEventImage = (event) => {
+  if (event?.cover_image) return { uri: event.cover_image };
+  return require('../../assets/couple.png');
+};
+
 export default function DashboardScreen({ navigation }) {
   const [dashboard, setDashboard]           = useState(null);
   const [user, setUser]                     = useState(null);
@@ -49,7 +54,6 @@ export default function DashboardScreen({ navigation }) {
   const [selectedEvent, setSelectedEvent]   = useState(null);
   const [contributions, setContributions]   = useState([]);
   const [loadingContrib, setLoadingContrib] = useState(false);
-  const [thankedIds, setThankedIds]         = useState([]);
 
   useEffect(() => {
     loadData();
@@ -194,7 +198,11 @@ export default function DashboardScreen({ navigation }) {
                   }}
                   activeOpacity={0.8}
                 >
-                  <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+                  <Image
+                    source={getEventImage(event)}
+                    style={styles.eventImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.eventInfo}>
                     <Text style={styles.eventTitle}>{event.title}</Text>
                     <Text style={styles.eventType}>{event.type} • {formatDate(event.date)}</Text>
@@ -260,7 +268,6 @@ export default function DashboardScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Progress */}
               <View style={styles.bigProgressBar}>
                 <View style={[styles.bigProgressFill, { width: `${percent}%` }]} />
               </View>
@@ -448,7 +455,7 @@ const styles = StyleSheet.create({
   quickCard: { flex: 1, backgroundColor: WHITE, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: MID_GREY, gap: 8 },
   quickIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   quickLabel: { fontSize: 11, fontWeight: '700', color: TEXT, textAlign: 'center' },
-  tabBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: MID_GREY, paddingBottom: 4, paddingTop: 8 },
+  tabBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: MID_GREY, paddingBottom: Platform.OS === 'android' ? 8 : 4, paddingTop: 8 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 10, color: DARK_GREY, marginTop: 2 },
   tabCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },

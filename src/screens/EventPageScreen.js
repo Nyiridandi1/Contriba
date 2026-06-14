@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, SafeAreaView, Image, Dimensions, ActivityIndicator, Platform,
+  StatusBar, SafeAreaView, Image, Dimensions, ActivityIndicator,
+  Platform, Alert, Modal, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getEvent } from '../api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getEvent, getToken } from '../api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,14 +20,33 @@ const GRAY       = '#888888';
 const BORDER     = '#F0F0F0';
 const GREEN      = '#1A9E4A';
 
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
+
 export default function EventPageScreen({ navigation, route }) {
   const eventParam = route?.params?.event;
-  const [event, setEvent]     = useState(eventParam);
-  const [loading, setLoading] = useState(false);
+  const [event, setEvent]             = useState(eventParam);
+  const [loading, setLoading]         = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [editModal, setEditModal]     = useState(false);
+  const [saving, setSaving]           = useState(false);
+
+  // Edit fields
+  const [editTitle, setEditTitle]               = useState('');
+  const [editLocation, setEditLocation]         = useState('');
+  const [editDescription, setEditDescription]   = useState('');
+  const [editGoalAmount, setEditGoalAmount]     = useState('');
+  const [editOwnerPhone, setEditOwnerPhone]     = useState('');
+  const [editPaymentMethod, setEditPaymentMethod] = useState('mtn');
 
   useEffect(() => {
+    loadUser();
     if (eventParam?.id) loadEvent();
   }, []);
+
+  const loadUser = async () => {
+    const userData = await AsyncStorage.getItem('user');
+    if (userData) setCurrentUser(JSON.parse(userData));
+  };
 
   const loadEvent = async () => {
     try {
@@ -39,17 +60,104 @@ export default function EventPageScreen({ navigation, route }) {
     }
   };
 
+  const isOwner = currentUser?.id === event?.owner_id;
+
   const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString();
 
   const progress = event?.goal_amount > 0
-    ? Math.min((event?.total_raised || 0) / event?.goal_amount, 1)
-    : 0;
+    ? Math.min((event?.total_raised || 0) / event?.goal_amount, 1) : 0;
   const percent = Math.round(progress * 100);
 
-  // Get hero image — real photo or fallback
   const getHeroImage = () => {
     if (event?.cover_image) return { uri: event.cover_image };
     return require('../../assets/couple.png');
+  };
+
+  const handleEdit = () => {
+    setEditTitle(event?.title || '');
+    setEditLocation(event?.location || '');
+    setEditDescription(event?.description || '');
+    setEditGoalAmount(event?.goal_amount?.toString() || '');
+    setEditOwnerPhone(event?.owner_phone || '');
+    setEditPaymentMethod(event?.owner_payment_method || 'mtn');
+    setEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTitle) { Alert.alert('Error', 'Event title is required'); return; }
+    setSaving(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          location: editLocation,
+          description: editDescription,
+          goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0,
+          owner_phone: editOwnerPhone,
+          owner_payment_method: editPaymentMethod,
+          type: event.type,
+          date: event.date,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setEvent({
+          ...event,
+          title: editTitle,
+          location: editLocation,
+          description: editDescription,
+          goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0,
+          owner_phone: editOwnerPhone,
+          owner_payment_method: editPaymentMethod,
+        });
+        setEditModal(false);
+        Alert.alert('Success! ✅', 'Event updated successfully!');
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update event');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Event',
+      `Are you sure you want to delete "${event?.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getToken();
+              const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              const result = await response.json();
+              if (result.success) {
+                Alert.alert('Deleted! 🗑️', 'Event deleted successfully!', [
+                  { text: 'OK', onPress: () => navigation.navigate('Home') },
+                ]);
+              } else {
+                Alert.alert('Error', result.message || 'Failed to delete event');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Something went wrong.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -69,29 +177,35 @@ export default function EventPageScreen({ navigation, route }) {
               <Ionicons name="arrow-back" size={20} color={BLACK} />
             </TouchableOpacity>
             <View style={styles.heroTopRight}>
-              <TouchableOpacity style={styles.heroBtn}>
-                <Ionicons name="heart-outline" size={20} color={BLACK} />
-              </TouchableOpacity>
+              {isOwner && (
+                <>
+                  <TouchableOpacity style={styles.heroBtn} onPress={handleEdit}>
+                    <Ionicons name="pencil-outline" size={20} color={BLACK} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#FFE4E4' }]} onPress={handleDelete}>
+                    <Ionicons name="trash-outline" size={20} color={WINE} />
+                  </TouchableOpacity>
+                </>
+              )}
               <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('ShareEvent', { event })}>
                 <Ionicons name="share-social-outline" size={20} color={BLACK} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Event type badge */}
+          {/* Badges */}
           <View style={styles.typeBadge}>
-            <Ionicons
-              name={
-                event?.type === 'Wedding' ? 'heart' :
-                event?.type === 'Birthday' ? 'gift' :
-                event?.type === 'Introduction' ? 'people' : 'calendar'
-              }
-              size={12} color={WHITE}
-            />
+            <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : event?.type === 'Introduction' ? 'people' : 'calendar'} size={12} color={WHITE} />
             <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
           </View>
+          {isOwner && (
+            <View style={styles.ownerBadge}>
+              <Ionicons name="ribbon-outline" size={12} color={WHITE} />
+              <Text style={styles.ownerBadgeText}>Your Event</Text>
+            </View>
+          )}
 
-          {/* Event info on image */}
+          {/* Hero info */}
           <View style={styles.heroInfo}>
             <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
             <View style={styles.heroMetaRow}>
@@ -105,19 +219,30 @@ export default function EventPageScreen({ navigation, route }) {
                 </>
               )}
             </View>
-            {event?.description && (
-              <Text style={styles.heroQuote}>"{event.description}"</Text>
-            )}
+            {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
           </View>
         </View>
 
         {/* Content */}
         <View style={styles.content}>
-
           {loading ? (
             <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
           ) : (
             <>
+              {/* Owner actions */}
+              {isOwner && (
+                <View style={styles.ownerActions}>
+                  <TouchableOpacity style={styles.ownerActionBtn} onPress={handleEdit}>
+                    <Ionicons name="pencil-outline" size={18} color={WINE} />
+                    <Text style={styles.ownerActionText}>Edit Event</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.ownerActionBtn, styles.ownerDeleteBtn]} onPress={handleDelete}>
+                    <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                    <Text style={[styles.ownerActionText, { color: '#FF3B30' }]}>Delete Event</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Amount raised */}
               <View style={styles.amountSection}>
                 <View style={styles.amountRow}>
@@ -134,86 +259,58 @@ export default function EventPageScreen({ navigation, route }) {
                 </View>
               </View>
 
-              {/* LIVE FEED BUTTON */}
-              <TouchableOpacity
-                style={styles.liveFeedBtn}
-                onPress={() => navigation.navigate('LiveFeed', { event })}
-                activeOpacity={0.85}
-              >
-                <View style={styles.liveDotContainer}>
-                  <View style={styles.liveDot} />
-                </View>
+              {/* Live Feed */}
+              <TouchableOpacity style={styles.liveFeedBtn} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
+                <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
                 <View style={styles.liveFeedInfo}>
                   <Text style={styles.liveFeedTitle}>Live Contribution Feed</Text>
-                  <Text style={styles.liveFeedSub}>
-                    {event?.total_contributors || 0} people contributed • Tap to see live updates
-                  </Text>
+                  <Text style={styles.liveFeedSub}>{event?.total_contributors || 0} people contributed • Tap to see live updates</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={WINE} />
               </TouchableOpacity>
 
               {/* Contribute card */}
               <View style={styles.contributeCard}>
-                <View style={styles.contributeIconBox}>
-                  <Ionicons name="heart" size={24} color={WINE} />
-                </View>
+                <View style={styles.contributeIconBox}><Ionicons name="heart" size={24} color={WINE} /></View>
                 <View style={styles.contributeText}>
                   <Text style={styles.contributeTitle}>Contribute to our happiness</Text>
-                  <Text style={styles.contributeSubtitle}>
-                    Your love and support mean the world to us as we begin our forever.
-                  </Text>
+                  <Text style={styles.contributeSubtitle}>Your love and support mean the world to us.</Text>
                 </View>
               </View>
 
-              {/* Second photo if available */}
+              {/* Second photo */}
               {event?.photo2_url && (
                 <View style={styles.photo2Container}>
                   <Image source={{ uri: event.photo2_url }} style={styles.photo2} resizeMode="cover" />
-                  <View style={styles.photo2Overlay}>
-                    <Text style={styles.photo2Label}>Invitation Card</Text>
-                  </View>
+                  <View style={styles.photo2Overlay}><Text style={styles.photo2Label}>Invitation Card</Text></View>
                 </View>
               )}
 
               {/* Event details */}
               <View style={styles.detailsCard}>
                 <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}>
-                    <Ionicons name="calendar-outline" size={20} color={WINE} />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Event Date</Text>
-                    <Text style={styles.detailValue}>{event?.date || 'TBD'}</Text>
-                  </View>
+                  <View style={styles.detailIconBox}><Ionicons name="calendar-outline" size={20} color={WINE} /></View>
+                  <View><Text style={styles.detailLabel}>Event Date</Text><Text style={styles.detailValue}>{event?.date || 'TBD'}</Text></View>
                 </View>
                 <View style={styles.detailDivider} />
                 <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}>
-                    <Ionicons name="people-outline" size={20} color={WINE} />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Event Type</Text>
-                    <Text style={styles.detailValue}>{event?.type || 'Event'}</Text>
-                  </View>
+                  <View style={styles.detailIconBox}><Ionicons name="people-outline" size={20} color={WINE} /></View>
+                  <View><Text style={styles.detailLabel}>Event Type</Text><Text style={styles.detailValue}>{event?.type || 'Event'}</Text></View>
                 </View>
                 <View style={styles.detailDivider} />
                 <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}>
-                    <Ionicons name="location-outline" size={20} color={WINE} />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Location</Text>
-                    <Text style={styles.detailValue}>{event?.location || 'Kigali, Rwanda'}</Text>
-                  </View>
+                  <View style={styles.detailIconBox}><Ionicons name="location-outline" size={20} color={WINE} /></View>
+                  <View><Text style={styles.detailLabel}>Location</Text><Text style={styles.detailValue}>{event?.location || 'Kigali, Rwanda'}</Text></View>
+                </View>
+                <View style={styles.detailDivider} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailIconBox}><Ionicons name="flag-outline" size={20} color={WINE} /></View>
+                  <View><Text style={styles.detailLabel}>Goal Amount</Text><Text style={styles.detailValue}>{formatAmount(event?.goal_amount)}</Text></View>
                 </View>
               </View>
 
               {/* Contributors row */}
-              <TouchableOpacity
-                style={styles.contributorsRow}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('LiveFeed', { event })}
-              >
+              <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
                 <View style={styles.avatarStack}>
                   {[0, 1, 2, 3].map((i) => (
                     <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12 }]}>
@@ -229,40 +326,81 @@ export default function EventPageScreen({ navigation, route }) {
               </TouchableOpacity>
             </>
           )}
-
           <View style={{ height: 200 }} />
         </View>
       </ScrollView>
 
       {/* Bottom buttons */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.contributeBtn}
-          onPress={() => navigation.navigate('Contribute', { event })}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.contributeBtn} onPress={() => navigation.navigate('Contribute', { event })} activeOpacity={0.85}>
           <Text style={styles.contributeBtnText}>Contribute Gift 🎁</Text>
         </TouchableOpacity>
-
         <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('LiveFeed', { event })}
-          >
+          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
             <View style={styles.liveSmallDot} />
             <Text style={styles.actionBtnText}>Live Feed</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('ShareEvent', { event })}
-          >
+          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => navigation.navigate('ShareEvent', { event })}>
             <Ionicons name="share-social-outline" size={18} color={WINE} />
             <Text style={styles.actionBtnText}>Share</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* EDIT MODAL */}
+      <Modal visible={editModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalBox}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Event ✏️</Text>
+                <TouchableOpacity onPress={() => setEditModal(false)}>
+                  <Ionicons name="close" size={24} color={BLACK} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalLabel}>Event Title *</Text>
+              <TextInput style={styles.modalInput} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
+
+              <Text style={styles.modalLabel}>Location</Text>
+              <TextInput style={styles.modalInput} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
+
+              <Text style={styles.modalLabel}>Description</Text>
+              <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12 }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
+
+              <Text style={styles.modalLabel}>Goal Amount (RWF)</Text>
+              <TextInput style={styles.modalInput} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
+
+              <Text style={styles.modalLabel}>Your Phone (for payments)</Text>
+              <TextInput style={styles.modalInput} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
+
+              <Text style={styles.modalLabel}>Payment Method</Text>
+              <View style={styles.paymentRow}>
+                {['mtn', 'airtel'].map((method) => (
+                  <TouchableOpacity
+                    key={method}
+                    style={[styles.paymentOption, editPaymentMethod === method && styles.paymentOptionActive]}
+                    onPress={() => setEditPaymentMethod(method)}
+                  >
+                    <Text style={[styles.paymentOptionText, editPaymentMethod === method && { color: WINE }]}>
+                      {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.modalBtns}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setEditModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalSave} onPress={handleSaveEdit} disabled={saving}>
+                  {saving ? <ActivityIndicator color={WHITE} size="small" /> : <Text style={styles.modalSaveText}>Save Changes</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -278,6 +416,8 @@ const styles = StyleSheet.create({
   heroBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
   typeBadge: { position: 'absolute', top: Platform.OS === 'android' ? 100 : 110, left: 20, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   typeBadgeText: { fontSize: 11, fontWeight: '700', color: WHITE },
+  ownerBadge: { position: 'absolute', top: Platform.OS === 'android' ? 100 : 110, right: 20, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  ownerBadgeText: { fontSize: 11, fontWeight: '700', color: WHITE },
   heroInfo: { position: 'absolute', bottom: 24, left: 20, right: 20 },
   heroName: { fontSize: 28, fontWeight: '800', color: WHITE, marginBottom: 6 },
   heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' },
@@ -285,6 +425,10 @@ const styles = StyleSheet.create({
   heroDot: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
   heroQuote: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontStyle: 'italic' },
   content: { paddingHorizontal: 20, paddingTop: 20 },
+  ownerActions: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  ownerActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: WINE_LIGHT, borderRadius: 12, paddingVertical: 12, borderWidth: 1.5, borderColor: WINE },
+  ownerDeleteBtn: { backgroundColor: '#FFF0F0', borderColor: '#FF3B30' },
+  ownerActionText: { fontSize: 14, fontWeight: '700', color: WINE },
   amountSection: { marginBottom: 16 },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   amountRaised: { fontSize: 26, fontWeight: '800', color: WINE, marginBottom: 4 },
@@ -328,4 +472,20 @@ const styles = StyleSheet.create({
   bottomActions: { flexDirection: 'row', gap: 12 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: BORDER },
   actionBtnText: { fontSize: 15, fontWeight: '600', color: WINE },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalScroll: { justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: BLACK },
+  modalLabel: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 8 },
+  modalInput: { borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, color: BLACK, marginBottom: 16 },
+  paymentRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  paymentOption: { flex: 1, borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  paymentOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
+  paymentOptionText: { fontSize: 13, fontWeight: '600', color: GRAY },
+  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalCancel: { flex: 1, borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '600', color: GRAY },
+  modalSave: { flex: 1, backgroundColor: WINE, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
+  modalSaveText: { fontSize: 15, fontWeight: '700', color: WHITE },
 });
