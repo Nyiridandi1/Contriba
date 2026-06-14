@@ -1,52 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, StatusBar, ActivityIndicator,
+  Image, StatusBar, ActivityIndicator, FlatList, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getDashboard } from '../api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDashboard, getToken } from '../api';
 
-const WINE = '#7A001F';
-const GREEN = '#1A9E4A';
-const WHITE = '#FFFFFF';
+const WINE      = '#7A001F';
+const WINE_LIGHT = '#FDF0F3';
+const GREEN     = '#1A9E4A';
+const WHITE     = '#FFFFFF';
 const LIGHT_GREY = '#F5F5F5';
-const MID_GREY = '#E0E0E0';
+const MID_GREY  = '#E0E0E0';
 const DARK_GREY = '#666666';
-const TEXT = '#1A1A1A';
+const TEXT      = '#1A1A1A';
+const BASE_URL  = 'https://contriba-backend-production.up.railway.app';
 
-const QUICK_ACTIONS = [
-  { id: '1', icon: 'share-social-outline', label: 'Share Event',         sub: 'Invite friends & family', screen: 'ShareEvent' },
-  { id: '2', icon: 'people-outline',       label: 'Contributors',        sub: 'View & manage list',      screen: null         },
-  { id: '3', icon: 'create-outline',       label: 'Edit Event',          sub: 'Update event info',       screen: null         },
-  { id: '4', icon: 'bar-chart-outline',    label: 'View Reports',        sub: 'See full breakdown',      screen: null         },
-];
+const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const formatTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+};
+const getInitials = (name) => {
+  if (!name || name === 'Anonymous') return '?';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
 
 export default function DashboardScreen({ navigation }) {
-  const [activeTab, setActiveTab]   = useState('dashboard');
-  const [dashboard, setDashboard]   = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [thankedIds, setThankedIds] = useState([]);
+  const [dashboard, setDashboard]           = useState(null);
+  const [user, setUser]                     = useState(null);
+  const [loading, setLoading]               = useState(true);
+  const [refreshing, setRefreshing]         = useState(false);
+  const [selectedEvent, setSelectedEvent]   = useState(null);
+  const [contributions, setContributions]   = useState([]);
+  const [loadingContrib, setLoadingContrib] = useState(false);
+  const [thankedIds, setThankedIds]         = useState([]);
 
   useEffect(() => {
-    loadDashboard();
-    const unsubscribe = navigation.addListener('focus', loadDashboard);
+    loadData();
+    const unsubscribe = navigation.addListener('focus', loadData);
     return unsubscribe;
   }, [navigation]);
 
-  const loadDashboard = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) setUser(JSON.parse(userData));
+
       const result = await getDashboard();
-      if (result.success) setDashboard(result.dashboard);
+      if (result.success) {
+        setDashboard(result.dashboard);
+        if (result.dashboard?.events?.length > 0) {
+          const firstEvent = result.dashboard.events[0];
+          setSelectedEvent(firstEvent);
+          loadContributions(firstEvent.id);
+        }
+      }
     } catch (error) {
       console.error('Dashboard error:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
+  const loadContributions = async (eventId) => {
+    try {
+      setLoadingContrib(true);
+      const token = await getToken();
+      const response = await fetch(`${BASE_URL}/api/events/${eventId}/contributions`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) setContributions(result.contributions || []);
+    } catch (error) {
+      console.error('Contributions error:', error);
+    } finally {
+      setLoadingContrib(false);
+    }
+  };
 
   const getDaysLeft = (dateStr) => {
     if (!dateStr) return 0;
@@ -54,23 +102,25 @@ export default function DashboardScreen({ navigation }) {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
-  const handleThankYou = (id) => {
-    if (!thankedIds.includes(id)) setThankedIds([...thankedIds, id]);
-  };
-
-  const firstEvent = dashboard?.events?.[0];
-  const progress = firstEvent && firstEvent.goal_amount > 0
-    ? Math.min((firstEvent.total_raised || 0) / firstEvent.goal_amount, 1)
-    : 0;
+  const progress = selectedEvent?.goal_amount > 0
+    ? Math.min((selectedEvent?.total_raised || 0) / selectedEvent?.goal_amount, 1) : 0;
   const percent = Math.round(progress * 100);
 
-  const TABS = [
-    { id: 'dashboard',     icon: 'home',                label: 'Dashboard'     },
-    { id: 'contributions', icon: 'people-outline',      label: 'Contributions' },
-    { id: 'contribute',    icon: 'add',                 label: '', isCenter: true },
-    { id: 'gifts',         icon: 'gift-outline',        label: 'Gifts'         },
-    { id: 'more',          icon: 'ellipsis-horizontal', label: 'More'          },
-  ];
+  const getUserName = () => {
+    if (user?.name) return user.name.split(' ')[0];
+    return 'there';
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={WINE} size="large" />
+          <Text style={styles.loadingText}>Loading dashboard...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -78,14 +128,9 @@ export default function DashboardScreen({ navigation }) {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <View style={styles.logoIcon}>
-            <Ionicons name="heart" size={18} color={WINE} />
-          </View>
-          <View>
-            <Text style={styles.logoText}>Contriba</Text>
-            <Text style={styles.logoSub}>Celebrate love, together</Text>
-          </View>
+        <View>
+          <Text style={styles.headerTitle}>Dashboard</Text>
+          <Text style={styles.headerSub}>Hello, {getUserName()} 👋</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
@@ -96,212 +141,246 @@ export default function DashboardScreen({ navigation }) {
               </View>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.avatarBtn} onPress={() => navigation.navigate('Profile')}>
-            <Image source={require('../../assets/couple.png')} style={styles.avatar} />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            {user?.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: WHITE, fontWeight: '800', fontSize: 14 }}>
+                  {getInitials(user?.name)}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={WINE} size="large" />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={WINE} />}
+      >
+
+        {/* STATS ROW */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{dashboard?.total_events || 0}</Text>
+            <Text style={styles.statLabel}>Events</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{formatAmount(dashboard?.total_raised)}</Text>
+            <Text style={styles.statLabel}>Total Raised</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{dashboard?.total_contributors || 0}</Text>
+            <Text style={styles.statLabel}>Contributors</Text>
+          </View>
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-          {/* GREETING */}
-          <View style={styles.greetingRow}>
-            <View>
-              <Text style={styles.greetingTitle}>Hello! 👋</Text>
-              <Text style={styles.greetingSub}>Here's what's happening with your events.</Text>
-            </View>
-            <View style={styles.ownerBadge}>
-              <Ionicons name="ribbon-outline" size={14} color={WINE} />
-              <Text style={styles.ownerBadgeText}>Event Owner</Text>
-            </View>
-          </View>
+        {/* MY EVENTS */}
+        {dashboard?.events?.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>My Events</Text>
+            {dashboard.events.map((event) => {
+              const prog = event.goal_amount > 0 ? Math.min((event.total_raised || 0) / event.goal_amount, 1) : 0;
+              const pct = Math.round(prog * 100);
+              return (
+                <TouchableOpacity
+                  key={event.id}
+                  style={[styles.eventCard, selectedEvent?.id === event.id && styles.eventCardSelected]}
+                  onPress={() => {
+                    setSelectedEvent(event);
+                    loadContributions(event.id);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventTitle}>{event.title}</Text>
+                    <Text style={styles.eventType}>{event.type} • {formatDate(event.date)}</Text>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${pct}%` }]} />
+                    </View>
+                    <Text style={styles.progressText}>{formatAmount(event.total_raised)} raised • {pct}%</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.viewBtn}
+                    onPress={() => navigation.navigate('EventPage', { event })}
+                  >
+                    <Ionicons name="arrow-forward" size={16} color={WINE} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        ) : (
+          <TouchableOpacity style={styles.createPrompt} onPress={() => navigation.navigate('CreateEvent')}>
+            <Ionicons name="add-circle-outline" size={32} color={WINE} />
+            <Text style={styles.createPromptText}>Create your first event!</Text>
+          </TouchableOpacity>
+        )}
 
-          {/* STATS OVERVIEW */}
-          <View style={styles.statsRow}>
-            <View style={styles.miniStat}>
-              <Text style={styles.miniStatValue}>{dashboard?.total_events || 0}</Text>
-              <Text style={styles.miniStatLabel}>Events</Text>
-            </View>
-            <View style={styles.miniStat}>
-              <Text style={styles.miniStatValue}>{formatAmount(dashboard?.total_raised)}</Text>
-              <Text style={styles.miniStatLabel}>Total Raised</Text>
-            </View>
-            <View style={styles.miniStat}>
-              <Text style={styles.miniStatValue}>{dashboard?.total_contributors || 0}</Text>
-              <Text style={styles.miniStatLabel}>Contributors</Text>
-            </View>
-          </View>
+        {/* SELECTED EVENT DETAILS */}
+        {selectedEvent && (
+          <>
+            <View style={styles.detailsCard}>
+              <Text style={styles.sectionTitle}>Event Overview</Text>
 
-          {/* MY EVENT CARD */}
-          {firstEvent ? (
-            <View style={styles.eventCard}>
-              <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
-              <View style={styles.eventInfo}>
-                <Text style={styles.myEventLabel}>My Event</Text>
-                <Text style={styles.eventTitle}>{firstEvent.title}</Text>
-                <View style={styles.eventMeta}>
-                  <Ionicons name="calendar-outline" size={12} color={DARK_GREY} />
-                  <Text style={styles.eventMetaText}>{firstEvent.date}</Text>
-                  <Text style={styles.metaDot}>|</Text>
-                  <Ionicons name="location-outline" size={12} color={DARK_GREY} />
-                  <Text style={styles.eventMetaText}>{firstEvent.location || 'Kigali'}</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.viewEventBtn}
-                onPress={() => navigation.navigate('EventPage', { event: firstEvent })}
-              >
-                <Text style={styles.viewEventText}>View</Text>
-                <Ionicons name="arrow-forward" size={13} color={WINE} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.createEventPrompt}
-              onPress={() => navigation.navigate('CreateEvent')}
-            >
-              <Ionicons name="add-circle-outline" size={32} color={WINE} />
-              <Text style={styles.createEventText}>Create your first event!</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* OVERVIEW STATS */}
-          {firstEvent && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Overview</Text>
-              </View>
-
-              <View style={styles.statsGrid}>
-                {/* Total Collected */}
-                <View style={[styles.statCard, styles.statCardWide]}>
-                  <View style={[styles.statIconBox, { backgroundColor: '#FFE4E9' }]}>
+              <View style={styles.detailsGrid}>
+                <View style={styles.detailItem}>
+                  <View style={[styles.detailIcon, { backgroundColor: '#FFE4E9' }]}>
                     <Ionicons name="wallet-outline" size={20} color={WINE} />
                   </View>
-                  <Text style={styles.statLabel}>Total Collected</Text>
-                  <Text style={[styles.statValue, { color: WINE, fontSize: 16 }]}>
-                    {formatAmount(firstEvent.total_raised)}
-                  </Text>
-                  <Text style={styles.statGoal}>of {formatAmount(firstEvent.goal_amount)}</Text>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${percent}%` }]} />
-                  </View>
-                  <Text style={styles.progressPercent}>{percent}% of goal</Text>
+                  <Text style={styles.detailLabel}>Total Raised</Text>
+                  <Text style={[styles.detailValue, { color: WINE }]}>{formatAmount(selectedEvent.total_raised)}</Text>
                 </View>
 
-                {/* Days Left */}
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconBox, { backgroundColor: '#EDE7F6' }]}>
+                <View style={styles.detailItem}>
+                  <View style={[styles.detailIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Ionicons name="people-outline" size={20} color={GREEN} />
+                  </View>
+                  <Text style={styles.detailLabel}>Contributors</Text>
+                  <Text style={[styles.detailValue, { color: GREEN }]}>{selectedEvent.total_contributors || contributions.length}</Text>
+                </View>
+
+                <View style={styles.detailItem}>
+                  <View style={[styles.detailIcon, { backgroundColor: '#EDE7F6' }]}>
                     <Ionicons name="time-outline" size={20} color="#7C3AED" />
                   </View>
-                  <Text style={styles.statLabel}>Days Left</Text>
-                  <Text style={[styles.statValue, { color: '#7C3AED' }]}>{getDaysLeft(firstEvent.date)}</Text>
-                  <Text style={styles.untilText}>Until the event</Text>
+                  <Text style={styles.detailLabel}>Days Left</Text>
+                  <Text style={[styles.detailValue, { color: '#7C3AED' }]}>{getDaysLeft(selectedEvent.date)}</Text>
                 </View>
 
-                {/* Wallet Balance */}
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconBox, { backgroundColor: '#E8F5E9' }]}>
-                    <Ionicons name="cash-outline" size={20} color={GREEN} />
+                <View style={styles.detailItem}>
+                  <View style={[styles.detailIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Ionicons name="flag-outline" size={20} color="#F59E0B" />
                   </View>
-                  <Text style={styles.statLabel}>Wallet</Text>
-                  <Text style={[styles.statValue, { color: GREEN, fontSize: 13 }]}>
-                    {formatAmount(dashboard?.wallet_balance)}
-                  </Text>
-                  <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
-                    <Text style={styles.statLinkText}>Withdraw →</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.detailLabel}>Goal</Text>
+                  <Text style={[styles.detailValue, { color: '#F59E0B', fontSize: 12 }]}>{formatAmount(selectedEvent.goal_amount)}</Text>
                 </View>
               </View>
-            </>
-          )}
 
-          {/* RECENT CONTRIBUTIONS */}
-          {dashboard?.recent_contributions?.length > 0 && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Contributions</Text>
+              {/* Progress */}
+              <View style={styles.bigProgressBar}>
+                <View style={[styles.bigProgressFill, { width: `${percent}%` }]} />
               </View>
-              <View style={styles.contributionsCard}>
-                {dashboard.recent_contributions.slice(0, 5).map((item, index) => (
+              <Text style={styles.bigProgressText}>{percent}% of goal reached</Text>
+            </View>
+
+            {/* CONTRIBUTIONS LIST */}
+            <Text style={styles.sectionTitle}>All Contributions</Text>
+
+            {loadingContrib ? (
+              <ActivityIndicator color={WINE} style={{ marginVertical: 20 }} />
+            ) : contributions.length === 0 ? (
+              <View style={styles.emptyContrib}>
+                <Ionicons name="heart-outline" size={40} color={DARK_GREY} />
+                <Text style={styles.emptyContribText}>No contributions yet</Text>
+                <Text style={styles.emptyContribSub}>Share your event to start receiving contributions!</Text>
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  onPress={() => navigation.navigate('ShareEvent', { event: selectedEvent })}
+                >
+                  <Ionicons name="share-social-outline" size={16} color={WHITE} />
+                  <Text style={styles.shareBtnText}>Share Event</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.contribList}>
+                {contributions.map((item, index) => (
                   <View key={item.id}>
-                    <View style={styles.contributionRow}>
-                      <View style={styles.initialsAvatar}>
-                        <Text style={styles.initialsText}>{item.contributor_name?.[0] || '?'}</Text>
+                    <View style={styles.contribRow}>
+                      <View style={[styles.contribAvatar, { backgroundColor: item.is_anonymous ? LIGHT_GREY : WINE_LIGHT }]}>
+                        <Text style={[styles.contribInitials, { color: item.is_anonymous ? DARK_GREY : WINE }]}>
+                          {item.is_anonymous ? '🙈' : getInitials(item.contributor_name)}
+                        </Text>
                       </View>
-                      <View style={styles.contributorInfo}>
-                        <Text style={styles.contributorName}>{item.contributor_name}</Text>
-                        <Text style={styles.contributorTime}>{item.contributor_phone}</Text>
+                      <View style={styles.contribInfo}>
+                        <Text style={styles.contribName}>
+                          {item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}
+                        </Text>
+                        <Text style={styles.contribPhone}>
+                          {item.is_anonymous ? '' : item.contributor_phone}
+                        </Text>
+                        {item.message ? (
+                          <Text style={styles.contribMessage}>"{item.message}"</Text>
+                        ) : null}
+                        <Text style={styles.contribTime}>{formatTime(item.created_at)}</Text>
                       </View>
-                      <View style={styles.contributionRight}>
-                        <Text style={styles.contributionAmount}>{formatAmount(item.amount)}</Text>
-                        <TouchableOpacity
-                          style={[styles.thankBtn, thankedIds.includes(item.id) && styles.thankBtnActive]}
-                          onPress={() => handleThankYou(item.id)}
-                        >
-                          <Text style={[styles.thankBtnText, thankedIds.includes(item.id) && styles.thankBtnTextActive]}>
-                            Thank You
+                      <View style={styles.contribRight}>
+                        <Text style={[styles.contribAmount, { color: item.status === 'success' ? GREEN : '#F59E0B' }]}>
+                          {formatAmount(item.amount)}
+                        </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: item.status === 'success' ? '#E8F5E9' : '#FFF3E0' }]}>
+                          <Text style={[styles.statusText, { color: item.status === 'success' ? GREEN : '#F59E0B' }]}>
+                            {item.status === 'success' ? '✓ Paid' : '⏳ Pending'}
                           </Text>
-                          <Ionicons name={thankedIds.includes(item.id) ? 'heart' : 'heart-outline'} size={13} color={thankedIds.includes(item.id) ? WHITE : WINE} style={{ marginLeft: 4 }} />
-                        </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
-                    {index < dashboard.recent_contributions.slice(0, 5).length - 1 && <View style={styles.rowDivider} />}
+                    {index < contributions.length - 1 && <View style={styles.rowDivider} />}
                   </View>
                 ))}
               </View>
-            </>
-          )}
+            )}
+          </>
+        )}
 
-          {/* QUICK ACTIONS */}
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            {QUICK_ACTIONS.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-                onPress={() => action.screen && navigation.navigate(action.screen)}
-              >
-                <View style={styles.quickActionIcon}>
-                  <Ionicons name={action.icon} size={22} color={WINE} />
-                </View>
-                <Text style={styles.quickActionLabel}>{action.label}</Text>
-                <Text style={styles.quickActionSub}>{action.sub}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        {/* QUICK ACTIONS */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickGrid}>
+          <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('CreateEvent')}>
+            <View style={[styles.quickIcon, { backgroundColor: WINE_LIGHT }]}>
+              <Ionicons name="add-circle-outline" size={24} color={WINE} />
+            </View>
+            <Text style={styles.quickLabel}>New Event</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickCard} onPress={() => selectedEvent && navigation.navigate('LiveFeed', { event: selectedEvent })}>
+            <View style={[styles.quickIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="radio-outline" size={24} color={GREEN} />
+            </View>
+            <Text style={styles.quickLabel}>Live Feed</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('Wallet')}>
+            <View style={[styles.quickIcon, { backgroundColor: '#EDE7F6' }]}>
+              <Ionicons name="wallet-outline" size={24} color="#7C3AED" />
+            </View>
+            <Text style={styles.quickLabel}>Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickCard} onPress={() => selectedEvent && navigation.navigate('ShareEvent', { event: selectedEvent })}>
+            <View style={[styles.quickIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="share-social-outline" size={24} color="#F59E0B" />
+            </View>
+            <Text style={styles.quickLabel}>Share</Text>
+          </TouchableOpacity>
+        </View>
 
-          <View style={{ height: 20 }} />
-        </ScrollView>
-      )}
+        <View style={{ height: 20 }} />
+      </ScrollView>
 
-      {/* BOTTOM TAB BAR */}
+      {/* BOTTOM TAB */}
       <View style={styles.tabBar}>
-        {TABS.map((tab) => {
-          if (tab.isCenter) {
-            return (
-              <TouchableOpacity key={tab.id} style={styles.tabCenter} activeOpacity={0.8} onPress={() => navigation.navigate('CreateEvent')}>
-                <View style={styles.tabCenterBtn}>
-                  <Ionicons name="add" size={28} color={WHITE} />
-                </View>
-              </TouchableOpacity>
-            );
-          }
-          const isActive = activeTab === tab.id;
-          return (
-            <TouchableOpacity key={tab.id} style={styles.tabItem} onPress={() => setActiveTab(tab.id)} activeOpacity={0.7}>
-              <Ionicons name={tab.icon} size={22} color={isActive ? WINE : DARK_GREY} />
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Home')}>
+          <Ionicons name="home-outline" size={22} color={DARK_GREY} />
+          <Text style={styles.tabLabel}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem}>
+          <Ionicons name="grid" size={22} color={WINE} />
+          <Text style={[styles.tabLabel, { color: WINE, fontWeight: '700' }]}>Dashboard</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabCenter} onPress={() => navigation.navigate('CreateEvent')}>
+          <View style={styles.tabCenterBtn}>
+            <Ionicons name="add" size={28} color={WHITE} />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Wallet')}>
+          <Ionicons name="wallet-outline" size={22} color={DARK_GREY} />
+          <Text style={styles.tabLabel}>Wallet</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Profile')}>
+          <Ionicons name="person-outline" size={22} color={DARK_GREY} />
+          <Text style={styles.tabLabel}>Profile</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -309,78 +388,69 @@ export default function DashboardScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: WHITE },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: WHITE, borderBottomWidth: 1, borderBottomColor: LIGHT_GREY },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  logoText: { fontSize: 16, fontWeight: '800', color: WINE },
-  logoSub: { fontSize: 10, color: DARK_GREY },
+  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: DARK_GREY },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: WHITE, borderBottomWidth: 1, borderBottomColor: LIGHT_GREY },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: TEXT },
+  headerSub: { fontSize: 13, color: DARK_GREY, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellBtn: { position: 'relative', padding: 4 },
   badge: { position: 'absolute', top: 0, right: 0, backgroundColor: WINE, borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontSize: 9, color: WHITE, fontWeight: '700' },
-  avatarBtn: { marginLeft: 4 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
-  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: DARK_GREY },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
-  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  greetingTitle: { fontSize: 22, fontWeight: '800', color: TEXT, marginBottom: 2 },
-  greetingSub: { fontSize: 13, color: DARK_GREY },
-  ownerBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  ownerBadgeText: { fontSize: 12, fontWeight: '600', color: WINE, marginLeft: 4 },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  miniStat: { flex: 1, backgroundColor: '#FDF0F3', borderRadius: 12, padding: 10, alignItems: 'center' },
-  miniStatValue: { fontSize: 12, fontWeight: '800', color: WINE, marginBottom: 2 },
-  miniStatLabel: { fontSize: 10, color: DARK_GREY, textAlign: 'center' },
-  eventCard: { backgroundColor: LIGHT_GREY, borderRadius: 16, overflow: 'hidden', marginBottom: 20, flexDirection: 'row', alignItems: 'center', padding: 12 },
-  eventImage: { width: 70, height: 70, borderRadius: 10 },
-  eventInfo: { flex: 1, paddingHorizontal: 12 },
-  myEventLabel: { fontSize: 11, fontWeight: '700', color: WINE, marginBottom: 2 },
-  eventTitle: { fontSize: 15, fontWeight: '800', color: TEXT, marginBottom: 4 },
-  eventMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 3 },
-  eventMetaText: { fontSize: 11, color: DARK_GREY, marginLeft: 2 },
-  metaDot: { fontSize: 11, color: DARK_GREY, marginHorizontal: 2 },
-  viewEventBtn: { borderWidth: 1.5, borderColor: WINE, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  viewEventText: { fontSize: 12, fontWeight: '600', color: WINE },
-  createEventPrompt: { backgroundColor: '#FDF0F3', borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20, gap: 8, borderWidth: 1.5, borderColor: WINE, borderStyle: 'dashed' },
-  createEventText: { fontSize: 15, fontWeight: '700', color: WINE },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  statCard: { flex: 1, backgroundColor: WINE_LIGHT, borderRadius: 12, padding: 12, alignItems: 'center' },
+  statValue: { fontSize: 12, fontWeight: '800', color: WINE, marginBottom: 2, textAlign: 'center' },
+  statLabel: { fontSize: 10, color: DARK_GREY, textAlign: 'center' },
   sectionTitle: { fontSize: 17, fontWeight: '800', color: TEXT, marginBottom: 12 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  statCard: { backgroundColor: WHITE, borderRadius: 14, padding: 14, width: '47%', borderWidth: 1, borderColor: MID_GREY },
-  statCardWide: { width: '100%' },
-  statIconBox: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statLabel: { fontSize: 12, color: DARK_GREY, marginBottom: 4 },
-  statValue: { fontSize: 20, fontWeight: '800', marginBottom: 2 },
-  statGoal: { fontSize: 11, color: DARK_GREY, marginBottom: 6 },
-  progressBar: { height: 6, backgroundColor: MID_GREY, borderRadius: 3, marginBottom: 4 },
-  progressFill: { height: 6, backgroundColor: WINE, borderRadius: 3 },
-  progressPercent: { fontSize: 11, fontWeight: '600', color: WINE },
-  statLinkText: { fontSize: 11, fontWeight: '600', color: WINE, marginTop: 4 },
-  untilText: { fontSize: 11, color: DARK_GREY, marginTop: 6 },
-  contributionsCard: { backgroundColor: WHITE, borderRadius: 14, borderWidth: 1, borderColor: MID_GREY, marginBottom: 20, overflow: 'hidden' },
-  contributionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
-  initialsAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  initialsText: { fontSize: 13, fontWeight: '700', color: WINE },
-  contributorInfo: { flex: 1 },
-  contributorName: { fontSize: 14, fontWeight: '600', color: TEXT },
-  contributorTime: { fontSize: 11, color: DARK_GREY, marginTop: 2 },
-  contributionRight: { alignItems: 'flex-end', gap: 6 },
-  contributionAmount: { fontSize: 13, fontWeight: '700', color: GREEN },
-  thankBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  thankBtnActive: { backgroundColor: WINE },
-  thankBtnText: { fontSize: 11, fontWeight: '600', color: WINE },
-  thankBtnTextActive: { color: WHITE },
+  eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderRadius: 16, padding: 12, marginBottom: 10, borderWidth: 1.5, borderColor: MID_GREY, gap: 12 },
+  eventCardSelected: { borderColor: WINE, backgroundColor: WINE_LIGHT },
+  eventImage: { width: 60, height: 60, borderRadius: 10 },
+  eventInfo: { flex: 1 },
+  eventTitle: { fontSize: 14, fontWeight: '800', color: TEXT, marginBottom: 2 },
+  eventType: { fontSize: 12, color: DARK_GREY, marginBottom: 6 },
+  progressBar: { height: 4, backgroundColor: MID_GREY, borderRadius: 2, marginBottom: 4 },
+  progressFill: { height: 4, backgroundColor: WINE, borderRadius: 2 },
+  progressText: { fontSize: 11, color: DARK_GREY },
+  viewBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  createPrompt: { backgroundColor: WINE_LIGHT, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20, gap: 8, borderWidth: 1.5, borderColor: WINE, borderStyle: 'dashed' },
+  createPromptText: { fontSize: 15, fontWeight: '700', color: WINE },
+  detailsCard: { backgroundColor: WHITE, borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: MID_GREY },
+  detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  detailItem: { width: '47%', backgroundColor: LIGHT_GREY, borderRadius: 12, padding: 12, alignItems: 'center' },
+  detailIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  detailLabel: { fontSize: 11, color: DARK_GREY, marginBottom: 4 },
+  detailValue: { fontSize: 14, fontWeight: '800' },
+  bigProgressBar: { height: 8, backgroundColor: MID_GREY, borderRadius: 4, marginBottom: 6 },
+  bigProgressFill: { height: 8, backgroundColor: WINE, borderRadius: 4 },
+  bigProgressText: { fontSize: 12, color: DARK_GREY, textAlign: 'right', fontWeight: '600' },
+  emptyContrib: { alignItems: 'center', paddingVertical: 32, gap: 8, marginBottom: 20 },
+  emptyContribText: { fontSize: 16, fontWeight: '700', color: TEXT },
+  emptyContribSub: { fontSize: 13, color: DARK_GREY, textAlign: 'center' },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
+  shareBtnText: { color: WHITE, fontSize: 14, fontWeight: '600' },
+  contribList: { backgroundColor: WHITE, borderRadius: 16, borderWidth: 1, borderColor: MID_GREY, marginBottom: 20, overflow: 'hidden' },
+  contribRow: { flexDirection: 'row', alignItems: 'flex-start', padding: 14, gap: 10 },
+  contribAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  contribInitials: { fontSize: 14, fontWeight: '800' },
+  contribInfo: { flex: 1 },
+  contribName: { fontSize: 14, fontWeight: '700', color: TEXT, marginBottom: 2 },
+  contribPhone: { fontSize: 12, color: DARK_GREY, marginBottom: 2 },
+  contribMessage: { fontSize: 12, color: DARK_GREY, fontStyle: 'italic', marginBottom: 2 },
+  contribTime: { fontSize: 11, color: DARK_GREY },
+  contribRight: { alignItems: 'flex-end', gap: 4 },
+  contribAmount: { fontSize: 13, fontWeight: '800' },
+  statusBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  statusText: { fontSize: 10, fontWeight: '700' },
   rowDivider: { height: 1, backgroundColor: LIGHT_GREY, marginHorizontal: 14 },
-  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  quickActionCard: { backgroundColor: WHITE, borderRadius: 14, borderWidth: 1, borderColor: MID_GREY, padding: 14, width: '47%', alignItems: 'center' },
-  quickActionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  quickActionLabel: { fontSize: 13, fontWeight: '700', color: TEXT, textAlign: 'center', marginBottom: 2 },
-  quickActionSub: { fontSize: 11, color: DARK_GREY, textAlign: 'center' },
+  quickGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  quickCard: { flex: 1, backgroundColor: WHITE, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: MID_GREY, gap: 8 },
+  quickIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  quickLabel: { fontSize: 11, fontWeight: '700', color: TEXT, textAlign: 'center' },
   tabBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: MID_GREY, paddingBottom: 4, paddingTop: 8 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 10, color: DARK_GREY, marginTop: 2 },
-  tabLabelActive: { color: WINE, fontWeight: '600' },
   tabCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabCenterBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: WINE, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
 });

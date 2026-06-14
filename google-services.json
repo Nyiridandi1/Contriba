@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "445164086766",
+    "project_id": "contriba-d42e9",
+    "storage_bucket": "contriba-d42e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445164086766:android:7838bf598facaa7489daff",
+        "android_client_info": {
+          "package_name": "com.contriba.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "445164086766-rv02rnhm98910pvu5c5sonasir59191q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.contriba.app",
+            "certificate_hash": "76df55c15c377ae768a1737be8520bf0568c50b5"
+          }
+        },
+        {
+          "client_id": "445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhz7npQY3CUoI9G25ZvXpoSPbe9BHTGis"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "445164086766-vsf1eab46e5oonfsqmdjcg3nic2g7l63.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.contriba.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

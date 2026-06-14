@@ -34,8 +34,6 @@ export default function HomeScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-
-      // Load user from AsyncStorage
       const userData = await AsyncStorage.getItem('user');
       if (userData) setUser(JSON.parse(userData));
 
@@ -96,7 +94,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.greeting}>{getGreeting()}, {getUserName()} 👋</Text>
             <Text style={styles.subGreeting}>What are we celebrating today?</Text>
           </View>
@@ -105,7 +103,10 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={26} color={BLACK} />
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={() => navigation.navigate('Profile')}
+            >
               {user?.avatar_url ? (
                 <Image source={{ uri: user.avatar_url }} style={styles.profileAvatar} />
               ) : (
@@ -291,13 +292,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
   scroll: { paddingHorizontal: 20, paddingTop: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  headerLeft: { flex: 1 },
   greeting: { fontSize: 22, fontWeight: '800', color: BLACK },
   subGreeting: { fontSize: 14, color: GRAY, marginTop: 4 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 8 },
   bellBtn: { position: 'relative', padding: 4 },
   bellDot: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: WINE },
-  profileAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: WINE },
-  profileAvatarPlaceholder: { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
+  avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: WINE, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  profileAvatar: { width: 40, height: 40, borderRadius: 20 },
+  profileAvatarPlaceholder: { backgroundColor: WINE, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: WINE_LIGHT, borderRadius: 14, padding: 12, alignItems: 'center' },
