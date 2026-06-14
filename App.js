@@ -18,6 +18,7 @@ import WalletScreen from "./src/screens/WalletScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import ShareEventScreen from "./src/screens/ShareEventScreen";
 import LiveFeedScreen from "./src/screens/LiveFeedScreen";
+import SettingsScreen from "./src/screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -42,6 +43,7 @@ export default function App() {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="ShareEvent" component={ShareEventScreen} />
         <Stack.Screen name="LiveFeed" component={LiveFeedScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

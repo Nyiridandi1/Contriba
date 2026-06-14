@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, SafeAreaView, FlatList, Image, Dimensions, ActivityIndicator,
+  StatusBar, SafeAreaView, FlatList, Image, Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -95,7 +95,9 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>{getGreeting()}, {getUserName()} 👋</Text>
+            <Text style={styles.greeting} numberOfLines={1} adjustsFontSizeToFit>
+              {getGreeting()}, {getUserName()} 👋
+            </Text>
             <Text style={styles.subGreeting}>What are we celebrating today?</Text>
           </View>
           <View style={styles.headerRight}>
@@ -290,12 +292,15 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
-  scroll: { paddingHorizontal: 20, paddingTop: 16 },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 32 : 16,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  headerLeft: { flex: 1 },
-  greeting: { fontSize: 22, fontWeight: '800', color: BLACK },
+  headerLeft: { flex: 1, marginRight: 8 },
+  greeting: { fontSize: 20, fontWeight: '800', color: BLACK },
   subGreeting: { fontSize: 14, color: GRAY, marginTop: 4 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 8 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellBtn: { position: 'relative', padding: 4 },
   bellDot: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: WINE },
   avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: WINE, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },

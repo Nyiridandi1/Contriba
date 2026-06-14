@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, StatusBar, Alert, TextInput, Modal, ActivityIndicator,
+  Image, StatusBar, Alert, TextInput, Modal, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,15 +16,6 @@ const MID_GREY = '#E0E0E0';
 const DARK_GREY = '#666666';
 const TEXT = '#1A1A1A';
 
-const SETTINGS_ITEMS = [
-  { id: '1', icon: 'person-outline',             label: 'Personal Information', sub: 'Update your personal details'           },
-  { id: '2', icon: 'shield-checkmark-outline',   label: 'Security',             sub: 'Change password, PIN & security settings' },
-  { id: '3', icon: 'card-outline',               label: 'Payment Methods',      sub: 'Manage your payment options'            },
-  { id: '4', icon: 'notifications-outline',      label: 'Notifications',        sub: 'Manage your notification preferences'   },
-  { id: '5', icon: 'help-circle-outline',        label: 'Help & Support',       sub: 'Get help and contact support'           },
-  { id: '6', icon: 'information-circle-outline', label: 'About Contriba',       sub: 'App version 1.0.0'                      },
-];
-
 export default function ProfileScreen({ navigation }) {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [wallet, setWallet]                 = useState(null);
@@ -36,7 +27,9 @@ export default function ProfileScreen({ navigation }) {
 
   useEffect(() => {
     loadProfile();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', loadProfile);
+    return unsubscribe;
+  }, [navigation]);
 
   const loadProfile = async () => {
     try {
@@ -52,7 +45,6 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  // ── Pick & update profile photo ──
   const handlePickPhoto = async () => {
     Alert.alert(
       'Profile Photo',
@@ -62,37 +54,21 @@ export default function ProfileScreen({ navigation }) {
           text: 'Choose from Library',
           onPress: async () => {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!permission.granted) {
-              Alert.alert('Permission needed', 'Please allow access to your photo library.');
-              return;
-            }
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
+              allowsEditing: true, aspect: [1, 1], quality: 0.8,
             });
-            if (!result.canceled) {
-              await updateProfilePhoto(result.assets[0].uri);
-            }
+            if (!result.canceled) await updateProfilePhoto(result.assets[0].uri);
           },
         },
         {
           text: 'Take Photo',
           onPress: async () => {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
-            if (!permission.granted) {
-              Alert.alert('Permission needed', 'Please allow camera access.');
-              return;
-            }
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-            if (!result.canceled) {
-              await updateProfilePhoto(result.assets[0].uri);
-            }
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
+            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+            if (!result.canceled) await updateProfilePhoto(result.assets[0].uri);
           },
         },
         { text: 'Cancel', style: 'cancel' },
@@ -121,8 +97,7 @@ export default function ProfileScreen({ navigation }) {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Log Out',
-          style: 'destructive',
+          text: 'Log Out', style: 'destructive',
           onPress: async () => {
             await removeToken();
             await AsyncStorage.removeItem('user');
@@ -151,8 +126,9 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="arrow-back" size={22} color={TEXT} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity style={styles.headerBtn} onPress={loadProfile}>
-          <Ionicons name="refresh-outline" size={22} color={TEXT} />
+        {/* SETTINGS BUTTON */}
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="settings-outline" size={22} color={TEXT} />
         </TouchableOpacity>
       </View>
 
@@ -174,9 +150,7 @@ export default function ProfileScreen({ navigation }) {
                 <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitials}>
-                    {getInitials(user?.name, user?.phone)}
-                  </Text>
+                  <Text style={styles.avatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
                 </View>
               )}
               <View style={styles.cameraBtn}>
@@ -191,10 +165,7 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.changePhotoText}>Tap photo to change</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.editBtn} onPress={() => {
-              setEditName(user?.name || '');
-              setEditModal(true);
-            }}>
+            <TouchableOpacity style={styles.editBtn} onPress={() => { setEditName(user?.name || ''); setEditModal(true); }}>
               <Ionicons name="pencil-outline" size={14} color={WINE} />
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
@@ -219,9 +190,7 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name="wallet" size={40} color="rgba(255,255,255,0.4)" />
               </View>
             </View>
-
             <View style={styles.walletDivider} />
-
             <View style={styles.walletActions}>
               <TouchableOpacity style={styles.walletAction} onPress={() => navigation.navigate('Wallet')}>
                 <View style={styles.walletActionIcon}>
@@ -276,14 +245,20 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </View>
 
-          {/* ACCOUNT & SETTINGS */}
+          {/* QUICK SETTINGS */}
           <Text style={styles.sectionTitle}>Account & Settings</Text>
           <View style={styles.settingsCard}>
-            {SETTINGS_ITEMS.map((item, index) => (
-              <View key={item.id}>
-                <TouchableOpacity style={styles.settingsRow} activeOpacity={0.7}>
-                  <View style={styles.settingsIconBox}>
-                    <Ionicons name={item.icon} size={20} color={WINE} />
+            {[
+              { icon: 'settings-outline', label: 'Settings', sub: 'Notifications, language, security', screen: 'Settings', iconBg: '#FFF3E0', iconColor: '#F59E0B' },
+              { icon: 'wallet-outline', label: 'My Wallet', sub: 'View balance & transactions', screen: 'Wallet', iconBg: '#EDE7F6', iconColor: '#7C3AED' },
+              { icon: 'notifications-outline', label: 'Notifications', sub: 'Manage your alerts', screen: 'Notifications', iconBg: '#E3F2FD', iconColor: '#1877F2' },
+              { icon: 'shield-checkmark-outline', label: 'Privacy & Security', sub: 'OTP-based authentication', screen: 'Settings', iconBg: '#E8F5E9', iconColor: '#1A9E4A' },
+              { icon: 'help-circle-outline', label: 'Help & Support', sub: 'Get help and contact us', screen: 'Settings', iconBg: '#FFE4E9', iconColor: WINE },
+            ].map((item, index, arr) => (
+              <View key={item.label}>
+                <TouchableOpacity style={styles.settingsRow} activeOpacity={0.7} onPress={() => navigation.navigate(item.screen)}>
+                  <View style={[styles.settingsIconBox, { backgroundColor: item.iconBg }]}>
+                    <Ionicons name={item.icon} size={20} color={item.iconColor} />
                   </View>
                   <View style={styles.settingsInfo}>
                     <Text style={styles.settingsLabel}>{item.label}</Text>
@@ -291,7 +266,7 @@ export default function ProfileScreen({ navigation }) {
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={DARK_GREY} />
                 </TouchableOpacity>
-                {index < SETTINGS_ITEMS.length - 1 && <View style={styles.rowDivider} />}
+                {index < arr.length - 1 && <View style={styles.rowDivider} />}
               </View>
             ))}
           </View>
@@ -364,7 +339,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: WHITE, borderBottomWidth: 1, borderBottomColor: LIGHT_GREY },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: LIGHT_GREY, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: TEXT },
-  headerBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: LIGHT_GREY, alignItems: 'center', justifyContent: 'center' },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
   profileCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, backgroundColor: LIGHT_GREY, borderRadius: 16, padding: 14 },
@@ -403,7 +378,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '800', color: TEXT, marginBottom: 12 },
   settingsCard: { backgroundColor: WHITE, borderRadius: 16, borderWidth: 1, borderColor: MID_GREY, marginBottom: 16, overflow: 'hidden' },
   settingsRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
-  settingsIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  settingsIconBox: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   settingsInfo: { flex: 1 },
   settingsLabel: { fontSize: 14, fontWeight: '600', color: TEXT },
   settingsSub: { fontSize: 12, color: DARK_GREY, marginTop: 2 },
