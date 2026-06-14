@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import LoginScreen from "./src/screens/LoginScreen";
@@ -21,8 +26,101 @@ import LiveFeedScreen from "./src/screens/LiveFeedScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
+
+// How notifications appear when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+// Register for push notifications
+async function registerForPushNotifications() {
+  if (!Device.isDevice) {
+    console.log('Push notifications only work on physical devices');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    console.log('Push notification permission denied');
+    return null;
+  }
+
+  const token = (await Notifications.getExpoPushTokenAsync({
+    projectId: 'd6b09666-6978-45fd-8cc4-a6e71af3b5a1',
+  })).data;
+
+  console.log('Push token:', token);
+
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#7A001F',
+    });
+  }
+
+  return token;
+}
+
+// Save push token to backend
+async function savePushToken(token) {
+  try {
+    const authToken = await AsyncStorage.getItem('token');
+    if (!authToken) return;
+
+    await fetch(`${BASE_URL}/api/auth/update-push-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ push_token: token }),
+    });
+    console.log('Push token saved to backend!');
+  } catch (error) {
+    console.error('Save push token error:', error);
+  }
+}
 
 export default function App() {
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  useEffect(() => {
+    // Register for push notifications
+    registerForPushNotifications().then(token => {
+      if (token) savePushToken(token);
+    });
+
+    // Listen for notifications when app is open
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    // Listen for when user taps notification
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification tapped:', response);
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener.current);
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
