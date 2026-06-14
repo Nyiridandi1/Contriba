@@ -1,6 +1,6 @@
 // src/screens/LoginScreen.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   StatusBar, SafeAreaView, Image, ActivityIndicator, Alert, Platform, ScrollView,
@@ -9,6 +9,7 @@ import CountryPicker from 'react-native-country-picker-modal';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session/providers/google';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveToken } from '../api';
 
@@ -23,6 +24,15 @@ const WINE_LIGHT = '#F9EEF1';
 
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
+// Configure Google Sign-In for Android
+if (Platform.OS === 'android') {
+  GoogleSignin.configure({
+    webClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
+    androidClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+  });
+}
+
 export default function LoginScreen({ navigation }) {
   const [countryCode, setCountryCode] = useState('RW');
   const [callingCode, setCallingCode] = useState('250');
@@ -32,6 +42,7 @@ export default function LoginScreen({ navigation }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [otpInfo, setOtpInfo]         = useState(null);
 
+  // iOS Google Auth
   const [request, response, promptAsync] = AuthSession.useAuthRequest({
     androidClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
     iosClientId: '445164086766-vsf1eab46e5oonfsqmdjcg3nic2g7l63.apps.googleusercontent.com',
@@ -39,7 +50,7 @@ export default function LoginScreen({ navigation }) {
     scopes: ['profile', 'email'],
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (response?.type === 'success') {
       handleGoogleResponse(response.authentication.accessToken);
     }
@@ -53,31 +64,50 @@ export default function LoginScreen({ navigation }) {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const userInfo = await userInfoResponse.json();
-
-      const result = await fetch(`${BASE_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userInfo.email,
-          name: userInfo.name,
-          photo: userInfo.picture,
-          google_id: userInfo.id,
-        }),
-      });
-
-      const data = await result.json();
-
-      if (data.success) {
-        await saveToken(data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        navigation.replace('Home');
-      } else {
-        Alert.alert('Error', data.message || 'Google login failed');
-      }
+      await sendGoogleToBackend(userInfo.email, userInfo.name, userInfo.picture, userInfo.id);
     } catch (error) {
       Alert.alert('Error', 'Google sign in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAndroidGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const { user } = userInfo;
+      await sendGoogleToBackend(user.email, user.name, user.photo, user.id);
+    } catch (error) {
+      console.error('Android Google error:', error);
+      Alert.alert('Error', 'Google sign in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const sendGoogleToBackend = async (email, name, photo, google_id) => {
+    const result = await fetch(`${BASE_URL}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, photo, google_id }),
+    });
+    const data = await result.json();
+    if (data.success) {
+      await saveToken(data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      navigation.replace('Home');
+    } else {
+      Alert.alert('Error', data.message || 'Google login failed');
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    if (Platform.OS === 'android') {
+      handleAndroidGoogleLogin();
+    } else {
+      promptAsync();
     }
   };
 
@@ -92,16 +122,12 @@ export default function LoginScreen({ navigation }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, is_login: true }),
       });
-
       const result = await response.json();
-
       if (result.success) {
         if (result.email_sent) {
           setOtpInfo(`OTP sent to ${result.email_hint || 'your email'} 📧`);
         }
-        setTimeout(() => {
-          navigation.navigate('OTP', { phone: fullPhone });
-        }, 1500);
+        setTimeout(() => navigation.navigate('OTP', { phone: fullPhone }), 1500);
       } else {
         Alert.alert('Error', result.message || 'Failed to send OTP');
       }
@@ -118,19 +144,15 @@ export default function LoginScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        {/* Back arrow */}
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={BLACK} />
         </TouchableOpacity>
 
-        {/* Logo */}
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
 
-        {/* Title */}
         <Text style={styles.title}>Welcome back 👋</Text>
         <Text style={styles.subtitle}>Enter your phone number and we'll{'\n'}send your OTP to your registered email!</Text>
 
-        {/* Phone number */}
         <Text style={styles.label}>Phone number</Text>
         <View style={styles.phoneRow}>
           <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
@@ -162,7 +184,6 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        {/* OTP sent info */}
         {otpInfo && (
           <View style={styles.otpInfoBox}>
             <Ionicons name="mail-outline" size={16} color={WINE} />
@@ -170,7 +191,6 @@ export default function LoginScreen({ navigation }) {
           </View>
         )}
 
-        {/* Continue button */}
         <TouchableOpacity
           style={[styles.continueBtn, (phone.length < 8 || loading) && styles.continueBtnDisabled]}
           onPress={handleContinue}
@@ -187,19 +207,18 @@ export default function LoginScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
-        {/* OR divider */}
         <View style={styles.orRow}>
           <View style={styles.orLine} />
           <Text style={styles.orText}>or</Text>
           <View style={styles.orLine} />
         </View>
 
-        {/* Google button */}
+        {/* Google button - works on both iOS and Android */}
         <TouchableOpacity
           style={styles.socialBtn}
           activeOpacity={0.8}
-          onPress={() => promptAsync()}
-          disabled={googleLoading || !request}
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}
         >
           {googleLoading ? (
             <ActivityIndicator color={BLACK} size="small" />
@@ -219,7 +238,6 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Terms */}
         <View style={styles.termsRow}>
           <Text style={styles.shieldIcon}>🛡️</Text>
           <Text style={styles.termsText}>
@@ -230,7 +248,6 @@ export default function LoginScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bottom */}
         <View style={styles.bottomRow}>
           <Text style={styles.bottomText}>Don't have an account?</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
