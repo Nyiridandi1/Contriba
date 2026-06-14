@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { verifyOTP, sendOTP, saveToken } from '../api';
+import { sendOTP, saveToken } from '../api';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +17,8 @@ const BLACK = '#1A1A1A';
 const GRAY  = '#888888';
 const LIGHT = '#F5F5F5';
 
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
+
 const KEYS = [
   ['1', '2', '3'],
   ['4', '5', '6'],
@@ -25,7 +27,10 @@ const KEYS = [
 ];
 
 export default function OTPScreen({ navigation, route }) {
-  const phone = route?.params?.phone || '+250 781 234 567';
+  const phone     = route?.params?.phone || '';
+  const userName  = route?.params?.name  || null;
+  const userEmail = route?.params?.email || null;
+
   const [code, setCode]               = useState(['', '', '', '', '', '']);
   const [activeIndex, setActiveIndex] = useState(0);
   const [timer, setTimer]             = useState(30);
@@ -47,14 +52,31 @@ export default function OTPScreen({ navigation, route }) {
   const handleVerify = async (otpCode) => {
     setLoading(true);
     try {
-      const result = await verifyOTP(phone, otpCode);
+      // Call backend directly with name and email
+      const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          otp: otpCode,
+          name: userName,
+          email: userEmail,
+        }),
+      });
+
+      const result = await response.json();
 
       if (result.success) {
-        // Save JWT token
         await saveToken(result.token);
-        // Save user data to AsyncStorage
-        await AsyncStorage.setItem('user', JSON.stringify(result.user));
-        // Navigate to Home
+
+        // Save user with name
+        const userData = {
+          ...result.user,
+          name: result.user.name || userName,
+          email: result.user.email || userEmail,
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+
         navigation.replace('Home');
       } else {
         Alert.alert('Invalid OTP', result.message || 'Please try again');
@@ -129,6 +151,10 @@ export default function OTPScreen({ navigation, route }) {
           <Text style={styles.phoneText}>{phone}</Text>
         </Text>
 
+        {userName && (
+          <Text style={styles.welcomeText}>Welcome, {userName}! 👋</Text>
+        )}
+
         <View style={styles.otpRow}>
           {code.map((digit, i) => (
             <View
@@ -196,8 +222,9 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
   backBtn: { marginBottom: 32 },
   title: { fontSize: 30, fontWeight: '800', color: BLACK, marginBottom: 12 },
-  subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 36 },
+  subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 12 },
   phoneText: { color: BLACK, fontWeight: '700' },
+  welcomeText: { fontSize: 16, fontWeight: '700', color: WINE, marginBottom: 24 },
   otpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32, gap: 8 },
   otpBox: { width: BOX_SIZE, height: BOX_SIZE + 8, borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: WHITE },
   otpBoxActive: { borderColor: WINE, borderWidth: 2 },

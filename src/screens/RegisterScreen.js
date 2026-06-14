@@ -1,9 +1,10 @@
-// src/screens/LoginScreen.js
+// src/screens/RegisterScreen.js
 
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  StatusBar, SafeAreaView, Image, ActivityIndicator, Alert, Platform, ScrollView,
+  StatusBar, SafeAreaView, Image, ActivityIndicator, Alert,
+  ScrollView, Platform,
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +24,8 @@ const WINE_LIGHT = '#F9EEF1';
 
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
-export default function LoginScreen({ navigation }) {
+export default function RegisterScreen({ navigation }) {
+  const [name, setName]               = useState('');
   const [countryCode, setCountryCode] = useState('RW');
   const [callingCode, setCallingCode] = useState('250');
   const [showPicker, setShowPicker]   = useState(false);
@@ -72,23 +74,26 @@ export default function LoginScreen({ navigation }) {
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
         navigation.replace('Home');
       } else {
-        Alert.alert('Error', data.message || 'Google login failed');
+        Alert.alert('Error', data.message || 'Google signup failed');
       }
     } catch (error) {
-      Alert.alert('Error', 'Google sign in failed. Please try again.');
+      Alert.alert('Error', 'Google sign up failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
   };
 
   const handleContinue = async () => {
-    if (phone.length < 8) return;
+    if (!name) { Alert.alert('Error', 'Please enter your full name'); return; }
+    if (phone.length < 8) { Alert.alert('Error', 'Please enter a valid phone number'); return; }
+
     const fullPhone = `+${callingCode}${phone}`;
     setLoading(true);
     try {
-      const result = await sendOTP(fullPhone, email || null);
+      // Send OTP with email and name
+      const result = await sendOTP(fullPhone, email, name);
       if (result.success) {
-        navigation.navigate('OTP', { phone: fullPhone, email });
+        navigation.navigate('OTP', { phone: fullPhone, name, email });
       } else {
         Alert.alert('Error', result.message || 'Failed to send OTP');
       }
@@ -114,11 +119,24 @@ export default function LoginScreen({ navigation }) {
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
 
         {/* Title */}
-        <Text style={styles.title}>Welcome back 👋</Text>
-        <Text style={styles.subtitle}>Login to your Contriba account</Text>
+        <Text style={styles.title}>Create Account 🎉</Text>
+        <Text style={styles.subtitle}>Join Contriba and start contributing{'\n'}to events you love!</Text>
 
-        {/* Phone number */}
-        <Text style={styles.label}>Phone number</Text>
+        {/* Full Name */}
+        <Text style={styles.label}>Full Name <Text style={styles.required}>*</Text></Text>
+        <View style={styles.inputRow}>
+          <Ionicons name="person-outline" size={20} color={GRAY} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your full name"
+            placeholderTextColor="#BBBBBB"
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+
+        {/* Phone Number */}
+        <Text style={styles.label}>Phone Number <Text style={styles.required}>*</Text></Text>
         <View style={styles.phoneRow}>
           <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
             <CountryPicker
@@ -150,7 +168,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         {/* Email */}
-        <Text style={styles.label}>Email <Text style={styles.emailHint}>— OTP will be sent here</Text></Text>
+        <Text style={styles.label}>Email <Text style={styles.emailRequired}>* OTP will be sent here</Text></Text>
         <View style={styles.inputRow}>
           <Ionicons name="mail-outline" size={20} color={GRAY} style={styles.inputIcon} />
           <TextInput
@@ -166,16 +184,16 @@ export default function LoginScreen({ navigation }) {
 
         {/* Continue button */}
         <TouchableOpacity
-          style={[styles.continueBtn, (phone.length < 8 || loading) && styles.continueBtnDisabled]}
+          style={[styles.continueBtn, (!name || phone.length < 8 || loading) && styles.continueBtnDisabled]}
           onPress={handleContinue}
-          disabled={loading || phone.length < 8}
+          disabled={loading || !name || phone.length < 8}
           activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <>
-              <Text style={styles.continueBtnText}>Continue with Phone</Text>
+              <Text style={styles.continueBtnText}>Create Account</Text>
               <Ionicons name="arrow-forward" size={20} color={WHITE} />
             </>
           )}
@@ -184,7 +202,7 @@ export default function LoginScreen({ navigation }) {
         {/* OR divider */}
         <View style={styles.orRow}>
           <View style={styles.orLine} />
-          <Text style={styles.orText}>or</Text>
+          <Text style={styles.orText}>or sign up with</Text>
           <View style={styles.orLine} />
         </View>
 
@@ -224,11 +242,11 @@ export default function LoginScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bottom */}
+        {/* Already have account */}
         <View style={styles.bottomRow}>
-          <Text style={styles.bottomText}>Don't have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.bottomLink}>  Sign Up →</Text>
+          <Text style={styles.bottomText}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.bottomLink}>  Login →</Text>
           </TouchableOpacity>
         </View>
 
@@ -241,26 +259,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
-  logo: { width: 80, height: 80, marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', color: BLACK, marginBottom: 8 },
+  logo: { width: 70, height: 70, marginBottom: 16 },
+  title: { fontSize: 30, fontWeight: '800', color: BLACK, marginBottom: 8 },
   subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 10 },
-  emailHint: { fontSize: 12, fontWeight: '400', color: WINE },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 16, backgroundColor: WHITE },
+  required: { color: WINE },
+  emailRequired: { fontSize: 12, fontWeight: '400', color: WINE },
+  optional: { fontSize: 13, fontWeight: '400', color: GRAY },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20, backgroundColor: WHITE },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: BLACK },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20, backgroundColor: WHITE },
   countryBox: { flexDirection: 'row', alignItems: 'center' },
   callingCode: { fontSize: 15, fontWeight: '600', color: BLACK, marginLeft: 4 },
   dropArrow: { fontSize: 12, color: GRAY },
   phoneDivider: { width: 1, height: 28, backgroundColor: BORDER, marginHorizontal: 12 },
   phoneInput: { flex: 1, fontSize: 16, color: BLACK },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20, backgroundColor: WHITE },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, color: BLACK },
   continueBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 20, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   continueBtnDisabled: { opacity: 0.45 },
   continueBtnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
   orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
   orLine: { flex: 1, height: 1, backgroundColor: BORDER },
-  orText: { fontSize: 14, color: GRAY },
+  orText: { fontSize: 13, color: GRAY },
   socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 56, marginBottom: 12, gap: 14, backgroundColor: WHITE },
   socialIcon: { width: 32, height: 32 },
   socialBtnText: { fontSize: 15, fontWeight: '600', color: BLACK },
