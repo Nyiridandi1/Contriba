@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, SafeAreaView, Image, Dimensions, ActivityIndicator,
-  Platform, Alert, Modal, TextInput, FlatList,
+  Platform, Alert, Modal, TextInput, FlatList, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +32,14 @@ export default function EventPageScreen({ navigation, route }) {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [showControls, setShowControls] = useState(true);
 
+  // ✅ Comments state
+  const [comments, setComments]           = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText]     = useState('');
+  const [commenterName, setCommenterName] = useState('');
+  const [isAnonymous, setIsAnonymous]     = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+
   const [editTitle, setEditTitle]               = useState('');
   const [editLocation, setEditLocation]         = useState('');
   const [editDescription, setEditDescription]   = useState('');
@@ -41,12 +49,19 @@ export default function EventPageScreen({ navigation, route }) {
 
   useEffect(() => {
     loadUser();
-    if (eventParam?.id) loadEvent();
+    if (eventParam?.id) {
+      loadEvent();
+      loadComments();
+    }
   }, []);
 
   const loadUser = async () => {
     const userData = await AsyncStorage.getItem('user');
-    if (userData) setCurrentUser(JSON.parse(userData));
+    if (userData) {
+      const user = JSON.parse(userData);
+      setCurrentUser(user);
+      setCommenterName(user.name || '');
+    }
   };
 
   const loadEvent = async () => {
@@ -59,6 +74,60 @@ export default function EventPageScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ Load comments
+  const loadComments = async () => {
+    try {
+      setCommentsLoading(true);
+      const response = await fetch(`${BASE_URL}/api/comments/${eventParam.id}`);
+      const result = await response.json();
+      if (result.success) setComments(result.comments || []);
+    } catch (error) {
+      console.error('Load comments error:', error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  // ✅ Send comment
+  const handleSendComment = async () => {
+    if (!commentText.trim()) return;
+    setSendingComment(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/comments/${event.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: commentText.trim(),
+          name: isAnonymous ? 'Anonymous' : (commenterName || 'Guest'),
+          is_anonymous: isAnonymous,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setComments([result.comment, ...comments]);
+        setCommentText('');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send comment');
+    } finally {
+      setSendingComment(false);
+    }
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
   };
 
   const isOwner = currentUser?.id === event?.owner_id;
@@ -96,32 +165,17 @@ export default function EventPageScreen({ navigation, route }) {
       const token = await getToken();
       const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          title: editTitle,
-          location: editLocation,
-          description: editDescription,
+          title: editTitle, location: editLocation, description: editDescription,
           goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0,
-          owner_phone: editOwnerPhone,
-          owner_payment_method: editPaymentMethod,
-          type: event.type,
-          date: event.date,
+          owner_phone: editOwnerPhone, owner_payment_method: editPaymentMethod,
+          type: event.type, date: event.date,
         }),
       });
       const result = await response.json();
       if (result.success) {
-        setEvent({
-          ...event,
-          title: editTitle,
-          location: editLocation,
-          description: editDescription,
-          goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0,
-          owner_phone: editOwnerPhone,
-          owner_payment_method: editPaymentMethod,
-        });
+        setEvent({ ...event, title: editTitle, location: editLocation, description: editDescription, goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0, owner_phone: editOwnerPhone, owner_payment_method: editPaymentMethod });
         setEditModal(false);
         Alert.alert('Success! ✅', 'Event updated successfully!');
       } else {
@@ -135,9 +189,7 @@ export default function EventPageScreen({ navigation, route }) {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Event',
-      `Are you sure you want to delete "${event?.title}"? This cannot be undone.`,
+    Alert.alert('Delete Event', `Are you sure you want to delete "${event?.title}"? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -170,226 +222,295 @@ export default function EventPageScreen({ navigation, route }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* ✅ Swipeable Photo Carousel */}
-        <View style={styles.heroWrapper}>
+          {/* ✅ Swipeable Photo Carousel */}
+          <View style={styles.heroWrapper}>
+            <View style={{ width, height: height * 0.48 }}>
+              <FlatList
+                data={photos}
+                keyExtractor={(_, index) => index.toString()}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / width);
+                  setActivePhotoIndex(index);
+                }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setShowControls(!showControls)}
+                    style={{ width, height: height * 0.48 }}
+                  >
+                    {item ? (
+                      <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
+                    ) : (
+                      <Image source={require('../../assets/couple.png')} style={styles.heroImage} resizeMode="cover" />
+                    )}
+                    <View style={styles.heroOverlay} />
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
 
-          {/* ✅ FlatList without TouchableOpacity wrapper */}
-          <View style={{ width, height: height * 0.48 }}>
-            <FlatList
-              data={photos}
-              keyExtractor={(_, index) => index.toString()}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / width);
-                setActivePhotoIndex(index);
-              }}
-              renderItem={({ item }) => (
-                // ✅ TouchableOpacity INSIDE renderItem for tap to hide
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={() => setShowControls(!showControls)}
-                  style={{ width, height: height * 0.48 }}
-                >
-                  {item ? (
-                    <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
-                  ) : (
-                    <Image source={require('../../assets/couple.png')} style={styles.heroImage} resizeMode="cover" />
-                  )}
-                  <View style={styles.heroOverlay} />
-                </TouchableOpacity>
-              )}
-            />
+            {photos.length > 1 && (
+              <View style={styles.dotsContainer}>
+                {photos.map((_, index) => (
+                  <View key={index} style={[styles.dot, index === activePhotoIndex ? styles.dotActive : styles.dotInactive]} />
+                ))}
+              </View>
+            )}
+
+            {showControls && (
+              <>
+                {photos.length > 1 && (
+                  <View style={styles.photoCountBadge}>
+                    <Ionicons name="images-outline" size={12} color={WHITE} />
+                    <Text style={styles.photoCountText}>{activePhotoIndex + 1}/{photos.length}</Text>
+                  </View>
+                )}
+                <View style={styles.heroTop}>
+                  <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={20} color={BLACK} />
+                  </TouchableOpacity>
+                  <View style={styles.heroTopRight}>
+                    {isOwner && (
+                      <>
+                        <TouchableOpacity style={styles.heroBtn} onPress={handleEdit}>
+                          <Ionicons name="pencil-outline" size={20} color={BLACK} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#FFE4E4' }]} onPress={handleDelete}>
+                          <Ionicons name="trash-outline" size={20} color={WINE} />
+                        </TouchableOpacity>
+                      </>
+                    )}
+                    <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('ShareEvent', { event })}>
+                      <Ionicons name="share-social-outline" size={20} color={BLACK} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.typeBadge}>
+                  <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : 'calendar'} size={12} color={WHITE} />
+                  <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
+                </View>
+                {isOwner && (
+                  <View style={styles.ownerBadge}>
+                    <Ionicons name="ribbon-outline" size={12} color={WHITE} />
+                    <Text style={styles.ownerBadgeText}>Your Event</Text>
+                  </View>
+                )}
+                <View style={styles.heroInfo}>
+                  <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
+                  <View style={styles.heroMetaRow}>
+                    <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.heroDate}>{event?.date || ''}</Text>
+                    {event?.location && (
+                      <>
+                        <Text style={styles.heroDot}>•</Text>
+                        <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
+                        <Text style={styles.heroDate}>{event.location}</Text>
+                      </>
+                    )}
+                  </View>
+                  {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
+                </View>
+                <View style={styles.tapHint}>
+                  <Text style={styles.tapHintText}>Tap to hide • Swipe for photos</Text>
+                </View>
+              </>
+            )}
+
+            {!showControls && (
+              <TouchableOpacity style={[styles.heroBtn, styles.backBtnAlways]} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={20} color={BLACK} />
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* ✅ Dot Indicators - always visible */}
-          {photos.length > 1 && (
-            <View style={styles.dotsContainer}>
-              {photos.map((_, index) => (
-                <View
-                  key={index}
-                  style={[styles.dot, index === activePhotoIndex ? styles.dotActive : styles.dotInactive]}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* ✅ Controls - show/hide on tap */}
-          {showControls && (
-            <>
-              {/* Photo count badge */}
-              {photos.length > 1 && (
-                <View style={styles.photoCountBadge}>
-                  <Ionicons name="images-outline" size={12} color={WHITE} />
-                  <Text style={styles.photoCountText}>{activePhotoIndex + 1}/{photos.length}</Text>
-                </View>
-              )}
-
-              {/* Top buttons */}
-              <View style={styles.heroTop}>
-                <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.goBack()}>
-                  <Ionicons name="arrow-back" size={20} color={BLACK} />
-                </TouchableOpacity>
-                <View style={styles.heroTopRight}>
-                  {isOwner && (
-                    <>
-                      <TouchableOpacity style={styles.heroBtn} onPress={handleEdit}>
-                        <Ionicons name="pencil-outline" size={20} color={BLACK} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#FFE4E4' }]} onPress={handleDelete}>
-                        <Ionicons name="trash-outline" size={20} color={WINE} />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                  <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('ShareEvent', { event })}>
-                    <Ionicons name="share-social-outline" size={20} color={BLACK} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Badges */}
-              <View style={styles.typeBadge}>
-                <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : 'calendar'} size={12} color={WHITE} />
-                <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
-              </View>
-              {isOwner && (
-                <View style={styles.ownerBadge}>
-                  <Ionicons name="ribbon-outline" size={12} color={WHITE} />
-                  <Text style={styles.ownerBadgeText}>Your Event</Text>
-                </View>
-              )}
-
-              {/* Hero info */}
-              <View style={styles.heroInfo}>
-                <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
-                <View style={styles.heroMetaRow}>
-                  <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
-                  <Text style={styles.heroDate}>{event?.date || ''}</Text>
-                  {event?.location && (
-                    <>
-                      <Text style={styles.heroDot}>•</Text>
-                      <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
-                      <Text style={styles.heroDate}>{event.location}</Text>
-                    </>
-                  )}
-                </View>
-                {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
-              </View>
-
-              {/* Tap hint */}
-              <View style={styles.tapHint}>
-                <Text style={styles.tapHintText}>Tap to hide • Swipe for photos</Text>
-              </View>
-            </>
-          )}
-
-          {/* ✅ Always show back button */}
-          {!showControls && (
-            <TouchableOpacity
-              style={[styles.heroBtn, styles.backBtnAlways]}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={20} color={BLACK} />
-            </TouchableOpacity>
-          )}
-
-        </View>
-
-        {/* Content */}
-        <View style={styles.content}>
-          {loading ? (
-            <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
-          ) : (
-            <>
-              {isOwner && (
-                <View style={styles.ownerActions}>
-                  <TouchableOpacity style={styles.ownerActionBtn} onPress={handleEdit}>
-                    <Ionicons name="pencil-outline" size={18} color={WINE} />
-                    <Text style={styles.ownerActionText}>Edit Event</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.ownerActionBtn, styles.ownerDeleteBtn]} onPress={handleDelete}>
-                    <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-                    <Text style={[styles.ownerActionText, { color: '#FF3B30' }]}>Delete Event</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <View style={styles.amountSection}>
-                <View style={styles.amountRow}>
-                  <View>
-                    <Text style={styles.amountRaised}>{formatAmount(event?.total_raised)}</Text>
-                    <Text style={styles.amountGoal}>raised of {formatAmount(event?.goal_amount)} goal</Text>
+          {/* Content */}
+          <View style={styles.content}>
+            {loading ? (
+              <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
+            ) : (
+              <>
+                {isOwner && (
+                  <View style={styles.ownerActions}>
+                    <TouchableOpacity style={styles.ownerActionBtn} onPress={handleEdit}>
+                      <Ionicons name="pencil-outline" size={18} color={WINE} />
+                      <Text style={styles.ownerActionText}>Edit Event</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.ownerActionBtn, styles.ownerDeleteBtn]} onPress={handleDelete}>
+                      <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                      <Text style={[styles.ownerActionText, { color: '#FF3B30' }]}>Delete Event</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.percentBadge}>
-                    <Text style={styles.percentText}>{percent}%</Text>
-                  </View>
-                </View>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${percent}%` }]} />
-                </View>
-              </View>
+                )}
 
-              <TouchableOpacity style={styles.liveFeedBtn} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
-                <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
-                <View style={styles.liveFeedInfo}>
-                  <Text style={styles.liveFeedTitle}>Live Contribution Feed</Text>
-                  <Text style={styles.liveFeedSub}>{event?.total_contributors || 0} people contributed • Tap to see live updates</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={WINE} />
-              </TouchableOpacity>
-
-              <View style={styles.contributeCard}>
-                <View style={styles.contributeIconBox}><Ionicons name="heart" size={24} color={WINE} /></View>
-                <View style={styles.contributeText}>
-                  <Text style={styles.contributeTitle}>Contribute to our happiness</Text>
-                  <Text style={styles.contributeSubtitle}>Your love and support mean the world to us.</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailsCard}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}><Ionicons name="calendar-outline" size={20} color={WINE} /></View>
-                  <View><Text style={styles.detailLabel}>Event Date</Text><Text style={styles.detailValue}>{event?.date || 'TBD'}</Text></View>
-                </View>
-                <View style={styles.detailDivider} />
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}><Ionicons name="people-outline" size={20} color={WINE} /></View>
-                  <View><Text style={styles.detailLabel}>Event Type</Text><Text style={styles.detailValue}>{event?.type || 'Event'}</Text></View>
-                </View>
-                <View style={styles.detailDivider} />
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}><Ionicons name="location-outline" size={20} color={WINE} /></View>
-                  <View><Text style={styles.detailLabel}>Location</Text><Text style={styles.detailValue}>{event?.location || 'Kigali, Rwanda'}</Text></View>
-                </View>
-                <View style={styles.detailDivider} />
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconBox}><Ionicons name="flag-outline" size={20} color={WINE} /></View>
-                  <View><Text style={styles.detailLabel}>Goal Amount</Text><Text style={styles.detailValue}>{formatAmount(event?.goal_amount)}</Text></View>
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
-                <View style={styles.avatarStack}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12 }]}>
-                      <Text style={styles.avatarText}>👤</Text>
+                <View style={styles.amountSection}>
+                  <View style={styles.amountRow}>
+                    <View>
+                      <Text style={styles.amountRaised}>{formatAmount(event?.total_raised)}</Text>
+                      <Text style={styles.amountGoal}>raised of {formatAmount(event?.goal_amount)} goal</Text>
                     </View>
-                  ))}
+                    <View style={styles.percentBadge}>
+                      <Text style={styles.percentText}>{percent}%</Text>
+                    </View>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${percent}%` }]} />
+                  </View>
                 </View>
-                <View style={styles.contributorsInfo}>
-                  <Text style={styles.contributorsCount}>{event?.total_contributors || 0} Contributors</Text>
-                  <Text style={styles.contributorsSub}>Tap to see who contributed!</Text>
+
+                <TouchableOpacity style={styles.liveFeedBtn} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
+                  <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
+                  <View style={styles.liveFeedInfo}>
+                    <Text style={styles.liveFeedTitle}>Live Contribution Feed</Text>
+                    <Text style={styles.liveFeedSub}>{event?.total_contributors || 0} people contributed • Tap to see live updates</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={WINE} />
+                </TouchableOpacity>
+
+                <View style={styles.contributeCard}>
+                  <View style={styles.contributeIconBox}><Ionicons name="heart" size={24} color={WINE} /></View>
+                  <View style={styles.contributeText}>
+                    <Text style={styles.contributeTitle}>Contribute to our happiness</Text>
+                    <Text style={styles.contributeSubtitle}>Your love and support mean the world to us.</Text>
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={GRAY} />
-              </TouchableOpacity>
-            </>
-          )}
-          <View style={{ height: 200 }} />
-        </View>
-      </ScrollView>
+
+                <View style={styles.detailsCard}>
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailIconBox}><Ionicons name="calendar-outline" size={20} color={WINE} /></View>
+                    <View><Text style={styles.detailLabel}>Event Date</Text><Text style={styles.detailValue}>{event?.date || 'TBD'}</Text></View>
+                  </View>
+                  <View style={styles.detailDivider} />
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailIconBox}><Ionicons name="people-outline" size={20} color={WINE} /></View>
+                    <View><Text style={styles.detailLabel}>Event Type</Text><Text style={styles.detailValue}>{event?.type || 'Event'}</Text></View>
+                  </View>
+                  <View style={styles.detailDivider} />
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailIconBox}><Ionicons name="location-outline" size={20} color={WINE} /></View>
+                    <View><Text style={styles.detailLabel}>Location</Text><Text style={styles.detailValue}>{event?.location || 'Kigali, Rwanda'}</Text></View>
+                  </View>
+                  <View style={styles.detailDivider} />
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailIconBox}><Ionicons name="flag-outline" size={20} color={WINE} /></View>
+                    <View><Text style={styles.detailLabel}>Goal Amount</Text><Text style={styles.detailValue}>{formatAmount(event?.goal_amount)}</Text></View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
+                  <View style={styles.avatarStack}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12 }]}>
+                        <Text style={styles.avatarText}>👤</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.contributorsInfo}>
+                    <Text style={styles.contributorsCount}>{event?.total_contributors || 0} Contributors</Text>
+                    <Text style={styles.contributorsSub}>Tap to see who contributed!</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={GRAY} />
+                </TouchableOpacity>
+
+                {/* ✅ COMMENTS SECTION */}
+                <View style={styles.commentsSection}>
+                  <View style={styles.commentsSectionHeader}>
+                    <Ionicons name="chatbubbles-outline" size={20} color={BLACK} />
+                    <Text style={styles.commentsSectionTitle}>Comments ({comments.length})</Text>
+                    <TouchableOpacity onPress={loadComments}>
+                      <Ionicons name="refresh-outline" size={18} color={GRAY} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* ✅ Comment Input */}
+                  <View style={styles.commentInputBox}>
+                    <View style={styles.commentNameRow}>
+                      <TextInput
+                        style={styles.commentNameInput}
+                        placeholder="Your name"
+                        placeholderTextColor="#BBBBBB"
+                        value={isAnonymous ? 'Anonymous 🙈' : commenterName}
+                        onChangeText={setCommenterName}
+                        editable={!isAnonymous}
+                      />
+                      <TouchableOpacity
+                        style={[styles.anonBtn, isAnonymous && styles.anonBtnActive]}
+                        onPress={() => setIsAnonymous(!isAnonymous)}
+                      >
+                        <Text style={[styles.anonBtnText, isAnonymous && styles.anonBtnTextActive]}>
+                          🙈 Anon
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.commentRow}>
+                      <TextInput
+                        style={styles.commentInput}
+                        placeholder="Write a comment... 💬"
+                        placeholderTextColor="#BBBBBB"
+                        value={commentText}
+                        onChangeText={setCommentText}
+                        multiline
+                        maxLength={300}
+                      />
+                      <TouchableOpacity
+                        style={[styles.sendBtn, !commentText.trim() && styles.sendBtnDisabled]}
+                        onPress={handleSendComment}
+                        disabled={!commentText.trim() || sendingComment}
+                      >
+                        {sendingComment ? (
+                          <ActivityIndicator color={WHITE} size="small" />
+                        ) : (
+                          <Ionicons name="send" size={18} color={WHITE} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* ✅ Comments List */}
+                  {commentsLoading ? (
+                    <ActivityIndicator color={WINE} style={{ marginVertical: 20 }} />
+                  ) : comments.length === 0 ? (
+                    <View style={styles.emptyComments}>
+                      <Ionicons name="chatbubble-outline" size={36} color={GRAY} />
+                      <Text style={styles.emptyCommentsText}>No comments yet</Text>
+                      <Text style={styles.emptyCommentsSub}>Be the first to leave a message! 💬</Text>
+                    </View>
+                  ) : (
+                    comments.map((comment, index) => (
+                      <View key={comment.id || index} style={styles.commentItem}>
+                        <View style={styles.commentAvatar}>
+                          <Text style={styles.commentAvatarText}>
+                            {comment.is_anonymous ? '🙈' : (comment.name?.charAt(0) || '?')}
+                          </Text>
+                        </View>
+                        <View style={styles.commentContent}>
+                          <View style={styles.commentHeader}>
+                            <Text style={styles.commentName}>
+                              {comment.is_anonymous ? 'Anonymous 🙈' : comment.name}
+                            </Text>
+                            <Text style={styles.commentTime}>{formatTime(comment.created_at)}</Text>
+                          </View>
+                          <Text style={styles.commentMessage}>{comment.message}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+
+              </>
+            )}
+            <View style={{ height: 200 }} />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Bottom buttons */}
       <View style={styles.bottomBar}>
@@ -419,22 +540,16 @@ export default function EventPageScreen({ navigation, route }) {
                   <Ionicons name="close" size={24} color={BLACK} />
                 </TouchableOpacity>
               </View>
-
               <Text style={styles.modalLabel}>Event Title *</Text>
               <TextInput style={styles.modalInput} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
-
               <Text style={styles.modalLabel}>Location</Text>
               <TextInput style={styles.modalInput} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
-
               <Text style={styles.modalLabel}>Description</Text>
               <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12 }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
-
               <Text style={styles.modalLabel}>Goal Amount (RWF)</Text>
               <TextInput style={styles.modalInput} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
-
               <Text style={styles.modalLabel}>Your Phone (for payments)</Text>
               <TextInput style={styles.modalInput} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
-
               <Text style={styles.modalLabel}>Payment Method</Text>
               <View style={styles.paymentRow}>
                 {['mtn', 'airtel'].map((method) => (
@@ -449,7 +564,6 @@ export default function EventPageScreen({ navigation, route }) {
                   </TouchableOpacity>
                 ))}
               </View>
-
               <View style={styles.modalBtns}>
                 <TouchableOpacity style={styles.modalCancel} onPress={() => setEditModal(false)}>
                   <Text style={styles.modalCancelText}>Cancel</Text>
@@ -525,13 +639,41 @@ const styles = StyleSheet.create({
   detailDivider: { height: 1, backgroundColor: BORDER, marginVertical: 4 },
   detailLabel: { fontSize: 12, color: GRAY, marginBottom: 2 },
   detailValue: { fontSize: 15, fontWeight: '700', color: BLACK },
-  contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
+  contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8, marginBottom: 16 },
   avatarStack: { flexDirection: 'row' },
   avatarCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
   avatarText: { fontSize: 16 },
   contributorsInfo: { flex: 1 },
   contributorsCount: { fontSize: 15, fontWeight: '700', color: BLACK },
   contributorsSub: { fontSize: 12, color: GRAY, marginTop: 2 },
+
+  // ✅ Comments Styles
+  commentsSection: { marginBottom: 20 },
+  commentsSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  commentsSectionTitle: { fontSize: 17, fontWeight: '800', color: BLACK, flex: 1 },
+  commentInputBox: { backgroundColor: '#F9F9F9', borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: BORDER },
+  commentNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  commentNameInput: { flex: 1, fontSize: 13, fontWeight: '600', color: BLACK, borderWidth: 1, borderColor: BORDER, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: WHITE },
+  anonBtn: { borderWidth: 1.5, borderColor: BORDER, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
+  anonBtnActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
+  anonBtnText: { fontSize: 12, fontWeight: '600', color: GRAY },
+  anonBtnTextActive: { color: WINE },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  commentInput: { flex: 1, fontSize: 14, color: BLACK, borderWidth: 1, borderColor: BORDER, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: WHITE, maxHeight: 80 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
+  sendBtnDisabled: { backgroundColor: '#CCCCCC' },
+  emptyComments: { alignItems: 'center', paddingVertical: 30, gap: 8 },
+  emptyCommentsText: { fontSize: 15, fontWeight: '700', color: BLACK },
+  emptyCommentsSub: { fontSize: 13, color: GRAY },
+  commentItem: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  commentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  commentAvatarText: { fontSize: 14, fontWeight: '800', color: WINE },
+  commentContent: { flex: 1, backgroundColor: '#F9F9F9', borderRadius: 14, padding: 10 },
+  commentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  commentName: { fontSize: 13, fontWeight: '700', color: BLACK },
+  commentTime: { fontSize: 11, color: GRAY },
+  commentMessage: { fontSize: 13, color: BLACK, lineHeight: 20 },
+
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER, gap: 10 },
   contributeBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   contributeBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
