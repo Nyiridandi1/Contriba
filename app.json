@@ -10,22 +10,27 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#E60012"
+    },
+    "developmentClient": {
+      "silentLaunch": false
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.contriba.app",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow Contriba to access your photos to set event cover photos.",
         "NSCameraUsageDescription": "Allow Contriba to access your camera to take event cover photos.",
-        "NSPhotoLibraryAddUsageDescription": "Allow Contriba to save photos to your library."
+        "NSPhotoLibraryAddUsageDescription": "Allow Contriba to save photos to your library.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",

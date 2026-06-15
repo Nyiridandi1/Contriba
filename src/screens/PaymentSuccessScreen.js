@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const WINE = '#7A001F';
+const WINE = '#E60012';
 const GREEN = '#2EAD4B';
 const WHITE = '#FFFFFF';
 const LIGHT_GREY = '#F5F5F5';

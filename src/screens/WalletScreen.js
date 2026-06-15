@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getWallet, getTransactions, withdrawFunds } from '../api';
 
-const WINE = '#7A001F';
+const WINE = '#E60012';
 const GREEN = '#1A9E4A';
 const WHITE = '#FFFFFF';
 const LIGHT_GREY = '#F5F5F5';

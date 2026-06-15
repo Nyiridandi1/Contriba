@@ -16,13 +16,11 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
-// ─── COLORS ─────────────────────────────────────────────────────────────────
-const WINE  = '#7A001F';
+const WINE  = '#E60012';
 const GOLD  = '#D6A23A';
 const WHITE = '#FFFFFF';
 const BLACK = '#1A1A1A';
 
-// ─── SLIDES ─────────────────────────────────────────────────────────────────
 const slides = [
   {
     id: '1',
@@ -47,7 +45,6 @@ const slides = [
   },
 ];
 
-// ─── DOT INDICATOR ───────────────────────────────────────────────────────────
 function DotIndicator({ count, activeIndex }) {
   return (
     <View style={styles.dotsRow}>
@@ -64,30 +61,23 @@ function DotIndicator({ count, activeIndex }) {
   );
 }
 
-// ─── SINGLE SLIDE ────────────────────────────────────────────────────────────
 function Slide({ item }) {
   return (
     <View style={styles.slide}>
-
-      {/* TOP — Text */}
       <View style={styles.textBlock}>
         <Text style={styles.titleBlack}>{item.titleBlack}</Text>
         <Text style={styles.titleWine}>{item.titleWine}</Text>
         <Text style={styles.subtitle}>{item.subtitle}</Text>
       </View>
-
-      {/* Illustration — directly below text */}
       <Image
         source={item.image}
         style={styles.illustration}
         resizeMode="contain"
       />
-
     </View>
   );
 }
 
-// ─── MAIN SCREEN ─────────────────────────────────────────────────────────────
 export default function OnboardingScreen({ navigation }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -107,7 +97,8 @@ export default function OnboardingScreen({ navigation }) {
 
   const handleNext = () => {
     if (isLast) {
-      navigation.replace('Register');
+      // ✅ Changed replace to navigate
+      navigation.navigate('GetStarted');
       return;
     }
     flatListRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
@@ -120,7 +111,6 @@ export default function OnboardingScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
 
-      {/* Slides */}
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -135,9 +125,7 @@ export default function OnboardingScreen({ navigation }) {
         style={{ flex: 1 }}
       />
 
-      {/* Bottom controls */}
       <View style={styles.bottom}>
-
         <DotIndicator count={slides.length} activeIndex={activeIndex} />
 
         <Animated.View style={[styles.btnWrap, { transform: [{ scale: btnScale }] }]}>
@@ -160,20 +148,13 @@ export default function OnboardingScreen({ navigation }) {
         >
           <Text style={styles.signInText}>I already have an account</Text>
         </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   );
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: WHITE,
-  },
-
-  // ── Slide ──
+  container: { flex: 1, backgroundColor: WHITE },
   slide: {
     width,
     flex: 1,
@@ -181,97 +162,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     alignItems: 'flex-start',
   },
-
-  // ── Text on top ──
-  textBlock: {
-    marginBottom: 0,
-  },
-  titleBlack: {
-    fontSize: 52,
-    fontWeight: '800',
-    color: BLACK,
-    lineHeight: 60,
-  },
-  titleWine: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: WINE,
-    lineHeight: 48,
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: '#666666',
-  },
-
-  // ── Illustration — directly below text ──
-  illustration: {
-    width: width - 56,
-    height: width - 56,
-    marginTop: 8,
-    alignSelf: 'center',
-  },
-
-  // ── Bottom ──
-  bottom: {
-    paddingHorizontal: 24,
-    paddingBottom: 36,
-    paddingTop: 8,
-    alignItems: 'center',
-    gap: 14,
-  },
-
-  // ── Dots ──
-  dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    borderRadius: 100,
-  },
-  dotActive: {
-    width: 32,
-    height: 10,
-    backgroundColor: WINE,
-  },
-  dotInactive: {
-    width: 10,
-    height: 10,
-    backgroundColor: '#F0F0F0',
-    borderWidth: 1.5,
-    borderColor: GOLD,
-  },
-
-  // ── Button ──
-  btnWrap: {
-    width: '100%',
-  },
-  btn: {
-    backgroundColor: WINE,
-    borderRadius: 14,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: WINE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 7,
-  },
-  btnText: {
-    color: WHITE,
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-  },
-
-  // ── Sign in ──
-  signInText: {
-    fontSize: 14,
-    color: WINE,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
+  textBlock: { marginBottom: 0 },
+  titleBlack: { fontSize: 52, fontWeight: '800', color: BLACK, lineHeight: 60 },
+  titleWine: { fontSize: 40, fontWeight: '800', color: WINE, lineHeight: 48, marginBottom: 12 },
+  subtitle: { fontSize: 16, lineHeight: 26, color: '#666666' },
+  illustration: { width: width - 56, height: width - 56, marginTop: 8, alignSelf: 'center' },
+  bottom: { paddingHorizontal: 24, paddingBottom: 36, paddingTop: 8, alignItems: 'center', gap: 14 },
+  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { borderRadius: 100 },
+  dotActive: { width: 32, height: 10, backgroundColor: WINE },
+  dotInactive: { width: 10, height: 10, backgroundColor: '#F0F0F0', borderWidth: 1.5, borderColor: GOLD },
+  btnWrap: { width: '100%' },
+  btn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
+  btnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
+  signInText: { fontSize: 14, color: WINE, fontWeight: '600', textDecorationLine: 'underline' },
 });

@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getWallet, removeToken } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const WINE = '#7A001F';
+const WINE = '#E60012';
 const WHITE = '#FFFFFF';
 const LIGHT_GREY = '#F5F5F5';
 const MID_GREY = '#E0E0E0';

@@ -12,7 +12,7 @@ import { getEvent, getToken } from '../api';
 
 const { width, height } = Dimensions.get('window');
 
-const WINE       = '#7A001F';
+const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';

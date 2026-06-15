@@ -15,7 +15,7 @@ import { saveToken } from '../api';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const WINE       = '#7A001F';
+const WINE       = '#E60012';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';
 const GRAY       = '#888888';
@@ -148,7 +148,8 @@ export default function LoginScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color={BLACK} />
         </TouchableOpacity>
 
-        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        {/* ✅ UPDATED LOGO */}
+        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
         <Text style={styles.title}>Welcome back 👋</Text>
         <Text style={styles.subtitle}>Enter your phone number and we'll{'\n'}send your OTP to your registered email!</Text>
@@ -213,7 +214,6 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.orLine} />
         </View>
 
-        {/* Google button - works on both iOS and Android */}
         <TouchableOpacity
           style={styles.socialBtn}
           activeOpacity={0.8}
@@ -230,7 +230,6 @@ export default function LoginScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
-        {/* Apple button - iOS only */}
         {Platform.OS === 'ios' && (
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
             <Image source={require('../../assets/apple.png')} style={styles.socialIcon} resizeMode="contain" />
@@ -264,7 +263,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
-  logo: { width: 80, height: 80, marginBottom: 16 },
+  logo: { width: 120, height: 120, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: '800', color: BLACK, marginBottom: 8 },
   subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 10 },

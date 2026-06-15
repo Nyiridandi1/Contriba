@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDashboard, getToken } from '../api';
 
-const WINE       = '#7A001F';
+const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const GREEN      = '#1A9E4A';
 const WHITE      = '#FFFFFF';

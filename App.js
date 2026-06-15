@@ -8,6 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
+import GetStartedScreen from "./src/screens/GetStartedScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import OTPScreen from "./src/screens/OTPScreen";
@@ -28,7 +29,6 @@ import SettingsScreen from "./src/screens/SettingsScreen";
 const Stack = createNativeStackNavigator();
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
-// How notifications appear when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -37,7 +37,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Register for push notifications
 async function registerForPushNotifications() {
   if (!Device.isDevice) {
     console.log('Push notifications only work on physical devices');
@@ -68,14 +67,13 @@ async function registerForPushNotifications() {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#7A001F',
+      lightColor: '#E60012',
     });
   }
 
   return token;
 }
 
-// Save push token to backend
 async function savePushToken(token) {
   try {
     const authToken = await AsyncStorage.getItem('token');
@@ -100,24 +98,25 @@ export default function App() {
   const responseListener = useRef();
 
   useEffect(() => {
-    // Register for push notifications
     registerForPushNotifications().then(token => {
       if (token) savePushToken(token);
     });
 
-    // Listen for notifications when app is open
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received:', notification);
     });
 
-    // Listen for when user taps notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       console.log('Notification tapped:', response);
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
     };
   }, []);
 
@@ -126,6 +125,7 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="GetStarted" component={GetStartedScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="OTP" component={OTPScreen} />
