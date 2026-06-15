@@ -19,9 +19,9 @@ const GREEN      = '#1A9E4A';
 const quickAmounts = ['5,000', '10,000', '20,000', '50,000', '100,000'];
 
 const paymentMethods = [
-  { id: 'mtn',    label: 'MTN Mobile Money',      logo: require('../../assets/mtn.png'),    bg: '#FFC403' },
-  { id: 'airtel', label: 'Airtel Money',          logo: require('../../assets/airtel.jpg'), bg: WHITE     },
-  { id: 'visa',   label: 'Visa / Card',           logo: require('../../assets/Visa.png'),   bg: WHITE     },
+  { id: 'mtn',    label: 'MTN Mobile Money', logo: require('../../assets/mtn.png'),    bg: '#FFC403' },
+  { id: 'airtel', label: 'Airtel Money',     logo: require('../../assets/airtel.jpg'), bg: WHITE     },
+  { id: 'visa',   label: 'Visa / Card',      logo: require('../../assets/Visa.png'),   bg: WHITE     },
 ];
 
 export default function ContributeScreen({ navigation, route }) {
@@ -37,8 +37,8 @@ export default function ContributeScreen({ navigation, route }) {
 
   const getCleanAmount = () => parseInt(amount.replace(/,/g, '')) || 0;
 
-  // Platform fee 2%
-  const platformFee = Math.round(getCleanAmount() * 0.02);
+  // ✅ Platform fee 1%
+  const platformFee = Math.round(getCleanAmount() * 0.01);
   const ownerReceives = getCleanAmount() - platformFee;
 
   const handleContinue = async () => {
@@ -73,7 +73,7 @@ export default function ContributeScreen({ navigation, route }) {
 
       if (result.success) {
         navigation.navigate('PaymentConfirm', {
-          amount,
+          amount: getCleanAmount(), // ✅ Pass as number not string
           method: paymentMethods.find((m) => m.id === selectedMethod)?.label,
           contribution: result.contribution,
           event,
@@ -124,7 +124,6 @@ export default function ContributeScreen({ navigation, route }) {
         <View style={styles.flowCard}>
           <Text style={styles.flowTitle}>💸 Payment Flow</Text>
 
-          {/* Sender */}
           <View style={styles.flowRow}>
             <View style={styles.flowIcon}>
               <Ionicons name="person-outline" size={18} color={WINE} />
@@ -137,10 +136,10 @@ export default function ContributeScreen({ navigation, route }) {
 
           <View style={styles.flowArrow}>
             <Ionicons name="arrow-down" size={16} color={GRAY} />
-            <Text style={styles.flowFeeText}>Contriba fee: 2%</Text>
+            {/* ✅ Updated to 1% */}
+            <Text style={styles.flowFeeText}>Contriba fee: 1%</Text>
           </View>
 
-          {/* Receiver */}
           <View style={styles.flowRow}>
             <View style={[styles.flowIcon, { backgroundColor: '#E8F5E9' }]}>
               <Ionicons name="person-circle-outline" size={18} color={GREEN} />
@@ -217,7 +216,7 @@ export default function ContributeScreen({ navigation, route }) {
           ))}
         </ScrollView>
 
-        {/* Fee breakdown */}
+        {/* ✅ Fee breakdown with 1% */}
         {getCleanAmount() >= 1000 && (
           <View style={styles.feeCard}>
             <View style={styles.feeRow}>
@@ -225,7 +224,7 @@ export default function ContributeScreen({ navigation, route }) {
               <Text style={styles.feeValue}>RWF {getCleanAmount().toLocaleString()}</Text>
             </View>
             <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Contriba fee (2%)</Text>
+              <Text style={styles.feeLabel}>Contriba fee (1%)</Text>
               <Text style={[styles.feeValue, { color: WINE }]}>- RWF {platformFee.toLocaleString()}</Text>
             </View>
             <View style={styles.feeDivider} />
@@ -269,7 +268,7 @@ export default function ContributeScreen({ navigation, route }) {
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <Text style={styles.continueBtnText}>
-              {isAnonymous ? '🙈 Contribute Anonymously' : 'Continue'} → RWF {amount}
+              {isAnonymous ? '🙈 Contribute Anonymously' : 'Continue'} → RWF {getCleanAmount().toLocaleString()}
             </Text>
           )}
         </TouchableOpacity>

@@ -14,6 +14,8 @@ const MID_GREY = '#CCCCCC';
 const DARK_GREY = '#666666';
 const TEXT = '#1A1A1A';
 
+const CONTRIBA_FEE = 0.01; // ✅ Changed to 1%
+
 const PAYMENT_LABELS = {
   mtn: 'MTN Mobile Money',
   airtel: 'Airtel Money',
@@ -38,11 +40,16 @@ const CONFETTI_PIECES = [
 export default function PaymentSuccessScreen({ navigation, route }) {
   const {
     event = { title: 'Event' },
-    amount = 10000,
+    amount,
     paymentMethod = 'mtn',
     phoneNumber = '',
-    total = 10000,
+    total,
   } = route?.params || {};
+
+  // ✅ Fix NaN - ensure amount is always a number
+  const safeAmount = parseInt(amount) || 0;
+  const fee = Math.round(safeAmount * CONTRIBA_FEE);
+  const safeTotal = parseInt(total) || safeAmount;
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -54,7 +61,7 @@ export default function PaymentSuccessScreen({ navigation, route }) {
     ]).start();
   }, []);
 
-  const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
+  const formatAmount = (val) => 'RWF ' + (parseInt(val) || 0).toLocaleString('en-RW');
 
   const getPaymentLogo = (method) => {
     if (method === 'mtn') return require('../../assets/mtn.png');
@@ -66,20 +73,15 @@ export default function PaymentSuccessScreen({ navigation, route }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `I just contributed ${formatAmount(amount)} to ${event?.title} via Contriba! 🎉 Download Contriba to contribute too!`,
+        message: `I just contributed ${formatAmount(safeAmount)} to ${event?.title} via Contriba! 🎉 Download Contriba to contribute too!`,
       });
     } catch (e) {
       console.log(e);
     }
   };
 
-  const handleGoHome = () => {
-    navigation.navigate('Home');
-  };
-
-  const handleBackToEvent = () => {
-    navigation.navigate('EventPage', { event });
-  };
+  const handleGoHome = () => navigation.navigate('Home');
+  const handleBackToEvent = () => navigation.navigate('EventPage', { event });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -116,7 +118,7 @@ export default function PaymentSuccessScreen({ navigation, route }) {
         <Animated.View style={[styles.successTextBlock, { opacity: fadeAnim }]}>
           <Text style={styles.successTitle}>Payment Successful 🎉</Text>
           <Text style={styles.successSub}>You have contributed</Text>
-          <Text style={styles.bigAmount}>{formatAmount(amount)}</Text>
+          <Text style={styles.bigAmount}>{formatAmount(safeAmount)}</Text>
           <Text style={styles.toEvent}>to {event?.title}</Text>
         </Animated.View>
 
@@ -129,21 +131,28 @@ export default function PaymentSuccessScreen({ navigation, route }) {
           </View>
         </Animated.View>
 
-        {/* RECEIPT BREAKDOWN */}
+        {/* ✅ RECEIPT BREAKDOWN - Fixed NaN + 1% fee */}
         <Animated.View style={[styles.receiptCard, { opacity: fadeAnim }]}>
           <View style={styles.receiptRow}>
             <Text style={styles.receiptLabel}>Amount</Text>
-            <Text style={styles.receiptValue}>{formatAmount(amount)}</Text>
+            <Text style={styles.receiptValue}>{formatAmount(safeAmount)}</Text>
           </View>
           <View style={styles.receiptDivider} />
           <View style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>Platform Fee (2%)</Text>
-            <Text style={styles.receiptValue}>RWF {Math.round((amount || 0) * 0.02).toLocaleString()}</Text>
+            <Text style={styles.receiptLabel}>Platform Fee (1%)</Text>
+            <Text style={[styles.receiptValue, { color: WINE }]}>- RWF {fee.toLocaleString()}</Text>
           </View>
           <View style={styles.receiptDivider} />
           <View style={styles.receiptRow}>
             <Text style={styles.receiptTotalLabel}>Total Paid</Text>
-            <Text style={styles.receiptTotalValue}>{formatAmount(total || amount)}</Text>
+            <Text style={styles.receiptTotalValue}>{formatAmount(safeTotal)}</Text>
+          </View>
+          <View style={styles.receiptDivider} />
+          <View style={styles.receiptRow}>
+            <Text style={styles.receiptLabel}>Owner Receives</Text>
+            <Text style={[styles.receiptValue, { color: GREEN, fontWeight: '700' }]}>
+              RWF {(safeAmount - fee).toLocaleString()}
+            </Text>
           </View>
         </Animated.View>
 

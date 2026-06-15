@@ -19,15 +19,16 @@ export default function PaymentConfirmScreen({ navigation, route }) {
   const {
     contribution,
     event,
-    amount = '10,000',
+    amount = '10000',
     method = 'MTN Mobile Money',
   } = route?.params || {};
 
   const [selectedMethod, setSelectedMethod] = useState('mtn');
   const [isLoading, setIsLoading]           = useState(false);
 
+  // ✅ Always clean the amount properly
   const cleanAmount = parseInt(String(amount).replace(/,/g, '')) || 0;
-  const formatAmount = (val) => 'RWF ' + val.toLocaleString('en-RW');
+  const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
 
   const paymentMethods = [
     { id: 'mtn',    label: 'MTN Mobile Money', logo: require('../../assets/mtn.png')    },
@@ -48,7 +49,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
     setIsLoading(true);
     try {
-      // Format phone number
       let phone = contribution.contributor_phone;
       if (phone.startsWith('+250')) phone = phone.replace('+250', '250');
       if (phone.startsWith('0')) phone = '250' + phone.slice(1);
@@ -66,13 +66,14 @@ export default function PaymentConfirmScreen({ navigation, route }) {
       const result = await response.json();
 
       if (result.success) {
-        // Navigate to success screen
+        // ✅ Pass cleanAmount (number) not amount (string with commas)
         navigation.navigate('PaymentSuccess', {
           event,
-          amount,
+          amount: cleanAmount,
           paymentMethod: selectedMethod,
           phoneNumber: contribution.contributor_phone,
           transaction_ref: result.transaction_ref,
+          total: cleanAmount,
         });
       } else {
         Alert.alert('Payment Failed', result.message || 'Please try again');
@@ -88,7 +89,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
 
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={22} color={TEXT} />
@@ -99,25 +99,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* EVENT CARD */}
-        <View style={styles.eventCard}>
-          <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventTitle}>{event?.title || 'Event'}</Text>
-            <View style={styles.dateRow}>
-              <Ionicons name="calendar-outline" size={13} color={DARK_GREY} />
-              <Text style={styles.dateText}>{event?.date || ''}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* YOU ARE SENDING */}
-        <View style={styles.amountBlock}>
-          <Text style={styles.youAreSending}>You are sending</Text>
-          <Text style={styles.bigAmount}>{formatAmount(cleanAmount)}</Text>
-          <Text style={styles.toEvent}>to {event?.title || 'this event'}</Text>
-        </View>
-
         {/* CONTRIBUTOR INFO */}
         {contribution && (
           <View style={styles.contributorCard}>
@@ -127,6 +108,13 @@ export default function PaymentConfirmScreen({ navigation, route }) {
             </Text>
           </View>
         )}
+
+        {/* YOU ARE SENDING */}
+        <View style={styles.amountBlock}>
+          <Text style={styles.youAreSending}>You are sending</Text>
+          <Text style={styles.bigAmount}>{formatAmount(cleanAmount)}</Text>
+          <Text style={styles.toEvent}>to {event?.title || 'this event'}</Text>
+        </View>
 
         {/* CHOOSE PAYMENT METHOD */}
         <Text style={styles.sectionTitle}>Choose Payment Method</Text>
@@ -153,7 +141,7 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           ))}
         </View>
 
-        {/* AMOUNT BREAKDOWN */}
+        {/* ✅ AMOUNT BREAKDOWN with 1% fee */}
         <View style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Amount</Text>
@@ -161,13 +149,22 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Transaction Fee</Text>
-            <Text style={styles.breakdownValue}>RWF 0</Text>
+            <Text style={styles.breakdownLabel}>Platform Fee (1%)</Text>
+            <Text style={[styles.breakdownValue, { color: WINE }]}>
+              - RWF {Math.round(cleanAmount * 0.01).toLocaleString()}
+            </Text>
           </View>
           <View style={styles.totalDivider} />
           <View style={styles.breakdownRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>{formatAmount(cleanAmount)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Owner Receives</Text>
+            <Text style={[styles.breakdownValue, { color: '#2EAD4B', fontWeight: '700' }]}>
+              RWF {(cleanAmount - Math.round(cleanAmount * 0.01)).toLocaleString()}
+            </Text>
           </View>
         </View>
 
@@ -211,18 +208,12 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: LIGHT_GREY, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: TEXT },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
-  eventCard: { flexDirection: 'row', backgroundColor: LIGHT_GREY, borderRadius: 14, overflow: 'hidden', marginBottom: 24, alignItems: 'center' },
-  eventImage: { width: 80, height: 80 },
-  eventInfo: { flex: 1, paddingHorizontal: 14 },
-  eventTitle: { fontSize: 16, fontWeight: '700', color: TEXT, marginBottom: 6 },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  dateText: { fontSize: 13, color: DARK_GREY, marginLeft: 4 },
+  contributorCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FDF0F3', borderRadius: 12, padding: 12, marginBottom: 20 },
+  contributorText: { fontSize: 14, fontWeight: '600', color: TEXT },
   amountBlock: { alignItems: 'center', marginBottom: 24 },
   youAreSending: { fontSize: 14, color: DARK_GREY, marginBottom: 6 },
   bigAmount: { fontSize: 34, fontWeight: '900', color: TEXT, letterSpacing: -0.5, marginBottom: 4 },
   toEvent: { fontSize: 14, color: DARK_GREY },
-  contributorCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FDF0F3', borderRadius: 12, padding: 12, marginBottom: 20 },
-  contributorText: { fontSize: 14, fontWeight: '600', color: TEXT },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: TEXT, marginBottom: 12 },
   methodsCard: { backgroundColor: LIGHT_GREY, borderRadius: 14, marginBottom: 16, overflow: 'hidden' },
   methodRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: WHITE },
