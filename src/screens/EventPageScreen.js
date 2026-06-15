@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvent, getToken } from '../api';
+import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -16,13 +17,14 @@ const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';
-const GRAY       = '#888888';
-const BORDER     = '#F0F0F0';
 const GREEN      = '#1A9E4A';
 
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
 export default function EventPageScreen({ navigation, route }) {
+  const { darkMode, language, colors } = useTheme();
+  const { BG, CARD, TEXT, SUB, BORDER, DIV } = colors;
+
   const eventParam = route?.params?.event;
   const [event, setEvent]             = useState(eventParam);
   const [loading, setLoading]         = useState(false);
@@ -32,13 +34,12 @@ export default function EventPageScreen({ navigation, route }) {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [showControls, setShowControls] = useState(true);
 
-  // ✅ Comments state
-  const [comments, setComments]           = useState([]);
+  const [comments, setComments]               = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentText, setCommentText]     = useState('');
-  const [commenterName, setCommenterName] = useState('');
-  const [isAnonymous, setIsAnonymous]     = useState(false);
-  const [sendingComment, setSendingComment] = useState(false);
+  const [commentText, setCommentText]         = useState('');
+  const [commenterName, setCommenterName]     = useState('');
+  const [isAnonymous, setIsAnonymous]         = useState(false);
+  const [sendingComment, setSendingComment]   = useState(false);
 
   const [editTitle, setEditTitle]               = useState('');
   const [editLocation, setEditLocation]         = useState('');
@@ -76,7 +77,6 @@ export default function EventPageScreen({ navigation, route }) {
     }
   };
 
-  // ✅ Load comments
   const loadComments = async () => {
     try {
       setCommentsLoading(true);
@@ -90,7 +90,6 @@ export default function EventPageScreen({ navigation, route }) {
     }
   };
 
-  // ✅ Send comment
   const handleSendComment = async () => {
     if (!commentText.trim()) return;
     setSendingComment(true);
@@ -124,7 +123,7 @@ export default function EventPageScreen({ navigation, route }) {
     const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    if (mins < 1) return 'Just now';
+    if (mins < 1) return language === 'Kinyarwanda' ? 'Nonaha' : 'Just now';
     if (mins < 60) return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
@@ -189,64 +188,53 @@ export default function EventPageScreen({ navigation, route }) {
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Event', `Are you sure you want to delete "${event?.title}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await getToken();
-              const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-              });
-              const result = await response.json();
-              if (result.success) {
-                Alert.alert('Deleted! 🗑️', 'Event deleted successfully!', [
-                  { text: 'OK', onPress: () => navigation.navigate('Home') },
-                ]);
-              } else {
-                Alert.alert('Error', result.message || 'Failed to delete event');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Something went wrong.');
+    Alert.alert('Delete Event', `Are you sure you want to delete "${event?.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            const token = await getToken();
+            const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const result = await response.json();
+            if (result.success) {
+              Alert.alert('Deleted! 🗑️', 'Event deleted successfully!', [
+                { text: 'OK', onPress: () => navigation.navigate('Home') },
+              ]);
+            } else {
+              Alert.alert('Error', result.message || 'Failed to delete event');
             }
-          },
+          } catch (error) {
+            Alert.alert('Error', 'Something went wrong.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false}>
 
-          {/* ✅ Swipeable Photo Carousel */}
+          {/* Swipeable Photo Carousel */}
           <View style={styles.heroWrapper}>
             <View style={{ width, height: height * 0.48 }}>
               <FlatList
                 data={photos}
                 keyExtractor={(_, index) => index.toString()}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
+                horizontal pagingEnabled showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(e.nativeEvent.contentOffset.x / width);
                   setActivePhotoIndex(index);
                 }}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={() => setShowControls(!showControls)}
-                    style={{ width, height: height * 0.48 }}
-                  >
+                  <TouchableOpacity activeOpacity={1} onPress={() => setShowControls(!showControls)} style={{ width, height: height * 0.48 }}>
                     {item ? (
                       <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
                     ) : (
@@ -301,7 +289,9 @@ export default function EventPageScreen({ navigation, route }) {
                 {isOwner && (
                   <View style={styles.ownerBadge}>
                     <Ionicons name="ribbon-outline" size={12} color={WHITE} />
-                    <Text style={styles.ownerBadgeText}>Your Event</Text>
+                    <Text style={styles.ownerBadgeText}>
+                      {language === 'Kinyarwanda' ? 'Ikirori Cyawe' : 'Your Event'}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.heroInfo}>
@@ -320,7 +310,9 @@ export default function EventPageScreen({ navigation, route }) {
                   {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
                 </View>
                 <View style={styles.tapHint}>
-                  <Text style={styles.tapHintText}>Tap to hide • Swipe for photos</Text>
+                  <Text style={styles.tapHintText}>
+                    {language === 'Kinyarwanda' ? 'Kanda guhisha • Shusha amafoto' : 'Tap to hide • Swipe for photos'}
+                  </Text>
                 </View>
               </>
             )}
@@ -333,7 +325,7 @@ export default function EventPageScreen({ navigation, route }) {
           </View>
 
           {/* Content */}
-          <View style={styles.content}>
+          <View style={[styles.content, { backgroundColor: BG }]}>
             {loading ? (
               <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
             ) : (
@@ -342,11 +334,15 @@ export default function EventPageScreen({ navigation, route }) {
                   <View style={styles.ownerActions}>
                     <TouchableOpacity style={styles.ownerActionBtn} onPress={handleEdit}>
                       <Ionicons name="pencil-outline" size={18} color={WINE} />
-                      <Text style={styles.ownerActionText}>Edit Event</Text>
+                      <Text style={styles.ownerActionText}>
+                        {language === 'Kinyarwanda' ? 'Hindura' : 'Edit Event'}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.ownerActionBtn, styles.ownerDeleteBtn]} onPress={handleDelete}>
                       <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-                      <Text style={[styles.ownerActionText, { color: '#FF3B30' }]}>Delete Event</Text>
+                      <Text style={[styles.ownerActionText, { color: '#FF3B30' }]}>
+                        {language === 'Kinyarwanda' ? 'Siba' : 'Delete Event'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -355,105 +351,122 @@ export default function EventPageScreen({ navigation, route }) {
                   <View style={styles.amountRow}>
                     <View>
                       <Text style={styles.amountRaised}>{formatAmount(event?.total_raised)}</Text>
-                      <Text style={styles.amountGoal}>raised of {formatAmount(event?.goal_amount)} goal</Text>
+                      <Text style={[styles.amountGoal, { color: SUB }]}>
+                        {language === 'Kinyarwanda' ? 'byakomejwe mu' : 'raised of'} {formatAmount(event?.goal_amount)} {language === 'Kinyarwanda' ? 'intego' : 'goal'}
+                      </Text>
                     </View>
                     <View style={styles.percentBadge}>
                       <Text style={styles.percentText}>{percent}%</Text>
                     </View>
                   </View>
-                  <View style={styles.progressBar}>
+                  <View style={[styles.progressBar, { backgroundColor: darkMode ? '#3A1A20' : '#F0D0D8' }]}>
                     <View style={[styles.progressFill, { width: `${percent}%` }]} />
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.liveFeedBtn} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
+                <TouchableOpacity style={[styles.liveFeedBtn, { backgroundColor: CARD }]} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
                   <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
                   <View style={styles.liveFeedInfo}>
-                    <Text style={styles.liveFeedTitle}>Live Contribution Feed</Text>
-                    <Text style={styles.liveFeedSub}>{event?.total_contributors || 0} people contributed • Tap to see live updates</Text>
+                    <Text style={[styles.liveFeedTitle, { color: TEXT }]}>
+                      {language === 'Kinyarwanda' ? 'Ikiganiro Giheruka' : 'Live Contribution Feed'}
+                    </Text>
+                    <Text style={[styles.liveFeedSub, { color: SUB }]}>
+                      {event?.total_contributors || 0} {language === 'Kinyarwanda' ? 'batanze • Kanda kureba' : 'people contributed • Tap to see live updates'}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={WINE} />
                 </TouchableOpacity>
 
-                <View style={styles.contributeCard}>
-                  <View style={styles.contributeIconBox}><Ionicons name="heart" size={24} color={WINE} /></View>
+                <View style={[styles.contributeCard, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
+                  <View style={[styles.contributeIconBox, { backgroundColor: CARD }]}>
+                    <Ionicons name="heart" size={24} color={WINE} />
+                  </View>
                   <View style={styles.contributeText}>
-                    <Text style={styles.contributeTitle}>Contribute to our happiness</Text>
-                    <Text style={styles.contributeSubtitle}>Your love and support mean the world to us.</Text>
+                    <Text style={[styles.contributeTitle, { color: TEXT }]}>
+                      {language === 'Kinyarwanda' ? 'Tanga inkunga ku ibyishimo byacu' : 'Contribute to our happiness'}
+                    </Text>
+                    <Text style={[styles.contributeSubtitle, { color: SUB }]}>
+                      {language === 'Kinyarwanda' ? 'Urukundo rwawe ruradukomeza.' : 'Your love and support mean the world to us.'}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.detailsCard}>
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailIconBox}><Ionicons name="calendar-outline" size={20} color={WINE} /></View>
-                    <View><Text style={styles.detailLabel}>Event Date</Text><Text style={styles.detailValue}>{event?.date || 'TBD'}</Text></View>
-                  </View>
-                  <View style={styles.detailDivider} />
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailIconBox}><Ionicons name="people-outline" size={20} color={WINE} /></View>
-                    <View><Text style={styles.detailLabel}>Event Type</Text><Text style={styles.detailValue}>{event?.type || 'Event'}</Text></View>
-                  </View>
-                  <View style={styles.detailDivider} />
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailIconBox}><Ionicons name="location-outline" size={20} color={WINE} /></View>
-                    <View><Text style={styles.detailLabel}>Location</Text><Text style={styles.detailValue}>{event?.location || 'Kigali, Rwanda'}</Text></View>
-                  </View>
-                  <View style={styles.detailDivider} />
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailIconBox}><Ionicons name="flag-outline" size={20} color={WINE} /></View>
-                    <View><Text style={styles.detailLabel}>Goal Amount</Text><Text style={styles.detailValue}>{formatAmount(event?.goal_amount)}</Text></View>
-                  </View>
+                <View style={[styles.detailsCard, { borderColor: BORDER, backgroundColor: CARD }]}>
+                  {[
+                    { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date', value: event?.date || 'TBD' },
+                    { icon: 'people-outline',   label: language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type',  value: event?.type || 'Event' },
+                    { icon: 'location-outline', label: language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location',        value: event?.location || 'Kigali, Rwanda' },
+                    { icon: 'flag-outline',     label: language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount', value: formatAmount(event?.goal_amount) },
+                  ].map((item, i, arr) => (
+                    <View key={i}>
+                      <View style={styles.detailRow}>
+                        <View style={styles.detailIconBox}>
+                          <Ionicons name={item.icon} size={20} color={WINE} />
+                        </View>
+                        <View>
+                          <Text style={[styles.detailLabel, { color: SUB }]}>{item.label}</Text>
+                          <Text style={[styles.detailValue, { color: TEXT }]}>{item.value}</Text>
+                        </View>
+                      </View>
+                      {i < arr.length - 1 && <View style={[styles.detailDivider, { backgroundColor: BORDER }]} />}
+                    </View>
+                  ))}
                 </View>
 
                 <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
                   <View style={styles.avatarStack}>
                     {[0, 1, 2, 3].map((i) => (
-                      <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12 }]}>
+                      <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12, backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
                         <Text style={styles.avatarText}>👤</Text>
                       </View>
                     ))}
                   </View>
                   <View style={styles.contributorsInfo}>
-                    <Text style={styles.contributorsCount}>{event?.total_contributors || 0} Contributors</Text>
-                    <Text style={styles.contributorsSub}>Tap to see who contributed!</Text>
+                    <Text style={[styles.contributorsCount, { color: TEXT }]}>
+                      {event?.total_contributors || 0} {language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors'}
+                    </Text>
+                    <Text style={[styles.contributorsSub, { color: SUB }]}>
+                      {language === 'Kinyarwanda' ? 'Kanda kureba!' : 'Tap to see who contributed!'}
+                    </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={GRAY} />
+                  <Ionicons name="chevron-forward" size={20} color={SUB} />
                 </TouchableOpacity>
 
-                {/* ✅ COMMENTS SECTION */}
+                {/* COMMENTS SECTION */}
                 <View style={styles.commentsSection}>
                   <View style={styles.commentsSectionHeader}>
-                    <Ionicons name="chatbubbles-outline" size={20} color={BLACK} />
-                    <Text style={styles.commentsSectionTitle}>Comments ({comments.length})</Text>
+                    <Ionicons name="chatbubbles-outline" size={20} color={TEXT} />
+                    <Text style={[styles.commentsSectionTitle, { color: TEXT }]}>
+                      {language === 'Kinyarwanda' ? `Ibitekerezo (${comments.length})` : `Comments (${comments.length})`}
+                    </Text>
                     <TouchableOpacity onPress={loadComments}>
-                      <Ionicons name="refresh-outline" size={18} color={GRAY} />
+                      <Ionicons name="refresh-outline" size={18} color={SUB} />
                     </TouchableOpacity>
                   </View>
 
-                  {/* ✅ Comment Input */}
-                  <View style={styles.commentInputBox}>
+                  <View style={[styles.commentInputBox, { backgroundColor: darkMode ? '#1A1A1A' : '#F9F9F9', borderColor: BORDER }]}>
                     <View style={styles.commentNameRow}>
                       <TextInput
-                        style={styles.commentNameInput}
-                        placeholder="Your name"
+                        style={[styles.commentNameInput, { borderColor: BORDER, color: TEXT, backgroundColor: CARD }]}
+                        placeholder={language === 'Kinyarwanda' ? 'Izina ryawe' : 'Your name'}
                         placeholderTextColor="#BBBBBB"
                         value={isAnonymous ? 'Anonymous 🙈' : commenterName}
                         onChangeText={setCommenterName}
                         editable={!isAnonymous}
                       />
                       <TouchableOpacity
-                        style={[styles.anonBtn, isAnonymous && styles.anonBtnActive]}
+                        style={[styles.anonBtn, { borderColor: BORDER }, isAnonymous && styles.anonBtnActive]}
                         onPress={() => setIsAnonymous(!isAnonymous)}
                       >
-                        <Text style={[styles.anonBtnText, isAnonymous && styles.anonBtnTextActive]}>
-                          🙈 Anon
+                        <Text style={[styles.anonBtnText, { color: SUB }, isAnonymous && styles.anonBtnTextActive]}>
+                          🙈 {language === 'Kinyarwanda' ? 'Nta izina' : 'Anon'}
                         </Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.commentRow}>
                       <TextInput
-                        style={styles.commentInput}
-                        placeholder="Write a comment... 💬"
+                        style={[styles.commentInput, { borderColor: BORDER, color: TEXT, backgroundColor: CARD }]}
+                        placeholder={language === 'Kinyarwanda' ? 'Andika igitekerezo... 💬' : 'Write a comment... 💬'}
                         placeholderTextColor="#BBBBBB"
                         value={commentText}
                         onChangeText={setCommentText}
@@ -474,37 +487,39 @@ export default function EventPageScreen({ navigation, route }) {
                     </View>
                   </View>
 
-                  {/* ✅ Comments List */}
                   {commentsLoading ? (
                     <ActivityIndicator color={WINE} style={{ marginVertical: 20 }} />
                   ) : comments.length === 0 ? (
                     <View style={styles.emptyComments}>
-                      <Ionicons name="chatbubble-outline" size={36} color={GRAY} />
-                      <Text style={styles.emptyCommentsText}>No comments yet</Text>
-                      <Text style={styles.emptyCommentsSub}>Be the first to leave a message! 💬</Text>
+                      <Ionicons name="chatbubble-outline" size={36} color={SUB} />
+                      <Text style={[styles.emptyCommentsText, { color: TEXT }]}>
+                        {language === 'Kinyarwanda' ? 'Nta bitekerezo nawe' : 'No comments yet'}
+                      </Text>
+                      <Text style={[styles.emptyCommentsSub, { color: SUB }]}>
+                        {language === 'Kinyarwanda' ? 'Banza gutanga ubutumwa! 💬' : 'Be the first to leave a message! 💬'}
+                      </Text>
                     </View>
                   ) : (
                     comments.map((comment, index) => (
                       <View key={comment.id || index} style={styles.commentItem}>
-                        <View style={styles.commentAvatar}>
+                        <View style={[styles.commentAvatar, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
                           <Text style={styles.commentAvatarText}>
                             {comment.is_anonymous ? '🙈' : (comment.name?.charAt(0) || '?')}
                           </Text>
                         </View>
-                        <View style={styles.commentContent}>
+                        <View style={[styles.commentContent, { backgroundColor: darkMode ? '#1A1A1A' : '#F9F9F9' }]}>
                           <View style={styles.commentHeader}>
-                            <Text style={styles.commentName}>
+                            <Text style={[styles.commentName, { color: TEXT }]}>
                               {comment.is_anonymous ? 'Anonymous 🙈' : comment.name}
                             </Text>
-                            <Text style={styles.commentTime}>{formatTime(comment.created_at)}</Text>
+                            <Text style={[styles.commentTime, { color: SUB }]}>{formatTime(comment.created_at)}</Text>
                           </View>
-                          <Text style={styles.commentMessage}>{comment.message}</Text>
+                          <Text style={[styles.commentMessage, { color: TEXT }]}>{comment.message}</Text>
                         </View>
                       </View>
                     ))
                   )}
                 </View>
-
               </>
             )}
             <View style={{ height: 200 }} />
@@ -513,18 +528,24 @@ export default function EventPageScreen({ navigation, route }) {
       </KeyboardAvoidingView>
 
       {/* Bottom buttons */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { backgroundColor: CARD, borderTopColor: BORDER }]}>
         <TouchableOpacity style={styles.contributeBtn} onPress={() => navigation.navigate('Contribute', { event })} activeOpacity={0.85}>
-          <Text style={styles.contributeBtnText}>Contribute Gift 🎁</Text>
+          <Text style={styles.contributeBtnText}>
+            {language === 'Kinyarwanda' ? 'Tanga Inkunga 🎁' : 'Contribute Gift 🎁'}
+          </Text>
         </TouchableOpacity>
         <View style={styles.bottomActions}>
-          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
+          <TouchableOpacity style={[styles.actionBtn, { borderColor: BORDER }]} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
             <View style={styles.liveSmallDot} />
-            <Text style={styles.actionBtnText}>Live Feed</Text>
+            <Text style={styles.actionBtnText}>
+              {language === 'Kinyarwanda' ? 'Ikiganiro' : 'Live Feed'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => navigation.navigate('ShareEvent', { event })}>
+          <TouchableOpacity style={[styles.actionBtn, { borderColor: BORDER }]} activeOpacity={0.8} onPress={() => navigation.navigate('ShareEvent', { event })}>
             <Ionicons name="share-social-outline" size={18} color={WINE} />
-            <Text style={styles.actionBtnText}>Share</Text>
+            <Text style={styles.actionBtnText}>
+              {language === 'Kinyarwanda' ? 'Sangira' : 'Share'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -533,43 +554,51 @@ export default function EventPageScreen({ navigation, route }) {
       <Modal visible={editModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            <View style={styles.modalBox}>
+            <View style={[styles.modalBox, { backgroundColor: CARD }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Event ✏️</Text>
+                <Text style={[styles.modalTitle, { color: TEXT }]}>
+                  {language === 'Kinyarwanda' ? 'Hindura Ikirori ✏️' : 'Edit Event ✏️'}
+                </Text>
                 <TouchableOpacity onPress={() => setEditModal(false)}>
-                  <Ionicons name="close" size={24} color={BLACK} />
+                  <Ionicons name="close" size={24} color={TEXT} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalLabel}>Event Title *</Text>
-              <TextInput style={styles.modalInput} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
-              <Text style={styles.modalLabel}>Location</Text>
-              <TextInput style={styles.modalInput} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
-              <Text style={styles.modalLabel}>Description</Text>
-              <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12 }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
-              <Text style={styles.modalLabel}>Goal Amount (RWF)</Text>
-              <TextInput style={styles.modalInput} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
-              <Text style={styles.modalLabel}>Your Phone (for payments)</Text>
-              <TextInput style={styles.modalInput} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
-              <Text style={styles.modalLabel}>Payment Method</Text>
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Event Title *</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Location</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Description</Text>
+              <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12, borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Goal Amount (RWF)</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Your Phone (for payments)</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Payment Method</Text>
               <View style={styles.paymentRow}>
                 {['mtn', 'airtel'].map((method) => (
                   <TouchableOpacity
                     key={method}
-                    style={[styles.paymentOption, editPaymentMethod === method && styles.paymentOptionActive]}
+                    style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]}
                     onPress={() => setEditPaymentMethod(method)}
                   >
-                    <Text style={[styles.paymentOptionText, editPaymentMethod === method && { color: WINE }]}>
+                    <Text style={[styles.paymentOptionText, { color: SUB }, editPaymentMethod === method && { color: WINE }]}>
                       {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.modalBtns}>
-                <TouchableOpacity style={styles.modalCancel} onPress={() => setEditModal(false)}>
-                  <Text style={styles.modalCancelText}>Cancel</Text>
+                <TouchableOpacity style={[styles.modalCancel, { borderColor: BORDER }]} onPress={() => setEditModal(false)}>
+                  <Text style={[styles.modalCancelText, { color: SUB }]}>
+                    {language === 'Kinyarwanda' ? 'Hagarika' : 'Cancel'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalSave} onPress={handleSaveEdit} disabled={saving}>
-                  {saving ? <ActivityIndicator color={WHITE} size="small" /> : <Text style={styles.modalSaveText}>Save Changes</Text>}
+                  {saving ? <ActivityIndicator color={WHITE} size="small" /> : (
+                    <Text style={styles.modalSaveText}>
+                      {language === 'Kinyarwanda' ? 'Bika Impinduka' : 'Save Changes'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -582,7 +611,7 @@ export default function EventPageScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: WHITE },
+  container: { flex: 1 },
   heroWrapper: { width, height: height * 0.48, position: 'relative' },
   heroImage: { width: '100%', height: '100%' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -616,84 +645,81 @@ const styles = StyleSheet.create({
   amountSection: { marginBottom: 16 },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   amountRaised: { fontSize: 26, fontWeight: '800', color: WINE, marginBottom: 4 },
-  amountGoal: { fontSize: 14, color: GRAY },
+  amountGoal: { fontSize: 14 },
   percentBadge: { backgroundColor: WINE_LIGHT, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: WINE },
   percentText: { fontSize: 16, fontWeight: '800', color: WINE },
-  progressBar: { height: 8, backgroundColor: '#F0D0D8', borderRadius: 4 },
+  progressBar: { height: 8, borderRadius: 4 },
   progressFill: { height: 8, backgroundColor: WINE, borderRadius: 4 },
-  liveFeedBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1.5, borderColor: GREEN, gap: 12, shadowColor: GREEN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 3 },
+  liveFeedBtn: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1.5, borderColor: GREEN, gap: 12, shadowColor: GREEN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 3 },
   liveDotContainer: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' },
   liveDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: GREEN },
   liveFeedInfo: { flex: 1 },
-  liveFeedTitle: { fontSize: 15, fontWeight: '700', color: BLACK, marginBottom: 2 },
-  liveFeedSub: { fontSize: 12, color: GRAY },
+  liveFeedTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  liveFeedSub: { fontSize: 12 },
   liveSmallDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN },
-  contributeCard: { flexDirection: 'row', backgroundColor: WINE_LIGHT, borderRadius: 16, padding: 16, marginBottom: 16, gap: 14, alignItems: 'flex-start' },
-  contributeIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
+  contributeCard: { flexDirection: 'row', borderRadius: 16, padding: 16, marginBottom: 16, gap: 14, alignItems: 'flex-start' },
+  contributeIconBox: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
   contributeText: { flex: 1 },
-  contributeTitle: { fontSize: 15, fontWeight: '700', color: BLACK, marginBottom: 4 },
-  contributeSubtitle: { fontSize: 13, color: GRAY, lineHeight: 20 },
-  detailsCard: { borderWidth: 1, borderColor: BORDER, borderRadius: 16, padding: 16, marginBottom: 16 },
+  contributeTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  contributeSubtitle: { fontSize: 13, lineHeight: 20 },
+  detailsCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6 },
   detailIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
-  detailDivider: { height: 1, backgroundColor: BORDER, marginVertical: 4 },
-  detailLabel: { fontSize: 12, color: GRAY, marginBottom: 2 },
-  detailValue: { fontSize: 15, fontWeight: '700', color: BLACK },
+  detailDivider: { height: 1, marginVertical: 4 },
+  detailLabel: { fontSize: 12, marginBottom: 2 },
+  detailValue: { fontSize: 15, fontWeight: '700' },
   contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8, marginBottom: 16 },
   avatarStack: { flexDirection: 'row' },
-  avatarCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
+  avatarCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
   avatarText: { fontSize: 16 },
   contributorsInfo: { flex: 1 },
-  contributorsCount: { fontSize: 15, fontWeight: '700', color: BLACK },
-  contributorsSub: { fontSize: 12, color: GRAY, marginTop: 2 },
-
-  // ✅ Comments Styles
+  contributorsCount: { fontSize: 15, fontWeight: '700' },
+  contributorsSub: { fontSize: 12, marginTop: 2 },
   commentsSection: { marginBottom: 20 },
   commentsSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  commentsSectionTitle: { fontSize: 17, fontWeight: '800', color: BLACK, flex: 1 },
-  commentInputBox: { backgroundColor: '#F9F9F9', borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: BORDER },
+  commentsSectionTitle: { fontSize: 17, fontWeight: '800', flex: 1 },
+  commentInputBox: { borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1 },
   commentNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  commentNameInput: { flex: 1, fontSize: 13, fontWeight: '600', color: BLACK, borderWidth: 1, borderColor: BORDER, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: WHITE },
-  anonBtn: { borderWidth: 1.5, borderColor: BORDER, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
+  commentNameInput: { flex: 1, fontSize: 13, fontWeight: '600', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  anonBtn: { borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
   anonBtnActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  anonBtnText: { fontSize: 12, fontWeight: '600', color: GRAY },
+  anonBtnText: { fontSize: 12, fontWeight: '600' },
   anonBtnTextActive: { color: WINE },
   commentRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  commentInput: { flex: 1, fontSize: 14, color: BLACK, borderWidth: 1, borderColor: BORDER, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: WHITE, maxHeight: 80 },
+  commentInput: { flex: 1, fontSize: 14, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 80 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
   sendBtnDisabled: { backgroundColor: '#CCCCCC' },
   emptyComments: { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  emptyCommentsText: { fontSize: 15, fontWeight: '700', color: BLACK },
-  emptyCommentsSub: { fontSize: 13, color: GRAY },
+  emptyCommentsText: { fontSize: 15, fontWeight: '700' },
+  emptyCommentsSub: { fontSize: 13 },
   commentItem: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  commentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  commentAvatar: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   commentAvatarText: { fontSize: 14, fontWeight: '800', color: WINE },
-  commentContent: { flex: 1, backgroundColor: '#F9F9F9', borderRadius: 14, padding: 10 },
+  commentContent: { flex: 1, borderRadius: 14, padding: 10 },
   commentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  commentName: { fontSize: 13, fontWeight: '700', color: BLACK },
-  commentTime: { fontSize: 11, color: GRAY },
-  commentMessage: { fontSize: 13, color: BLACK, lineHeight: 20 },
-
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER, gap: 10 },
+  commentName: { fontSize: 13, fontWeight: '700' },
+  commentTime: { fontSize: 11 },
+  commentMessage: { fontSize: 13, lineHeight: 20 },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, borderTopWidth: 1, gap: 10 },
   contributeBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   contributeBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
   bottomActions: { flexDirection: 'row', gap: 12 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: BORDER },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5 },
   actionBtnText: { fontSize: 15, fontWeight: '600', color: WINE },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalScroll: { justifyContent: 'flex-end' },
-  modalBox: { backgroundColor: WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: BLACK },
-  modalLabel: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 8 },
-  modalInput: { borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, color: BLACK, marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800' },
+  modalLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  modalInput: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 16 },
   paymentRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  paymentOption: { flex: 1, borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  paymentOption: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   paymentOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  paymentOptionText: { fontSize: 13, fontWeight: '600', color: GRAY },
+  paymentOptionText: { fontSize: 13, fontWeight: '600' },
   modalBtns: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  modalCancel: { flex: 1, borderWidth: 1.5, borderColor: '#E5E5E5', borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
-  modalCancelText: { fontSize: 15, fontWeight: '600', color: GRAY },
+  modalCancel: { flex: 1, borderWidth: 1.5, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '600' },
   modalSave: { flex: 1, backgroundColor: WINE, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
   modalSaveText: { fontSize: 15, fontWeight: '700', color: WHITE },
 });

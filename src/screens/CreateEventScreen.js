@@ -9,18 +9,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { createEvent, getToken } from '../api';
+import { createEvent } from '../api';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
-const BLACK      = '#1A1A1A';
 const GRAY       = '#888888';
-const BORDER     = '#E5E5E5';
 
-const SUPABASE_URL = 'https://etswwbmrfqeokmobvhwy.supabase.co';
+const SUPABASE_URL      = 'https://etswwbmrfqeokmobvhwy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
 
 const eventTypes = [
@@ -62,6 +61,9 @@ const uploadPhotoToSupabase = async (uri, fileName) => {
 };
 
 export default function CreateEventScreen({ navigation }) {
+  const { darkMode, language, colors } = useTheme();
+  const { BG, CARD, TEXT, SUB, BORDER } = colors;
+
   const [selectedType, setSelectedType]             = useState('1');
   const [title, setTitle]                           = useState('');
   const [date, setDate]                             = useState(new Date());
@@ -71,8 +73,7 @@ export default function CreateEventScreen({ navigation }) {
   const [goalAmount, setGoalAmount]                 = useState('');
   const [ownerPhone, setOwnerPhone]                 = useState('');
   const [ownerPaymentMethod, setOwnerPaymentMethod] = useState('mtn');
-  // ✅ 4 photos instead of 2
-  const [photos, setPhotos] = useState([null, null, null, null]);
+  const [photos, setPhotos]                         = useState([null, null, null, null]);
   const [loading, setLoading]                       = useState(false);
   const [uploadProgress, setUploadProgress]         = useState('');
 
@@ -90,42 +91,35 @@ export default function CreateEventScreen({ navigation }) {
   };
 
   const handlePickPhoto = async (index) => {
-    Alert.alert(
-      'Add Photo',
-      'Choose an option',
-      [
-        {
-          text: 'Choose from Library',
-          onPress: async () => {
-            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true, aspect: [4, 3], quality: 0.8,
-            });
-            if (!result.canceled) {
-              const newPhotos = [...photos];
-              newPhotos[index] = result.assets[0].uri;
-              setPhotos(newPhotos);
-            }
-          },
+    Alert.alert(language === 'Kinyarwanda' ? 'Ongeraho Ifoto' : 'Add Photo', language === 'Kinyarwanda' ? 'Hitamo uburyo' : 'Choose an option', [
+      {
+        text: language === 'Kinyarwanda' ? 'Hitamo muri Galeri' : 'Choose from Library',
+        onPress: async () => {
+          const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+          if (!result.canceled) {
+            const newPhotos = [...photos];
+            newPhotos[index] = result.assets[0].uri;
+            setPhotos(newPhotos);
+          }
         },
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            const permission = await ImagePicker.requestCameraPermissionsAsync();
-            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
-            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
-            if (!result.canceled) {
-              const newPhotos = [...photos];
-              newPhotos[index] = result.assets[0].uri;
-              setPhotos(newPhotos);
-            }
-          },
+      },
+      {
+        text: language === 'Kinyarwanda' ? 'Fota' : 'Take Photo',
+        onPress: async () => {
+          const permission = await ImagePicker.requestCameraPermissionsAsync();
+          if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+          if (!result.canceled) {
+            const newPhotos = [...photos];
+            newPhotos[index] = result.assets[0].uri;
+            setPhotos(newPhotos);
+          }
         },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+      },
+      { text: language === 'Kinyarwanda' ? 'Hagarika' : 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const removePhoto = (index) => {
@@ -136,66 +130,57 @@ export default function CreateEventScreen({ navigation }) {
 
   const getPhotoLabel = (index) => {
     const type = eventTypes.find(t => t.id === selectedType)?.type;
-    if (type === 'Wedding') {
-      const labels = ['Couple Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'];
-      return labels[index];
+    if (language === 'Kinyarwanda') {
+      if (type === 'Wedding') return ['Ifoto y\'Abubatse', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Birthday') return ['Ifoto y\'Ubyukuwe', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      return `Ifoto ${index + 1}`;
     }
-    if (type === 'Birthday') {
-      const labels = ['Birthday Person', 'Invitation Card', 'Venue Photo', 'Extra Photo'];
-      return labels[index];
-    }
+    if (type === 'Wedding') return ['Couple Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Birthday') return ['Birthday Person', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
     return `Event Photo ${index + 1}`;
   };
 
   const handleCreate = async () => {
-    if (!title) { Alert.alert('Error', 'Please enter an event title'); return; }
-    if (!ownerPhone) { Alert.alert('Error', 'Please enter your phone number to receive contributions'); return; }
+    if (!title) { Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza izina ry\'ikirori' : 'Please enter an event title'); return; }
+    if (!ownerPhone) { Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza numero ya telefoni' : 'Please enter your phone number to receive contributions'); return; }
 
     const selectedEventType = eventTypes.find(t => t.id === selectedType);
     setLoading(true);
 
     try {
       const photoUrls = [null, null, null, null];
-
       for (let i = 0; i < photos.length; i++) {
         if (photos[i]) {
-          setUploadProgress(`Uploading photo ${i + 1} of ${photos.filter(p => p).length}...`);
+          setUploadProgress(language === 'Kinyarwanda' ? `Kohereza ifoto ${i + 1}...` : `Uploading photo ${i + 1} of ${photos.filter(p => p).length}...`);
           const fileName = `event-${Date.now()}-photo${i + 1}.jpg`;
           photoUrls[i] = await uploadPhotoToSupabase(photos[i], fileName);
         }
       }
 
-      setUploadProgress('Creating event...');
+      setUploadProgress(language === 'Kinyarwanda' ? 'Gushyiraho ikirori...' : 'Creating event...');
 
       const result = await createEvent({
-        title,
-        type: selectedEventType.type,
-        date: formatDateAPI(date),
-        location,
-        description: message,
+        title, type: selectedEventType.type, date: formatDateAPI(date),
+        location, description: message,
         goal_amount: goalAmount ? parseInt(goalAmount) : 0,
-        owner_phone: ownerPhone,
-        owner_payment_method: ownerPaymentMethod,
-        cover_image: photoUrls[0],
-        photo2_url: photoUrls[1],
-        photo3_url: photoUrls[2],
-        photo4_url: photoUrls[3],
+        owner_phone: ownerPhone, owner_payment_method: ownerPaymentMethod,
+        cover_image: photoUrls[0], photo2_url: photoUrls[1],
+        photo3_url: photoUrls[2], photo4_url: photoUrls[3],
       });
 
       if (result.success) {
         Alert.alert(
-          'Event Created! 🎉',
-          `Your event "${title}" has been created successfully!`,
+          language === 'Kinyarwanda' ? 'Ikirori Gishyizweho! 🎉' : 'Event Created! 🎉',
+          language === 'Kinyarwanda' ? `Ikirori "${title}" gishyizweho!` : `Your event "${title}" has been created successfully!`,
           [
-            { text: 'View Event', onPress: () => navigation.navigate('EventPage', { event: result.event }) },
-            { text: 'Go Home', onPress: () => navigation.navigate('Home') },
+            { text: language === 'Kinyarwanda' ? 'Reba Ikirori' : 'View Event', onPress: () => navigation.navigate('EventPage', { event: result.event }) },
+            { text: language === 'Kinyarwanda' ? 'Ahabanza' : 'Go Home', onPress: () => navigation.navigate('Home') },
           ]
         );
       } else {
         Alert.alert('Error', result.message || 'Failed to create event');
       }
     } catch (error) {
-      console.error('Create event error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -204,44 +189,62 @@ export default function CreateEventScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={CARD} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color={BLACK} />
+      <View style={[styles.header, { backgroundColor: CARD, borderBottomColor: BORDER }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={TEXT} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create New Event</Text>
+        <Text style={[styles.headerTitle, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Shiraho Ikirori Gishya' : 'Create New Event'}
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* Event Type */}
-        <Text style={styles.label}>Event Type</Text>
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type'}
+        </Text>
         <View style={styles.typeRow}>
           {eventTypes.map((type) => (
             <TouchableOpacity
               key={type.id}
-              style={[styles.typeCard, selectedType === type.id && styles.typeCardActive]}
+              style={[styles.typeCard, { borderColor: BORDER, backgroundColor: CARD }, selectedType === type.id && styles.typeCardActive]}
               onPress={() => setSelectedType(type.id)}
               activeOpacity={0.8}
             >
-              <Ionicons name={type.icon} size={28} color={selectedType === type.id ? WINE : GRAY} />
-              <Text style={[styles.typeLabel, selectedType === type.id && styles.typeLabelActive]}>{type.label}</Text>
+              <Ionicons name={type.icon} size={28} color={selectedType === type.id ? WINE : SUB} />
+              <Text style={[styles.typeLabel, { color: SUB }, selectedType === type.id && styles.typeLabelActive]}>
+                {language === 'Kinyarwanda'
+                  ? { Wedding: 'Ubukwe', Birthday: 'Isabukuru', Introduction: 'Gukwa', Other: 'Ibindi' }[type.type]
+                  : type.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Event Title */}
-        <Text style={styles.label}>Event Title</Text>
-        <TextInput style={styles.input} placeholder="John & Mary Wedding" placeholderTextColor="#BBBBBB" value={title} onChangeText={setTitle} />
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Izina ry\'Ikirori' : 'Event Title'}
+        </Text>
+        <TextInput
+          style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
+          placeholder="John & Mary Wedding"
+          placeholderTextColor="#BBBBBB"
+          value={title}
+          onChangeText={setTitle}
+        />
 
         {/* Event Date */}
-        <Text style={styles.label}>Event Date</Text>
-        <TouchableOpacity style={styles.dateRow} onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
-          <Text style={styles.dateText}>{formatDateDisplay(date)}</Text>
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date'}
+        </Text>
+        <TouchableOpacity style={[styles.dateRow, { borderColor: BORDER, backgroundColor: CARD }]} onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+          <Text style={[styles.dateText, { color: TEXT }]}>{formatDateDisplay(date)}</Text>
           <Ionicons name="calendar-outline" size={22} color={WINE} />
         </TouchableOpacity>
         {showDatePicker && (
@@ -249,43 +252,86 @@ export default function CreateEventScreen({ navigation }) {
         )}
 
         {/* Location */}
-        <Text style={styles.label}>Location <Text style={styles.optional}>(optional)</Text></Text>
-        <TextInput style={styles.input} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" value={location} onChangeText={setLocation} />
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+        </Text>
+        <TextInput
+          style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
+          placeholder="Kigali, Rwanda"
+          placeholderTextColor="#BBBBBB"
+          value={location}
+          onChangeText={setLocation}
+        />
 
         {/* Goal Amount */}
-        <Text style={styles.label}>Goal Amount <Text style={styles.optional}>(optional)</Text></Text>
-        <View style={styles.dateRow}>
-          <Text style={styles.currency}>RWF</Text>
-          <TextInput style={styles.dateInput} placeholder="10,000,000" placeholderTextColor="#BBBBBB" value={goalAmount} onChangeText={setGoalAmount} keyboardType="numeric" />
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+        </Text>
+        <View style={[styles.dateRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+          <Text style={[styles.currency, { color: SUB }]}>RWF</Text>
+          <TextInput
+            style={[styles.dateInput, { color: TEXT }]}
+            placeholder="10,000,000"
+            placeholderTextColor="#BBBBBB"
+            value={goalAmount}
+            onChangeText={setGoalAmount}
+            keyboardType="numeric"
+          />
         </View>
 
         {/* Short Message */}
-        <Text style={styles.label}>Short Message <Text style={styles.optional}>(optional)</Text></Text>
-        <TextInput style={styles.textarea} placeholder="We are getting married and would love you to be part of our special day." placeholderTextColor="#BBBBBB" value={message} onChangeText={setMessage} multiline numberOfLines={4} textAlignVertical="top" />
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Ubutumwa Bugufi' : 'Short Message'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+        </Text>
+        <TextInput
+          style={[styles.textarea, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
+          placeholder={language === 'Kinyarwanda' ? 'Twubaka no gukunda...' : 'We are getting married and would love you to be part of our special day.'}
+          placeholderTextColor="#BBBBBB"
+          value={message}
+          onChangeText={setMessage}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
 
         {/* Receive Payments */}
-        <View style={styles.sectionDivider}>
+        <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
           <Ionicons name="cash-outline" size={18} color={WINE} />
-          <Text style={styles.sectionDividerText}>Where to Receive Contributions</Text>
+          <Text style={styles.sectionDividerText}>
+            {language === 'Kinyarwanda' ? 'Aho Amafaranga Yoherezwa' : 'Where to Receive Contributions'}
+          </Text>
         </View>
 
-        <Text style={styles.label}>Your Phone Number <Text style={styles.required}>*</Text></Text>
-        <Text style={styles.labelSub}>Contributions will be sent directly to this number</Text>
-        <TextInput style={styles.input} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" value={ownerPhone} onChangeText={setOwnerPhone} keyboardType="phone-pad" />
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Numero ya Telefoni Yawe' : 'Your Phone Number'} <Text style={styles.required}>*</Text>
+        </Text>
+        <Text style={[styles.labelSub, { color: SUB }]}>
+          {language === 'Kinyarwanda' ? 'Inkunga zoherezwa kuri iyi numero' : 'Contributions will be sent directly to this number'}
+        </Text>
+        <TextInput
+          style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
+          placeholder="0781 234 567"
+          placeholderTextColor="#BBBBBB"
+          value={ownerPhone}
+          onChangeText={setOwnerPhone}
+          keyboardType="phone-pad"
+        />
 
-        <Text style={styles.label}>Payment Method <Text style={styles.required}>*</Text></Text>
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Uburyo bw\'Kwishyura' : 'Payment Method'} <Text style={styles.required}>*</Text>
+        </Text>
         <View style={styles.paymentMethodRow}>
           {paymentMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
-              style={[styles.paymentMethodCard, ownerPaymentMethod === method.id && styles.paymentMethodCardActive]}
+              style={[styles.paymentMethodCard, { borderColor: BORDER, backgroundColor: CARD }, ownerPaymentMethod === method.id && styles.paymentMethodCardActive]}
               onPress={() => setOwnerPaymentMethod(method.id)}
               activeOpacity={0.8}
             >
               <View style={[styles.paymentMethodIcon, { backgroundColor: method.color + '20' }]}>
                 <Ionicons name={method.icon} size={24} color={method.color} />
               </View>
-              <Text style={[styles.paymentMethodLabel, ownerPaymentMethod === method.id && styles.paymentMethodLabelActive]}>
+              <Text style={[styles.paymentMethodLabel, { color: SUB }, ownerPaymentMethod === method.id && styles.paymentMethodLabelActive]}>
                 {method.label}
               </Text>
               {ownerPaymentMethod === method.id && (
@@ -295,30 +341,31 @@ export default function CreateEventScreen({ navigation }) {
           ))}
         </View>
 
-        {/* ✅ Event Photos — 4 photos */}
-        <View style={styles.sectionDivider}>
+        {/* Event Photos */}
+        <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
           <Ionicons name="images-outline" size={18} color={WINE} />
-          <Text style={styles.sectionDividerText}>Event Photos (up to 4)</Text>
+          <Text style={styles.sectionDividerText}>
+            {language === 'Kinyarwanda' ? 'Amafoto y\'Ikirori (kugeza 4)' : 'Event Photos (up to 4)'}
+          </Text>
         </View>
 
-        <Text style={styles.photosHint}>📸 Add up to 4 photos to make your event stand out!</Text>
+        <Text style={[styles.photosHint, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+          📸 {language === 'Kinyarwanda' ? 'Ongeraho amafoto kugeza 4!' : 'Add up to 4 photos to make your event stand out!'}
+        </Text>
 
         {/* 2x2 Photo Grid */}
         <View style={styles.photoGrid}>
           {photos.map((photo, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.photoBox}
+              style={[styles.photoBox, { backgroundColor: darkMode ? '#1A1A1A' : '#F5F5F5', borderColor: BORDER }]}
               onPress={() => handlePickPhoto(index)}
               activeOpacity={0.8}
             >
               {photo ? (
                 <>
                   <Image source={{ uri: photo }} style={styles.photoPreview} resizeMode="cover" />
-                  <TouchableOpacity
-                    style={styles.removePhotoBtn}
-                    onPress={() => removePhoto(index)}
-                  >
+                  <TouchableOpacity style={styles.removePhotoBtn} onPress={() => removePhoto(index)}>
                     <Ionicons name="close-circle" size={22} color={WHITE} />
                   </TouchableOpacity>
                   <View style={styles.photoOverlay}>
@@ -328,7 +375,7 @@ export default function CreateEventScreen({ navigation }) {
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <Ionicons name="add-circle-outline" size={32} color={WINE} />
-                  <Text style={styles.photoPlaceholderText}>{getPhotoLabel(index)}</Text>
+                  <Text style={[styles.photoPlaceholderText, { color: SUB }]}>{getPhotoLabel(index)}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -339,7 +386,7 @@ export default function CreateEventScreen({ navigation }) {
       </ScrollView>
 
       {/* Create Event Button */}
-      <View style={styles.bottomBtn}>
+      <View style={[styles.bottomBtn, { backgroundColor: CARD, borderTopColor: BORDER }]}>
         {uploadProgress ? (
           <View style={styles.uploadProgressBox}>
             <ActivityIndicator color={WINE} size="small" />
@@ -355,10 +402,14 @@ export default function CreateEventScreen({ navigation }) {
           {loading ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <ActivityIndicator color={WHITE} size="small" />
-              <Text style={styles.createBtnText}>Creating Event...</Text>
+              <Text style={styles.createBtnText}>
+                {language === 'Kinyarwanda' ? 'Gushyiraho Ikirori...' : 'Creating Event...'}
+              </Text>
             </View>
           ) : (
-            <Text style={styles.createBtnText}>Create Event 🎉</Text>
+            <Text style={styles.createBtnText}>
+              {language === 'Kinyarwanda' ? 'Shiraho Ikirori 🎉' : 'Create Event 🎉'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -368,60 +419,42 @@ export default function CreateEventScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: WHITE },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: BLACK },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
   scroll: { paddingHorizontal: 20, paddingTop: 20 },
-  label: { fontSize: 15, fontWeight: '700', color: BLACK, marginBottom: 6 },
-  labelSub: { fontSize: 12, color: GRAY, marginBottom: 10 },
+  label: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
+  labelSub: { fontSize: 12, marginBottom: 10 },
   optional: { fontSize: 13, fontWeight: '400', color: GRAY },
   required: { color: WINE },
   typeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 8 },
-  typeCard: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: BORDER, backgroundColor: WHITE, gap: 6 },
+  typeCard: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, gap: 6 },
   typeCardActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  typeLabel: { fontSize: 11, color: GRAY, fontWeight: '600', textAlign: 'center' },
+  typeLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
   typeLabelActive: { color: WINE },
-  input: { borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, color: BLACK, marginBottom: 20, backgroundColor: WHITE },
-  dateRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 54, paddingHorizontal: 16, marginBottom: 20, backgroundColor: WHITE },
-  dateText: { flex: 1, fontSize: 15, color: BLACK, fontWeight: '500' },
-  dateInput: { flex: 1, fontSize: 15, color: BLACK },
-  currency: { fontSize: 15, fontWeight: '700', color: GRAY, marginRight: 8 },
-  textarea: { borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 100, paddingHorizontal: 16, paddingTop: 14, fontSize: 15, color: BLACK, marginBottom: 24, backgroundColor: WHITE },
-  sectionDivider: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: WINE_LIGHT, borderRadius: 12, padding: 12, marginBottom: 20, borderLeftWidth: 3, borderLeftColor: WINE },
+  input: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 20 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, marginBottom: 20 },
+  dateText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  dateInput: { flex: 1, fontSize: 15 },
+  currency: { fontSize: 15, fontWeight: '700', marginRight: 8 },
+  textarea: { borderWidth: 1.5, borderRadius: 14, height: 100, paddingHorizontal: 16, paddingTop: 14, fontSize: 15, marginBottom: 24 },
+  sectionDivider: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 20, borderLeftWidth: 3, borderLeftColor: WINE },
   sectionDividerText: { fontSize: 15, fontWeight: '700', color: WINE },
   paymentMethodRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  paymentMethodCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, padding: 12, backgroundColor: WHITE },
+  paymentMethodCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 14, padding: 12 },
   paymentMethodCardActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
   paymentMethodIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  paymentMethodLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: GRAY },
+  paymentMethodLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
   paymentMethodLabelActive: { color: WINE },
-  photosHint: { fontSize: 13, color: WINE, fontWeight: '600', marginBottom: 16, backgroundColor: WINE_LIGHT, padding: 10, borderRadius: 10 },
-
-  // ✅ 2x2 Photo Grid
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  photoBox: {
-    width: (width - 50) / 2,
-    height: (width - 50) / 2,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    borderStyle: 'dashed',
-    position: 'relative',
-  },
+  photosHint: { fontSize: 13, color: WINE, fontWeight: '600', marginBottom: 16, padding: 10, borderRadius: 10 },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  photoBox: { width: (width - 50) / 2, height: (width - 50) / 2, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderStyle: 'dashed', position: 'relative' },
   photoPreview: { width: '100%', height: '100%' },
   photoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },
-  photoPlaceholderText: { fontSize: 11, color: GRAY, fontWeight: '600', textAlign: 'center', paddingHorizontal: 8 },
+  photoPlaceholderText: { fontSize: 11, fontWeight: '600', textAlign: 'center', paddingHorizontal: 8 },
   photoOverlay: { position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 },
   removePhotoBtn: { position: 'absolute', top: 6, right: 6, zIndex: 10 },
-
-  bottomBtn: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER },
+  bottomBtn: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, borderTopWidth: 1 },
   uploadProgressBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   uploadProgressText: { fontSize: 13, color: WINE, fontWeight: '600' },
   createBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },

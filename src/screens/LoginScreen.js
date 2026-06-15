@@ -12,19 +12,15 @@ import * as AuthSession from 'expo-auth-session/providers/google';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveToken } from '../api';
+import { useTheme } from '../context/ThemeContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const WINE       = '#E60012';
 const WHITE      = '#FFFFFF';
-const BLACK      = '#1A1A1A';
-const GRAY       = '#888888';
-const BORDER     = '#E5E5E5';
 const WINE_LIGHT = '#F9EEF1';
+const BASE_URL   = 'https://contriba-backend-production.up.railway.app';
 
-const BASE_URL = 'https://contriba-backend-production.up.railway.app';
-
-// Configure Google Sign-In for Android
 if (Platform.OS === 'android') {
   GoogleSignin.configure({
     webClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
@@ -34,15 +30,17 @@ if (Platform.OS === 'android') {
 }
 
 export default function LoginScreen({ navigation }) {
-  const [countryCode, setCountryCode] = useState('RW');
-  const [callingCode, setCallingCode] = useState('250');
-  const [showPicker, setShowPicker]   = useState(false);
-  const [phone, setPhone]             = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [otpInfo, setOtpInfo]         = useState(null);
+  const { darkMode, language, colors } = useTheme();
+  const { BG, CARD, TEXT, SUB, BORDER } = colors;
 
-  // iOS Google Auth
+  const [countryCode, setCountryCode]     = useState('RW');
+  const [callingCode, setCallingCode]     = useState('250');
+  const [showPicker, setShowPicker]       = useState(false);
+  const [phone, setPhone]                 = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [otpInfo, setOtpInfo]             = useState(null);
+
   const [request, response, promptAsync] = AuthSession.useAuthRequest({
     androidClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
     iosClientId: '445164086766-vsf1eab46e5oonfsqmdjcg3nic2g7l63.apps.googleusercontent.com',
@@ -59,10 +57,9 @@ export default function LoginScreen({ navigation }) {
   const handleGoogleResponse = async (accessToken) => {
     setGoogleLoading(true);
     try {
-      const userInfoResponse = await fetch(
-        'https://www.googleapis.com/userinfo/v2/me',
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       const userInfo = await userInfoResponse.json();
       await sendGoogleToBackend(userInfo.email, userInfo.name, userInfo.picture, userInfo.id);
     } catch (error) {
@@ -80,7 +77,6 @@ export default function LoginScreen({ navigation }) {
       const { user } = userInfo;
       await sendGoogleToBackend(user.email, user.name, user.photo, user.id);
     } catch (error) {
-      console.error('Android Google error:', error);
       Alert.alert('Error', 'Google sign in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
@@ -139,23 +135,31 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={BG} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color={BLACK} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={TEXT} />
         </TouchableOpacity>
 
-        {/* ✅ UPDATED LOGO */}
+        {/* LOGO */}
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.title}>Welcome back 👋</Text>
-        <Text style={styles.subtitle}>Enter your phone number and we'll{'\n'}send your OTP to your registered email!</Text>
+        <Text style={[styles.title, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Murakaza neza 👋' : 'Welcome back 👋'}
+        </Text>
+        <Text style={[styles.subtitle, { color: SUB }]}>
+          {language === 'Kinyarwanda'
+            ? 'Injiza numero ya telefoni yawe'
+            : "Enter your phone number and we'll\nsend your OTP to your registered email!"}
+        </Text>
 
-        <Text style={styles.label}>Phone number</Text>
-        <View style={styles.phoneRow}>
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone number'}
+        </Text>
+        <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
           <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
             <CountryPicker
               countryCode={countryCode}
@@ -170,12 +174,12 @@ export default function LoginScreen({ navigation }) {
               visible={showPicker}
               onClose={() => setShowPicker(false)}
             />
-            <Text style={styles.callingCode}>+{callingCode}</Text>
-            <Text style={styles.dropArrow}> ▾</Text>
+            <Text style={[styles.callingCode, { color: TEXT }]}>+{callingCode}</Text>
+            <Text style={[styles.dropArrow, { color: SUB }]}> ▾</Text>
           </TouchableOpacity>
-          <View style={styles.phoneDivider} />
+          <View style={[styles.phoneDivider, { backgroundColor: BORDER }]} />
           <TextInput
-            style={styles.phoneInput}
+            style={[styles.phoneInput, { color: TEXT }]}
             placeholder="781 234 567"
             placeholderTextColor="#BBBBBB"
             keyboardType="phone-pad"
@@ -202,55 +206,71 @@ export default function LoginScreen({ navigation }) {
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <>
-              <Text style={styles.continueBtnText}>Continue with Phone</Text>
+              <Text style={styles.continueBtnText}>
+                {language === 'Kinyarwanda' ? 'Komeza na Telefoni' : 'Continue with Phone'}
+              </Text>
               <Ionicons name="arrow-forward" size={20} color={WHITE} />
             </>
           )}
         </TouchableOpacity>
 
         <View style={styles.orRow}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>or</Text>
-          <View style={styles.orLine} />
+          <View style={[styles.orLine, { backgroundColor: BORDER }]} />
+          <Text style={[styles.orText, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? 'cyangwa' : 'or'}
+          </Text>
+          <View style={[styles.orLine, { backgroundColor: BORDER }]} />
         </View>
 
         <TouchableOpacity
-          style={styles.socialBtn}
+          style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]}
           activeOpacity={0.8}
           onPress={handleGoogleLogin}
           disabled={googleLoading}
         >
           {googleLoading ? (
-            <ActivityIndicator color={BLACK} size="small" />
+            <ActivityIndicator color={TEXT} size="small" />
           ) : (
             <>
               <Image source={require('../../assets/google.png')} style={styles.socialIcon} resizeMode="contain" />
-              <Text style={styles.socialBtnText}>Continue with Google</Text>
+              <Text style={[styles.socialBtnText, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Komeza na Google' : 'Continue with Google'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
 
         {Platform.OS === 'ios' && (
-          <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]} activeOpacity={0.8}>
             <Image source={require('../../assets/apple.png')} style={styles.socialIcon} resizeMode="contain" />
-            <Text style={styles.socialBtnText}>Continue with Apple</Text>
+            <Text style={[styles.socialBtnText, { color: TEXT }]}>
+              {language === 'Kinyarwanda' ? 'Komeza na Apple' : 'Continue with Apple'}
+            </Text>
           </TouchableOpacity>
         )}
 
         <View style={styles.termsRow}>
           <Text style={styles.shieldIcon}>🛡️</Text>
-          <Text style={styles.termsText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.termsLink}>Terms & Conditions</Text>
-            {' '}and{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
+          <Text style={[styles.termsText, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? 'Ukomeza, wemeye ' : 'By continuing, you agree to our '}
+            <Text style={styles.termsLink}>
+              {language === 'Kinyarwanda' ? 'Amategeko' : 'Terms & Conditions'}
+            </Text>
+            {language === 'Kinyarwanda' ? ' na ' : ' and '}
+            <Text style={styles.termsLink}>
+              {language === 'Kinyarwanda' ? 'Politiki y\'Ibanga' : 'Privacy Policy'}
+            </Text>
           </Text>
         </View>
 
         <View style={styles.bottomRow}>
-          <Text style={styles.bottomText}>Don't have an account?</Text>
+          <Text style={[styles.bottomText, { color: TEXT }]}>
+            {language === 'Kinyarwanda' ? 'Nta konti?' : "Don't have an account?"}
+          </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.bottomLink}>  Sign Up →</Text>
+            <Text style={styles.bottomLink}>
+              {language === 'Kinyarwanda' ? '  Iyandikishe →' : '  Sign Up →'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -260,35 +280,35 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: WHITE },
+  container: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
   logo: { width: 120, height: 120, marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', color: BLACK, marginBottom: 8 },
-  subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 28 },
-  label: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 10 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 16, backgroundColor: WHITE },
+  title: { fontSize: 32, fontWeight: '800', marginBottom: 8 },
+  subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
+  label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 16 },
   countryBox: { flexDirection: 'row', alignItems: 'center' },
-  callingCode: { fontSize: 15, fontWeight: '600', color: BLACK, marginLeft: 4 },
-  dropArrow: { fontSize: 12, color: GRAY },
-  phoneDivider: { width: 1, height: 28, backgroundColor: BORDER, marginHorizontal: 12 },
-  phoneInput: { flex: 1, fontSize: 16, color: BLACK },
+  callingCode: { fontSize: 15, fontWeight: '600', marginLeft: 4 },
+  dropArrow: { fontSize: 12 },
+  phoneDivider: { width: 1, height: 28, marginHorizontal: 12 },
+  phoneInput: { flex: 1, fontSize: 16 },
   otpInfoBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: WINE_LIGHT, borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: WINE },
   otpInfoText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
   continueBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 20, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   continueBtnDisabled: { opacity: 0.45 },
   continueBtnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
   orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
-  orLine: { flex: 1, height: 1, backgroundColor: BORDER },
-  orText: { fontSize: 14, color: GRAY },
-  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: BORDER, borderRadius: 14, height: 56, marginBottom: 12, gap: 14, backgroundColor: WHITE },
+  orLine: { flex: 1, height: 1 },
+  orText: { fontSize: 14 },
+  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 14, height: 56, marginBottom: 12, gap: 14 },
   socialIcon: { width: 32, height: 32 },
-  socialBtnText: { fontSize: 15, fontWeight: '600', color: BLACK },
+  socialBtnText: { fontSize: 15, fontWeight: '600' },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
   shieldIcon: { fontSize: 18 },
-  termsText: { flex: 1, fontSize: 13, color: GRAY, lineHeight: 20 },
+  termsText: { flex: 1, fontSize: 13, lineHeight: 20 },
   termsLink: { color: WINE, fontWeight: '600' },
   bottomRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  bottomText: { fontSize: 14, color: BLACK, fontWeight: '500' },
+  bottomText: { fontSize: 14, fontWeight: '500' },
   bottomLink: { fontSize: 14, color: WINE, fontWeight: '700' },
 });

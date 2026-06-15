@@ -9,6 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvents, getDashboard } from '../api';
 
+// ✅ Import useTheme
+import { useTheme } from '../context/ThemeContext';
+
 const { width } = Dimensions.get('window');
 
 const WINE       = '#E60012';
@@ -18,10 +21,13 @@ const BLACK      = '#1A1A1A';
 const GRAY       = '#888888';
 const BORDER     = '#F0F0F0';
 
-const CARD_WIDTH = width * 0.52;
+const CARD_WIDTH  = width * 0.52;
 const CARD_HEIGHT = CARD_WIDTH * 1.5;
 
 export default function HomeScreen({ navigation }) {
+  const { darkMode, language, colors } = useTheme();
+  const { BG, CARD, TEXT, SUB, BORDER: BORDER_C } = colors;
+
   const [events, setEvents]       = useState([]);
   const [myEvents, setMyEvents]   = useState([]);
   const [dashboard, setDashboard] = useState(null);
@@ -39,12 +45,10 @@ export default function HomeScreen({ navigation }) {
       setLoading(true);
       const userData = await AsyncStorage.getItem('user');
       if (userData) setUser(JSON.parse(userData));
-
       const [eventsResult, dashboardResult] = await Promise.all([
         getEvents(),
         getDashboard(),
       ]);
-
       if (eventsResult.success) setEvents(eventsResult.events || []);
       if (dashboardResult.success) {
         setDashboard(dashboardResult.dashboard);
@@ -59,6 +63,11 @@ export default function HomeScreen({ navigation }) {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
+    if (language === 'Kinyarwanda') {
+      if (hour < 12) return 'Mwaramutse';
+      if (hour < 17) return 'Mwiriwe';
+      return 'Muraho';
+    }
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
@@ -98,52 +107,30 @@ export default function HomeScreen({ navigation }) {
   const PortraitCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
-      <TouchableOpacity
-        style={styles.portraitCard}
-        activeOpacity={0.9}
-        onPress={onPress}
-      >
-        {/* Big Photo */}
-        <Image
-          source={getEventImage(item)}
-          style={styles.portraitImage}
-          resizeMode="cover"
-        />
-
-        {/* Dark gradient overlay */}
+      <TouchableOpacity style={styles.portraitCard} activeOpacity={0.9} onPress={onPress}>
+        <Image source={getEventImage(item)} style={styles.portraitImage} resizeMode="cover" />
         <View style={styles.portraitOverlay} />
-
-        {/* Type badge */}
         <View style={styles.typeBadge}>
           <Text style={styles.typeBadgeText}>{item.type || 'Event'}</Text>
         </View>
-
-        {/* Bottom info */}
         <View style={styles.portraitBottom}>
           <Text style={styles.portraitName} numberOfLines={2}>{item.title}</Text>
           <View style={styles.portraitDateRow}>
             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.8)" />
             <Text style={styles.portraitDate}>{formatDate(item.date)}</Text>
           </View>
-
-          {/* Progress bar */}
           <View style={styles.portraitProgressBar}>
             <View style={[styles.portraitProgressFill, { width: `${progress * 100}%` }]} />
           </View>
-
           <View style={styles.portraitAmountRow}>
             <Text style={styles.portraitAmount}>{formatAmount(item.total_raised)}</Text>
             <Text style={styles.portraitPercent}>{Math.round(progress * 100)}%</Text>
           </View>
-
-          {/* Contribute button */}
-          <TouchableOpacity
-            style={styles.portraitBtn}
-            onPress={onContribute}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.portraitBtn} onPress={onContribute} activeOpacity={0.85}>
             <Ionicons name="heart" size={12} color={WHITE} />
-            <Text style={styles.portraitBtnText}>Contribute</Text>
+            <Text style={styles.portraitBtnText}>
+              {language === 'Kinyarwanda' ? 'Tanga' : 'Contribute'}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -151,35 +138,32 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={BG} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
               {getGreeting()}, {getUserName()} 👋
             </Text>
-            <Text style={styles.subGreeting}>What are we celebrating today?</Text>
+            <Text style={[styles.subGreeting, { color: SUB }]}>
+              {language === 'Kinyarwanda' ? 'Ni iki tugiye gusezerana?' : 'What are we celebrating today?'}
+            </Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={26} color={BLACK} />
+              <Ionicons name="notifications-outline" size={26} color={TEXT} />
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.avatarContainer}
-              onPress={() => navigation.navigate('Profile')}
-            >
+            <TouchableOpacity style={[styles.avatarContainer, { borderColor: WINE }]} onPress={() => navigation.navigate('Profile')}>
               {user?.avatar_url ? (
                 <Image source={{ uri: user.avatar_url }} style={styles.profileAvatar} />
               ) : (
-                <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
-                  <Text style={styles.profileAvatarInitials}>
-                    {getInitials(user?.name, user?.phone)}
-                  </Text>
+                <View style={[styles.profileAvatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={styles.profileAvatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -189,40 +173,45 @@ export default function HomeScreen({ navigation }) {
         {/* Stats Row */}
         {dashboard && (
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
               <Text style={styles.statValue}>{dashboard.total_events || 0}</Text>
-              <Text style={styles.statLabel}>My Events</Text>
+              <Text style={[styles.statLabel, { color: SUB }]}>
+                {language === 'Kinyarwanda' ? 'Ibirori' : 'My Events'}
+              </Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
               <Text style={styles.statValue}>{formatAmount(dashboard.total_raised)}</Text>
-              <Text style={styles.statLabel}>Total Raised</Text>
+              <Text style={[styles.statLabel, { color: SUB }]}>
+                {language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised'}
+              </Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
               <Text style={styles.statValue}>{formatAmount(dashboard.wallet_balance)}</Text>
-              <Text style={styles.statLabel}>Wallet</Text>
+              <Text style={[styles.statLabel, { color: SUB }]}>
+                {language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet'}
+              </Text>
             </View>
           </View>
         )}
 
         {/* Create New Event */}
-        <TouchableOpacity
-          style={styles.createBtn}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('CreateEvent')}
-        >
-          <Text style={styles.createBtnText}>＋  Create New Event</Text>
+        <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={() => navigation.navigate('CreateEvent')}>
+          <Text style={styles.createBtnText}>
+            ＋  {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
+          </Text>
         </TouchableOpacity>
 
         {/* My Events */}
         {myEvents.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>My Events</Text>
+              <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Ibirori Byanjye' : 'My Events'}
+              </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
-                <Text style={styles.seeAll}>See all</Text>
+                <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
               </TouchableOpacity>
             </View>
-
             <FlatList
               data={myEvents}
               keyExtractor={(item) => item.id}
@@ -242,8 +231,12 @@ export default function HomeScreen({ navigation }) {
 
         {/* All Events */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>All Events</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
+          <Text style={[styles.sectionTitle, { color: TEXT }]}>
+            {language === 'Kinyarwanda' ? 'Ibirori Byose' : 'All Events'}
+          </Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -251,8 +244,12 @@ export default function HomeScreen({ navigation }) {
         ) : events.length === 0 ? (
           <View style={styles.emptyBox}>
             <Ionicons name="calendar-outline" size={48} color={GRAY} />
-            <Text style={styles.emptyText}>No events yet</Text>
-            <Text style={styles.emptySubText}>Create your first event!</Text>
+            <Text style={[styles.emptyText, { color: TEXT }]}>
+              {language === 'Kinyarwanda' ? 'Nta birori' : 'No events yet'}
+            </Text>
+            <Text style={[styles.emptySubText, { color: SUB }]}>
+              {language === 'Kinyarwanda' ? 'Shiraho ikirori cya mbere!' : 'Create your first event!'}
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -273,26 +270,23 @@ export default function HomeScreen({ navigation }) {
 
         {/* Quick Actions */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: TEXT }]}>
+            {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
+          </Text>
         </View>
 
         <View style={styles.quickActionsRow}>
           {[
-            { icon: 'people',       label: 'Contributors', screen: 'Dashboard'  },
-            { icon: 'qr-code',      label: 'Share QR',     screen: 'ShareEvent' },
-            { icon: 'wallet',       label: 'My Wallet',    screen: 'Wallet'     },
-            { icon: 'grid-outline', label: 'Dashboard',    screen: 'Dashboard'  },
+            { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', screen: 'Dashboard'  },
+            { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira QR' : 'Share QR',   screen: 'ShareEvent' },
+            { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga' : 'My Wallet',  screen: 'Wallet'     },
+            { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard',     screen: 'Dashboard'  },
           ].map((action, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.quickAction}
-              activeOpacity={0.8}
-              onPress={() => action.screen && navigation.navigate(action.screen)}
-            >
-              <View style={[styles.quickActionIcon, action.label === 'Dashboard' && styles.dashboardIcon]}>
-                <Ionicons name={action.icon} size={32} color={action.label === 'Dashboard' ? WHITE : WINE} />
+            <TouchableOpacity key={index} style={styles.quickAction} activeOpacity={0.8} onPress={() => action.screen && navigation.navigate(action.screen)}>
+              <View style={[styles.quickActionIcon, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }, action.label === 'Dashboard' || action.label === 'Ikibaho' ? styles.dashboardIcon : {}]}>
+                <Ionicons name={action.icon} size={32} color={action.label === 'Dashboard' || action.label === 'Ikibaho' ? WHITE : WINE} />
               </View>
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
+              <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -301,22 +295,22 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* Bottom Tab Bar */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: CARD, borderTopColor: darkMode ? '#2A2A2A' : BORDER }]}>
         <TouchableOpacity style={styles.tabItem}>
           <Ionicons name="home" size={24} color={WINE} />
-          <Text style={styles.tabLabelActive}>Home</Text>
+          <Text style={styles.tabLabelActive}>{language === 'Kinyarwanda' ? 'Ahabanza' : 'Home'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Dashboard')}>
-          <Ionicons name="grid-outline" size={24} color={GRAY} />
-          <Text style={styles.tabLabel}>Dashboard</Text>
+          <Ionicons name="grid-outline" size={24} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Wallet')}>
-          <Ionicons name="wallet-outline" size={24} color={GRAY} />
-          <Text style={styles.tabLabel}>Wallet</Text>
+          <Ionicons name="wallet-outline" size={24} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Profile')}>
-          <Ionicons name="person-outline" size={24} color={GRAY} />
-          <Text style={styles.tabLabel}>Profile</Text>
+          <Ionicons name="person-outline" size={24} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Umwirondoro' : 'Profile'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -325,152 +319,54 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: WHITE },
-  scroll: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 32 : 16,
-  },
+  container: { flex: 1 },
+  scroll: { paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 32 : 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerLeft: { flex: 1, marginRight: 8 },
-  greeting: { fontSize: 20, fontWeight: '800', color: BLACK },
-  subGreeting: { fontSize: 14, color: GRAY, marginTop: 4 },
+  greeting: { fontSize: 20, fontWeight: '800' },
+  subGreeting: { fontSize: 14, marginTop: 4 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellBtn: { position: 'relative', padding: 4 },
   bellDot: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: WINE },
-  avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: WINE, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   profileAvatar: { width: 40, height: 40, borderRadius: 20 },
-  profileAvatarPlaceholder: { backgroundColor: WINE, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: WINE_LIGHT, borderRadius: 14, padding: 12, alignItems: 'center' },
+  statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 13, fontWeight: '800', color: WINE, marginBottom: 4 },
-  statLabel: { fontSize: 11, color: GRAY, textAlign: 'center' },
+  statLabel: { fontSize: 11, textAlign: 'center' },
   createBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', marginBottom: 28, elevation: 7, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
   createBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: BLACK },
+  sectionTitle: { fontSize: 17, fontWeight: '800' },
   seeAll: { fontSize: 14, color: WINE, fontWeight: '600' },
   horizontalList: { paddingRight: 20, paddingBottom: 8, marginBottom: 24 },
-
-  // ── Portrait Card ──
-  portraitCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 20,
-    marginRight: 14,
-    overflow: 'hidden',
-    backgroundColor: BLACK,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  portraitImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  portraitOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 20,
-  },
-  typeBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: WINE,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  typeBadgeText: {
-    color: WHITE,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  portraitBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
-  portraitName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: WHITE,
-    marginBottom: 4,
-    lineHeight: 18,
-  },
-  portraitDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  portraitDate: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  portraitProgressBar: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  portraitProgressFill: {
-    height: 3,
-    backgroundColor: WINE,
-    borderRadius: 2,
-  },
-  portraitAmountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  portraitAmount: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-  },
-  portraitPercent: {
-    fontSize: 10,
-    color: WINE,
-    fontWeight: '700',
-  },
-  portraitBtn: {
-    backgroundColor: WINE,
-    borderRadius: 20,
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  portraitBtnText: {
-    color: WHITE,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // ── Empty ──
+  portraitCard: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 20, marginRight: 14, overflow: 'hidden', backgroundColor: BLACK, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+  portraitImage: { width: '100%', height: '100%', position: 'absolute' },
+  portraitOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20 },
+  typeBadge: { position: 'absolute', top: 12, left: 12, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  typeBadgeText: { color: WHITE, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  portraitBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 },
+  portraitName: { fontSize: 14, fontWeight: '800', color: WHITE, marginBottom: 4, lineHeight: 18 },
+  portraitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  portraitDate: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
+  portraitProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, marginBottom: 4 },
+  portraitProgressFill: { height: 3, backgroundColor: WINE, borderRadius: 2 },
+  portraitAmountRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  portraitAmount: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  portraitPercent: { fontSize: 10, color: WINE, fontWeight: '700' },
+  portraitBtn: { backgroundColor: WINE, borderRadius: 20, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  portraitBtnText: { color: WHITE, fontSize: 11, fontWeight: '700' },
   emptyBox: { alignItems: 'center', paddingVertical: 40, marginBottom: 24 },
-  emptyText: { fontSize: 18, fontWeight: '700', color: BLACK, marginTop: 12 },
-  emptySubText: { fontSize: 14, color: GRAY, marginTop: 4 },
-
-  // ── Quick Actions ──
+  emptyText: { fontSize: 18, fontWeight: '700', marginTop: 12 },
+  emptySubText: { fontSize: 14, marginTop: 4 },
   quickActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   quickAction: { alignItems: 'center', gap: 8, flex: 1 },
-  quickActionIcon: { width: 72, height: 72, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  quickActionIcon: { width: 72, height: 72, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   dashboardIcon: { backgroundColor: WINE },
-  quickActionLabel: { fontSize: 11, color: BLACK, fontWeight: '600', textAlign: 'center' },
-
-  // ── Tab Bar ──
-  tabBar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: BORDER, backgroundColor: WHITE, paddingVertical: 10, paddingHorizontal: 10 },
+  quickActionLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  tabBar: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 10, paddingHorizontal: 10 },
   tabItem: { flex: 1, alignItems: 'center', gap: 4 },
-  tabLabel: { fontSize: 10, color: GRAY },
+  tabLabel: { fontSize: 10 },
   tabLabelActive: { fontSize: 10, color: WINE, fontWeight: '700' },
 });

@@ -6,6 +6,9 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// ✅ Import ThemeProvider
+import { ThemeProvider } from "./src/context/ThemeContext";
+
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import GetStartedScreen from "./src/screens/GetStartedScreen";
@@ -111,38 +114,37 @@ export default function App() {
     });
 
     return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
+      if (notificationListener.current) notificationListener.current.remove();
+      if (responseListener.current) responseListener.current.remove();
     };
   }, []);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="GetStarted" component={GetStartedScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="OTP" component={OTPScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
-        <Stack.Screen name="EventPage" component={EventPageScreen} />
-        <Stack.Screen name="Contribute" component={ContributeScreen} />
-        <Stack.Screen name="PaymentConfirm" component={PaymentConfirmScreen} />
-        <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="ShareEvent" component={ShareEventScreen} />
-        <Stack.Screen name="LiveFeed" component={LiveFeedScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    // ✅ Wrap everything with ThemeProvider
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="GetStarted" component={GetStartedScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="OTP" component={OTPScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
+          <Stack.Screen name="EventPage" component={EventPageScreen} />
+          <Stack.Screen name="Contribute" component={ContributeScreen} />
+          <Stack.Screen name="PaymentConfirm" component={PaymentConfirmScreen} />
+          <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="Wallet" component={WalletScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="ShareEvent" component={ShareEventScreen} />
+          <Stack.Screen name="LiveFeed" component={LiveFeedScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }

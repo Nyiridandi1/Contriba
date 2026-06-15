@@ -8,15 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDashboard, getToken } from '../api';
+import { useTheme } from '../context/ThemeContext';
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const GREEN      = '#1A9E4A';
 const WHITE      = '#FFFFFF';
-const LIGHT_GREY = '#F5F5F5';
-const MID_GREY   = '#E0E0E0';
-const DARK_GREY  = '#666666';
-const TEXT       = '#1A1A1A';
 const BASE_URL   = 'https://contriba-backend-production.up.railway.app';
 
 const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
@@ -47,6 +44,9 @@ const getEventImage = (event) => {
 };
 
 export default function DashboardScreen({ navigation }) {
+  const { darkMode, language, colors } = useTheme();
+  const { BG, CARD, TEXT, SUB, BORDER, DIV } = colors;
+
   const [dashboard, setDashboard]           = useState(null);
   const [user, setUser]                     = useState(null);
   const [loading, setLoading]               = useState(true);
@@ -57,7 +57,6 @@ export default function DashboardScreen({ navigation }) {
   const [editModal, setEditModal]           = useState(false);
   const [saving, setSaving]                 = useState(false);
 
-  // Edit fields
   const [editTitle, setEditTitle]                 = useState('');
   const [editLocation, setEditLocation]           = useState('');
   const [editDescription, setEditDescription]     = useState('');
@@ -144,14 +143,10 @@ export default function DashboardScreen({ navigation }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          title: editTitle,
-          location: editLocation,
-          description: editDescription,
+          title: editTitle, location: editLocation, description: editDescription,
           goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0,
-          owner_phone: editOwnerPhone,
-          owner_payment_method: editPaymentMethod,
-          type: selectedEvent.type,
-          date: selectedEvent.date,
+          owner_phone: editOwnerPhone, owner_payment_method: editPaymentMethod,
+          type: selectedEvent.type, date: selectedEvent.date,
         }),
       });
       const result = await response.json();
@@ -170,56 +165,58 @@ export default function DashboardScreen({ navigation }) {
   };
 
   const handleDelete = (event) => {
-    Alert.alert(
-      'Delete Event',
-      `Are you sure you want to delete "${event?.title}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await getToken();
-              const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-              });
-              const result = await response.json();
-              if (result.success) {
-                Alert.alert('Deleted! 🗑️', 'Event deleted successfully!');
-                loadData();
-              } else {
-                Alert.alert('Error', result.message || 'Failed to delete');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Something went wrong.');
+    Alert.alert('Delete Event', `Are you sure you want to delete "${event?.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            const token = await getToken();
+            const response = await fetch(`${BASE_URL}/api/events/${event.id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const result = await response.json();
+            if (result.success) {
+              Alert.alert('Deleted! 🗑️', 'Event deleted successfully!');
+              loadData();
+            } else {
+              Alert.alert('Error', result.message || 'Failed to delete');
             }
-          },
+          } catch (error) {
+            Alert.alert('Error', 'Something went wrong.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]}>
         <View style={styles.loadingBox}>
           <ActivityIndicator color={WINE} size="large" />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
+          <Text style={[styles.loadingText, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? 'Gutegereza...' : 'Loading dashboard...'}
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]} edges={['top', 'bottom']}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={CARD} />
 
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: CARD, borderBottomColor: BORDER }]}>
         <View>
-          <Text style={styles.headerTitle}>Dashboard</Text>
-          <Text style={styles.headerSub}>Hello, {getUserName()} 👋</Text>
+          <Text style={[styles.headerTitle, { color: TEXT }]}>
+            {language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard'}
+          </Text>
+          <Text style={[styles.headerSub, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? `Muraho, ${getUserName()} 👋` : `Hello, ${getUserName()} 👋`}
+          </Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
@@ -247,44 +244,43 @@ export default function DashboardScreen({ navigation }) {
       >
         {/* STATS ROW */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard?.total_events || 0}</Text>
-            <Text style={styles.statLabel}>Events</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{formatAmount(dashboard?.total_raised)}</Text>
-            <Text style={styles.statLabel}>Total Raised</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard?.total_contributors || 0}</Text>
-            <Text style={styles.statLabel}>Contributors</Text>
-          </View>
+          {[
+            { value: dashboard?.total_events || 0, label: language === 'Kinyarwanda' ? 'Ibirori' : 'Events' },
+            { value: formatAmount(dashboard?.total_raised), label: language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised' },
+            { value: dashboard?.total_contributors || 0, label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors' },
+          ].map((stat, i) => (
+            <View key={i} style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: SUB }]}>{stat.label}</Text>
+            </View>
+          ))}
         </View>
 
         {/* MY EVENTS */}
         {dashboard?.events?.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>My Events</Text>
+            <Text style={[styles.sectionTitle, { color: TEXT }]}>
+              {language === 'Kinyarwanda' ? 'Ibirori Byanjye' : 'My Events'}
+            </Text>
             {dashboard.events.map((event) => {
               const prog = event.goal_amount > 0 ? Math.min((event.total_raised || 0) / event.goal_amount, 1) : 0;
               const pct = Math.round(prog * 100);
               return (
                 <TouchableOpacity
                   key={event.id}
-                  style={[styles.eventCard, selectedEvent?.id === event.id && styles.eventCardSelected]}
+                  style={[styles.eventCard, { backgroundColor: CARD, borderColor: selectedEvent?.id === event.id ? WINE : BORDER }, selectedEvent?.id === event.id && { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}
                   onPress={() => { setSelectedEvent(event); loadContributions(event.id); }}
                   activeOpacity={0.8}
                 >
                   <Image source={getEventImage(event)} style={styles.eventImage} resizeMode="cover" />
                   <View style={styles.eventInfo}>
-                    <Text style={styles.eventTitle}>{event.title}</Text>
-                    <Text style={styles.eventType}>{event.type} • {formatDate(event.date)}</Text>
-                    <View style={styles.progressBar}>
+                    <Text style={[styles.eventTitle, { color: TEXT }]}>{event.title}</Text>
+                    <Text style={[styles.eventType, { color: SUB }]}>{event.type} • {formatDate(event.date)}</Text>
+                    <View style={[styles.progressBar, { backgroundColor: BORDER }]}>
                       <View style={[styles.progressFill, { width: `${pct}%` }]} />
                     </View>
-                    <Text style={styles.progressText}>{formatAmount(event.total_raised)} raised • {pct}%</Text>
+                    <Text style={[styles.progressText, { color: SUB }]}>{formatAmount(event.total_raised)} raised • {pct}%</Text>
                   </View>
-                  {/* Edit & Delete buttons */}
                   <View style={styles.eventActions}>
                     <TouchableOpacity style={styles.editBtn} onPress={() => handleEdit(event)}>
                       <Ionicons name="pencil-outline" size={14} color={WINE} />
@@ -301,96 +297,94 @@ export default function DashboardScreen({ navigation }) {
             })}
           </>
         ) : (
-          <TouchableOpacity style={styles.createPrompt} onPress={() => navigation.navigate('CreateEvent')}>
+          <TouchableOpacity style={[styles.createPrompt, { borderColor: WINE }]} onPress={() => navigation.navigate('CreateEvent')}>
             <Ionicons name="add-circle-outline" size={32} color={WINE} />
-            <Text style={styles.createPromptText}>Create your first event!</Text>
+            <Text style={styles.createPromptText}>
+              {language === 'Kinyarwanda' ? 'Shiraho ikirori cya mbere!' : 'Create your first event!'}
+            </Text>
           </TouchableOpacity>
         )}
 
         {/* SELECTED EVENT DETAILS */}
         {selectedEvent && (
           <>
-            <View style={styles.detailsCard}>
+            <View style={[styles.detailsCard, { backgroundColor: CARD, borderColor: BORDER }]}>
               <View style={styles.detailsHeader}>
-                <Text style={styles.sectionTitle}>Event Overview</Text>
+                <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                  {language === 'Kinyarwanda' ? 'Incamake y\'Ikirori' : 'Event Overview'}
+                </Text>
                 <View style={styles.detailsActions}>
                   <TouchableOpacity style={styles.detailEditBtn} onPress={() => handleEdit(selectedEvent)}>
                     <Ionicons name="pencil-outline" size={16} color={WINE} />
-                    <Text style={styles.detailEditText}>Edit</Text>
+                    <Text style={styles.detailEditText}>{language === 'Kinyarwanda' ? 'Hindura' : 'Edit'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.detailDeleteBtn} onPress={() => handleDelete(selectedEvent)}>
                     <Ionicons name="trash-outline" size={16} color="#FF3B30" />
-                    <Text style={styles.detailDeleteText}>Delete</Text>
+                    <Text style={styles.detailDeleteText}>{language === 'Kinyarwanda' ? 'Siba' : 'Delete'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.detailsGrid}>
-                <View style={styles.detailItem}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#FFE4E9' }]}>
-                    <Ionicons name="wallet-outline" size={20} color={WINE} />
+                {[
+                  { icon: 'wallet-outline', bg: '#FFE4E9', color: WINE, label: language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised', value: formatAmount(selectedEvent.total_raised) },
+                  { icon: 'people-outline', bg: '#E8F5E9', color: GREEN, label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', value: selectedEvent.total_contributors || contributions.length },
+                  { icon: 'time-outline', bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Iminsi Isigaye' : 'Days Left', value: getDaysLeft(selectedEvent.date) },
+                  { icon: 'flag-outline', bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Intego' : 'Goal', value: formatAmount(selectedEvent.goal_amount), small: true },
+                ].map((item, i) => (
+                  <View key={i} style={[styles.detailItem, { backgroundColor: darkMode ? '#2A2A2A' : '#F5F5F5' }]}>
+                    <View style={[styles.detailIcon, { backgroundColor: item.bg }]}>
+                      <Ionicons name={item.icon} size={20} color={item.color} />
+                    </View>
+                    <Text style={[styles.detailLabel, { color: SUB }]}>{item.label}</Text>
+                    <Text style={[styles.detailValue, { color: item.color, fontSize: item.small ? 12 : 14 }]}>{item.value}</Text>
                   </View>
-                  <Text style={styles.detailLabel}>Total Raised</Text>
-                  <Text style={[styles.detailValue, { color: WINE }]}>{formatAmount(selectedEvent.total_raised)}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#E8F5E9' }]}>
-                    <Ionicons name="people-outline" size={20} color={GREEN} />
-                  </View>
-                  <Text style={styles.detailLabel}>Contributors</Text>
-                  <Text style={[styles.detailValue, { color: GREEN }]}>{selectedEvent.total_contributors || contributions.length}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#EDE7F6' }]}>
-                    <Ionicons name="time-outline" size={20} color="#7C3AED" />
-                  </View>
-                  <Text style={styles.detailLabel}>Days Left</Text>
-                  <Text style={[styles.detailValue, { color: '#7C3AED' }]}>{getDaysLeft(selectedEvent.date)}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#FFF3E0' }]}>
-                    <Ionicons name="flag-outline" size={20} color="#F59E0B" />
-                  </View>
-                  <Text style={styles.detailLabel}>Goal</Text>
-                  <Text style={[styles.detailValue, { color: '#F59E0B', fontSize: 12 }]}>{formatAmount(selectedEvent.goal_amount)}</Text>
-                </View>
+                ))}
               </View>
 
-              <View style={styles.bigProgressBar}>
+              <View style={[styles.bigProgressBar, { backgroundColor: BORDER }]}>
                 <View style={[styles.bigProgressFill, { width: `${percent}%` }]} />
               </View>
-              <Text style={styles.bigProgressText}>{percent}% of goal reached</Text>
+              <Text style={[styles.bigProgressText, { color: SUB }]}>{percent}% {language === 'Kinyarwanda' ? 'by\'intego bigezweho' : 'of goal reached'}</Text>
             </View>
 
             {/* CONTRIBUTIONS LIST */}
-            <Text style={styles.sectionTitle}>All Contributions</Text>
+            <Text style={[styles.sectionTitle, { color: TEXT }]}>
+              {language === 'Kinyarwanda' ? 'Inkunga Zose' : 'All Contributions'}
+            </Text>
             {loadingContrib ? (
               <ActivityIndicator color={WINE} style={{ marginVertical: 20 }} />
             ) : contributions.length === 0 ? (
               <View style={styles.emptyContrib}>
-                <Ionicons name="heart-outline" size={40} color={DARK_GREY} />
-                <Text style={styles.emptyContribText}>No contributions yet</Text>
-                <Text style={styles.emptyContribSub}>Share your event to start receiving contributions!</Text>
+                <Ionicons name="heart-outline" size={40} color={SUB} />
+                <Text style={[styles.emptyContribText, { color: TEXT }]}>
+                  {language === 'Kinyarwanda' ? 'Nta nkunga nawe' : 'No contributions yet'}
+                </Text>
+                <Text style={[styles.emptyContribSub, { color: SUB }]}>
+                  {language === 'Kinyarwanda' ? 'Sangira ikirori wawe!' : 'Share your event to start receiving contributions!'}
+                </Text>
                 <TouchableOpacity style={styles.shareBtn} onPress={() => navigation.navigate('ShareEvent', { event: selectedEvent })}>
                   <Ionicons name="share-social-outline" size={16} color={WHITE} />
-                  <Text style={styles.shareBtnText}>Share Event</Text>
+                  <Text style={styles.shareBtnText}>
+                    {language === 'Kinyarwanda' ? 'Sangira Ikirori' : 'Share Event'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.contribList}>
+              <View style={[styles.contribList, { backgroundColor: CARD, borderColor: BORDER }]}>
                 {contributions.map((item, index) => (
                   <View key={item.id}>
                     <View style={styles.contribRow}>
-                      <View style={[styles.contribAvatar, { backgroundColor: item.is_anonymous ? LIGHT_GREY : WINE_LIGHT }]}>
-                        <Text style={[styles.contribInitials, { color: item.is_anonymous ? DARK_GREY : WINE }]}>
+                      <View style={[styles.contribAvatar, { backgroundColor: item.is_anonymous ? (darkMode ? '#2A2A2A' : '#F5F5F5') : WINE_LIGHT }]}>
+                        <Text style={[styles.contribInitials, { color: item.is_anonymous ? SUB : WINE }]}>
                           {item.is_anonymous ? '🙈' : getInitials(item.contributor_name)}
                         </Text>
                       </View>
                       <View style={styles.contribInfo}>
-                        <Text style={styles.contribName}>{item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}</Text>
-                        <Text style={styles.contribPhone}>{item.is_anonymous ? '' : item.contributor_phone}</Text>
-                        {item.message ? <Text style={styles.contribMessage}>"{item.message}"</Text> : null}
-                        <Text style={styles.contribTime}>{formatTime(item.created_at)}</Text>
+                        <Text style={[styles.contribName, { color: TEXT }]}>{item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}</Text>
+                        <Text style={[styles.contribPhone, { color: SUB }]}>{item.is_anonymous ? '' : item.contributor_phone}</Text>
+                        {item.message ? <Text style={[styles.contribMessage, { color: SUB }]}>"{item.message}"</Text> : null}
+                        <Text style={[styles.contribTime, { color: SUB }]}>{formatTime(item.created_at)}</Text>
                       </View>
                       <View style={styles.contribRight}>
                         <Text style={[styles.contribAmount, { color: item.status === 'success' ? GREEN : '#F59E0B' }]}>
@@ -403,7 +397,7 @@ export default function DashboardScreen({ navigation }) {
                         </View>
                       </View>
                     </View>
-                    {index < contributions.length - 1 && <View style={styles.rowDivider} />}
+                    {index < contributions.length - 1 && <View style={[styles.rowDivider, { backgroundColor: DIV }]} />}
                   </View>
                 ))}
               </View>
@@ -412,49 +406,48 @@ export default function DashboardScreen({ navigation }) {
         )}
 
         {/* QUICK ACTIONS */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={[styles.sectionTitle, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
+        </Text>
         <View style={styles.quickGrid}>
-          <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('CreateEvent')}>
-            <View style={[styles.quickIcon, { backgroundColor: WINE_LIGHT }]}><Ionicons name="add-circle-outline" size={24} color={WINE} /></View>
-            <Text style={styles.quickLabel}>New Event</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickCard} onPress={() => selectedEvent && navigation.navigate('LiveFeed', { event: selectedEvent })}>
-            <View style={[styles.quickIcon, { backgroundColor: '#E8F5E9' }]}><Ionicons name="radio-outline" size={24} color={GREEN} /></View>
-            <Text style={styles.quickLabel}>Live Feed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('Wallet')}>
-            <View style={[styles.quickIcon, { backgroundColor: '#EDE7F6' }]}><Ionicons name="wallet-outline" size={24} color="#7C3AED" /></View>
-            <Text style={styles.quickLabel}>Wallet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickCard} onPress={() => selectedEvent && navigation.navigate('ShareEvent', { event: selectedEvent })}>
-            <View style={[styles.quickIcon, { backgroundColor: '#FFF3E0' }]}><Ionicons name="share-social-outline" size={24} color="#F59E0B" /></View>
-            <Text style={styles.quickLabel}>Share</Text>
-          </TouchableOpacity>
+          {[
+            { icon: 'add-circle-outline', bg: WINE_LIGHT, color: WINE, label: language === 'Kinyarwanda' ? 'Ikirori Gishya' : 'New Event', screen: 'CreateEvent' },
+            { icon: 'radio-outline', bg: '#E8F5E9', color: GREEN, label: language === 'Kinyarwanda' ? 'Ikiganiro Giheruka' : 'Live Feed', screen: 'LiveFeed' },
+            { icon: 'wallet-outline', bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet', screen: 'Wallet' },
+            { icon: 'share-social-outline', bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Sangira' : 'Share', screen: 'ShareEvent' },
+          ].map((action, i) => (
+            <TouchableOpacity key={i} style={[styles.quickCard, { backgroundColor: CARD, borderColor: BORDER }]} onPress={() => action.screen && navigation.navigate(action.screen, action.screen === 'LiveFeed' || action.screen === 'ShareEvent' ? { event: selectedEvent } : undefined)}>
+              <View style={[styles.quickIcon, { backgroundColor: action.bg }]}>
+                <Ionicons name={action.icon} size={24} color={action.color} />
+              </View>
+              <Text style={[styles.quickLabel, { color: TEXT }]}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* BOTTOM TAB */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: CARD, borderTopColor: BORDER }]}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Home')}>
-          <Ionicons name="home-outline" size={22} color={DARK_GREY} />
-          <Text style={styles.tabLabel}>Home</Text>
+          <Ionicons name="home-outline" size={22} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Ahabanza' : 'Home'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}>
           <Ionicons name="grid" size={22} color={WINE} />
-          <Text style={[styles.tabLabel, { color: WINE, fontWeight: '700' }]}>Dashboard</Text>
+          <Text style={[styles.tabLabel, { color: WINE, fontWeight: '700' }]}>{language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabCenter} onPress={() => navigation.navigate('CreateEvent')}>
           <View style={styles.tabCenterBtn}><Ionicons name="add" size={28} color={WHITE} /></View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Wallet')}>
-          <Ionicons name="wallet-outline" size={22} color={DARK_GREY} />
-          <Text style={styles.tabLabel}>Wallet</Text>
+          <Ionicons name="wallet-outline" size={22} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Profile')}>
-          <Ionicons name="person-outline" size={22} color={DARK_GREY} />
-          <Text style={styles.tabLabel}>Profile</Text>
+          <Ionicons name="person-outline" size={22} color={SUB} />
+          <Text style={[styles.tabLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Umwirondoro' : 'Profile'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -462,47 +455,36 @@ export default function DashboardScreen({ navigation }) {
       <Modal visible={editModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={{ justifyContent: 'flex-end' }} keyboardShouldPersistTaps="handled">
-            <View style={styles.modalBox}>
+            <View style={[styles.modalBox, { backgroundColor: CARD }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Event ✏️</Text>
+                <Text style={[styles.modalTitle, { color: TEXT }]}>Edit Event ✏️</Text>
                 <TouchableOpacity onPress={() => setEditModal(false)}>
                   <Ionicons name="close" size={24} color={TEXT} />
                 </TouchableOpacity>
               </View>
-
-              <Text style={styles.modalLabel}>Event Title *</Text>
-              <TextInput style={styles.modalInput} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
-
-              <Text style={styles.modalLabel}>Location</Text>
-              <TextInput style={styles.modalInput} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
-
-              <Text style={styles.modalLabel}>Description</Text>
-              <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12 }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
-
-              <Text style={styles.modalLabel}>Goal Amount (RWF)</Text>
-              <TextInput style={styles.modalInput} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
-
-              <Text style={styles.modalLabel}>Your Phone (for payments)</Text>
-              <TextInput style={styles.modalInput} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
-
-              <Text style={styles.modalLabel}>Payment Method</Text>
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Event Title *</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editTitle} onChangeText={setEditTitle} placeholder="Event title" placeholderTextColor="#BBBBBB" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Location</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editLocation} onChangeText={setEditLocation} placeholder="Kigali, Rwanda" placeholderTextColor="#BBBBBB" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Description</Text>
+              <TextInput style={[styles.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 12, borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editDescription} onChangeText={setEditDescription} placeholder="Tell guests about your event" placeholderTextColor="#BBBBBB" multiline />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Goal Amount (RWF)</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editGoalAmount} onChangeText={setEditGoalAmount} placeholder="10000000" placeholderTextColor="#BBBBBB" keyboardType="numeric" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Your Phone (for payments)</Text>
+              <TextInput style={[styles.modalInput, { borderColor: BORDER, color: TEXT, backgroundColor: BG }]} value={editOwnerPhone} onChangeText={setEditOwnerPhone} placeholder="0781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" />
+              <Text style={[styles.modalLabel, { color: TEXT }]}>Payment Method</Text>
               <View style={styles.paymentRow}>
                 {['mtn', 'airtel'].map((method) => (
-                  <TouchableOpacity
-                    key={method}
-                    style={[styles.paymentOption, editPaymentMethod === method && styles.paymentOptionActive]}
-                    onPress={() => setEditPaymentMethod(method)}
-                  >
-                    <Text style={[styles.paymentOptionText, editPaymentMethod === method && { color: WINE }]}>
+                  <TouchableOpacity key={method} style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]} onPress={() => setEditPaymentMethod(method)}>
+                    <Text style={[styles.paymentOptionText, { color: SUB }, editPaymentMethod === method && { color: WINE }]}>
                       {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-
               <View style={styles.modalBtns}>
-                <TouchableOpacity style={styles.modalCancel} onPress={() => setEditModal(false)}>
-                  <Text style={styles.modalCancelText}>Cancel</Text>
+                <TouchableOpacity style={[styles.modalCancel, { borderColor: BORDER }]} onPress={() => setEditModal(false)}>
+                  <Text style={[styles.modalCancelText, { color: SUB }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalSave} onPress={handleSaveEdit} disabled={saving}>
                   {saving ? <ActivityIndicator color={WHITE} size="small" /> : <Text style={styles.modalSaveText}>Save Changes</Text>}
@@ -518,12 +500,12 @@ export default function DashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: WHITE },
+  safeArea: { flex: 1 },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: DARK_GREY },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: WHITE, borderBottomWidth: 1, borderBottomColor: LIGHT_GREY },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: TEXT },
-  headerSub: { fontSize: 13, color: DARK_GREY, marginTop: 2 },
+  loadingText: { fontSize: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
+  headerSub: { fontSize: 13, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellBtn: { position: 'relative', padding: 4 },
   badge: { position: 'absolute', top: 0, right: 0, backgroundColor: WINE, borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
@@ -531,26 +513,25 @@ const styles = StyleSheet.create({
   avatar: { width: 36, height: 36, borderRadius: 18 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: WINE_LIGHT, borderRadius: 12, padding: 12, alignItems: 'center' },
+  statCard: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 12, fontWeight: '800', color: WINE, marginBottom: 2, textAlign: 'center' },
-  statLabel: { fontSize: 10, color: DARK_GREY, textAlign: 'center' },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: TEXT, marginBottom: 12 },
-  eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderRadius: 16, padding: 12, marginBottom: 10, borderWidth: 1.5, borderColor: MID_GREY, gap: 10 },
-  eventCardSelected: { borderColor: WINE, backgroundColor: WINE_LIGHT },
+  statLabel: { fontSize: 10, textAlign: 'center' },
+  sectionTitle: { fontSize: 17, fontWeight: '800', marginBottom: 12 },
+  eventCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 12, marginBottom: 10, borderWidth: 1.5, gap: 10 },
   eventImage: { width: 60, height: 60, borderRadius: 10 },
   eventInfo: { flex: 1 },
-  eventTitle: { fontSize: 14, fontWeight: '800', color: TEXT, marginBottom: 2 },
-  eventType: { fontSize: 12, color: DARK_GREY, marginBottom: 6 },
-  progressBar: { height: 4, backgroundColor: MID_GREY, borderRadius: 2, marginBottom: 4 },
+  eventTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
+  eventType: { fontSize: 12, marginBottom: 6 },
+  progressBar: { height: 4, borderRadius: 2, marginBottom: 4 },
   progressFill: { height: 4, backgroundColor: WINE, borderRadius: 2 },
-  progressText: { fontSize: 11, color: DARK_GREY },
+  progressText: { fontSize: 11 },
   eventActions: { flexDirection: 'column', gap: 6 },
   editBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: WINE },
   deleteBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#FFF0F0', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FF3B30' },
   viewBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
-  createPrompt: { backgroundColor: WINE_LIGHT, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20, gap: 8, borderWidth: 1.5, borderColor: WINE, borderStyle: 'dashed' },
+  createPrompt: { borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20, gap: 8, borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: WINE_LIGHT },
   createPromptText: { fontSize: 15, fontWeight: '700', color: WINE },
-  detailsCard: { backgroundColor: WHITE, borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: MID_GREY },
+  detailsCard: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1 },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   detailsActions: { flexDirection: 'row', gap: 8 },
   detailEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: WINE_LIGHT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: WINE },
@@ -558,54 +539,54 @@ const styles = StyleSheet.create({
   detailDeleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF0F0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#FF3B30' },
   detailDeleteText: { fontSize: 12, fontWeight: '700', color: '#FF3B30' },
   detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  detailItem: { width: '47%', backgroundColor: LIGHT_GREY, borderRadius: 12, padding: 12, alignItems: 'center' },
+  detailItem: { width: '47%', borderRadius: 12, padding: 12, alignItems: 'center' },
   detailIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  detailLabel: { fontSize: 11, color: DARK_GREY, marginBottom: 4 },
+  detailLabel: { fontSize: 11, marginBottom: 4 },
   detailValue: { fontSize: 14, fontWeight: '800' },
-  bigProgressBar: { height: 8, backgroundColor: MID_GREY, borderRadius: 4, marginBottom: 6 },
+  bigProgressBar: { height: 8, borderRadius: 4, marginBottom: 6 },
   bigProgressFill: { height: 8, backgroundColor: WINE, borderRadius: 4 },
-  bigProgressText: { fontSize: 12, color: DARK_GREY, textAlign: 'right', fontWeight: '600' },
+  bigProgressText: { fontSize: 12, textAlign: 'right', fontWeight: '600' },
   emptyContrib: { alignItems: 'center', paddingVertical: 32, gap: 8, marginBottom: 20 },
-  emptyContribText: { fontSize: 16, fontWeight: '700', color: TEXT },
-  emptyContribSub: { fontSize: 13, color: DARK_GREY, textAlign: 'center' },
+  emptyContribText: { fontSize: 16, fontWeight: '700' },
+  emptyContribSub: { fontSize: 13, textAlign: 'center' },
   shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
   shareBtnText: { color: WHITE, fontSize: 14, fontWeight: '600' },
-  contribList: { backgroundColor: WHITE, borderRadius: 16, borderWidth: 1, borderColor: MID_GREY, marginBottom: 20, overflow: 'hidden' },
+  contribList: { borderRadius: 16, borderWidth: 1, marginBottom: 20, overflow: 'hidden' },
   contribRow: { flexDirection: 'row', alignItems: 'flex-start', padding: 14, gap: 10 },
   contribAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   contribInitials: { fontSize: 14, fontWeight: '800' },
   contribInfo: { flex: 1 },
-  contribName: { fontSize: 14, fontWeight: '700', color: TEXT, marginBottom: 2 },
-  contribPhone: { fontSize: 12, color: DARK_GREY, marginBottom: 2 },
-  contribMessage: { fontSize: 12, color: DARK_GREY, fontStyle: 'italic', marginBottom: 2 },
-  contribTime: { fontSize: 11, color: DARK_GREY },
+  contribName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  contribPhone: { fontSize: 12, marginBottom: 2 },
+  contribMessage: { fontSize: 12, fontStyle: 'italic', marginBottom: 2 },
+  contribTime: { fontSize: 11 },
   contribRight: { alignItems: 'flex-end', gap: 4 },
   contribAmount: { fontSize: 13, fontWeight: '800' },
   statusBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   statusText: { fontSize: 10, fontWeight: '700' },
-  rowDivider: { height: 1, backgroundColor: LIGHT_GREY, marginHorizontal: 14 },
+  rowDivider: { height: 1, marginHorizontal: 14 },
   quickGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  quickCard: { flex: 1, backgroundColor: WHITE, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: MID_GREY, gap: 8 },
+  quickCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, gap: 8 },
   quickIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  quickLabel: { fontSize: 11, fontWeight: '700', color: TEXT, textAlign: 'center' },
-  tabBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: MID_GREY, paddingBottom: Platform.OS === 'android' ? 8 : 4, paddingTop: 8 },
+  quickLabel: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  tabBar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingBottom: Platform.OS === 'android' ? 8 : 4, paddingTop: 8 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabLabel: { fontSize: 10, color: DARK_GREY, marginTop: 2 },
+  tabLabel: { fontSize: 10, marginTop: 2 },
   tabCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabCenterBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: WINE, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalBox: { backgroundColor: WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: TEXT },
-  modalLabel: { fontSize: 14, fontWeight: '700', color: TEXT, marginBottom: 8 },
-  modalInput: { borderWidth: 1.5, borderColor: MID_GREY, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, color: TEXT, marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800' },
+  modalLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  modalInput: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 16 },
   paymentRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  paymentOption: { flex: 1, borderWidth: 1.5, borderColor: MID_GREY, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  paymentOption: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   paymentOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  paymentOptionText: { fontSize: 13, fontWeight: '600', color: DARK_GREY },
+  paymentOptionText: { fontSize: 13, fontWeight: '600' },
   modalBtns: { flexDirection: 'row', gap: 12 },
-  modalCancel: { flex: 1, borderWidth: 1.5, borderColor: MID_GREY, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
-  modalCancelText: { fontSize: 15, fontWeight: '600', color: DARK_GREY },
+  modalCancel: { flex: 1, borderWidth: 1.5, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '600' },
   modalSave: { flex: 1, backgroundColor: WINE, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center' },
   modalSaveText: { fontSize: 15, fontWeight: '700', color: WHITE },
 });
