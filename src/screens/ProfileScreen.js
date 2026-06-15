@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { getWallet, removeToken } from '../api';
+import { getWallet, removeToken, getToken } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WINE = '#E60012';
@@ -15,6 +15,10 @@ const LIGHT_GREY = '#F5F5F5';
 const MID_GREY = '#E0E0E0';
 const DARK_GREY = '#666666';
 const TEXT = '#1A1A1A';
+
+const SUPABASE_URL = 'https://etswwbmrfqeokmobvhwy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
 export default function ProfileScreen({ navigation }) {
   const [balanceVisible, setBalanceVisible] = useState(true);
@@ -42,6 +46,36 @@ export default function ProfileScreen({ navigation }) {
       console.error('Profile load error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Upload photo to Supabase Storage
+  const uploadPhotoToSupabase = async (uri) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileName = `avatars/${user?.id}-${Date.now()}.jpg`;
+
+      const uploadResponse = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/event-photos/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': blob.type || 'image/jpeg',
+            'x-upsert': 'true',
+          },
+          body: blob,
+        }
+      );
+
+      if (uploadResponse.ok) {
+        return `${SUPABASE_URL}/storage/v1/object/public/event-photos/${fileName}`;
+      }
+      return null;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return null;
     }
   };
 
@@ -79,11 +113,38 @@ export default function ProfileScreen({ navigation }) {
   const updateProfilePhoto = async (uri) => {
     setUploadingPhoto(true);
     try {
-      const updatedUser = { ...user, avatar_url: uri };
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      Alert.alert('Success! ✅', 'Profile photo updated!');
+      // ✅ Step 1: Upload to Supabase Storage
+      const avatarUrl = await uploadPhotoToSupabase(uri);
+
+      if (!avatarUrl) {
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        return;
+      }
+
+      // ✅ Step 2: Save URL to backend database
+      const token = await getToken();
+      const response = await fetch(`${BASE_URL}/api/auth/update-avatar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatar_url: avatarUrl }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // ✅ Step 3: Update AsyncStorage with new URL
+        const updatedUser = { ...user, avatar_url: avatarUrl };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        Alert.alert('Success! ✅', 'Profile photo updated!');
+      } else {
+        Alert.alert('Error', 'Failed to save photo to database');
+      }
     } catch (error) {
+      console.error('Update photo error:', error);
       Alert.alert('Error', 'Failed to update photo');
     } finally {
       setUploadingPhoto(false);
@@ -126,7 +187,6 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="arrow-back" size={22} color={TEXT} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        {/* SETTINGS BUTTON */}
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Settings')}>
           <Ionicons name="settings-outline" size={22} color={TEXT} />
         </TouchableOpacity>
@@ -316,11 +376,25 @@ export default function ProfileScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.modalSave}
                 onPress={async () => {
-                  const updatedUser = { ...user, name: editName };
-                  await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-                  setUser(updatedUser);
-                  setEditModal(false);
-                  Alert.alert('Success! ✅', 'Profile updated!');
+                  try {
+                    // ✅ Save name to backend too
+                    const token = await getToken();
+                    await fetch(`${BASE_URL}/api/auth/update-profile`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ name: editName }),
+                    });
+                    const updatedUser = { ...user, name: editName };
+                    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+                    setUser(updatedUser);
+                    setEditModal(false);
+                    Alert.alert('Success! ✅', 'Profile updated!');
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to update profile');
+                  }
                 }}
               >
                 <Text style={styles.modalSaveText}>Save</Text>

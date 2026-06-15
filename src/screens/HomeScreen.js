@@ -18,6 +18,9 @@ const BLACK      = '#1A1A1A';
 const GRAY       = '#888888';
 const BORDER     = '#F0F0F0';
 
+const CARD_WIDTH = width * 0.52;
+const CARD_HEIGHT = CARD_WIDTH * 1.5;
+
 export default function HomeScreen({ navigation }) {
   const [events, setEvents]       = useState([]);
   const [myEvents, setMyEvents]   = useState([]);
@@ -89,6 +92,62 @@ export default function HomeScreen({ navigation }) {
   const getEventImage = (item) => {
     if (item.cover_image) return { uri: item.cover_image };
     return require('../../assets/couple.png');
+  };
+
+  // ── Portrait Event Card ──
+  const PortraitCard = ({ item, onPress, onContribute }) => {
+    const progress = getProgress(item);
+    return (
+      <TouchableOpacity
+        style={styles.portraitCard}
+        activeOpacity={0.9}
+        onPress={onPress}
+      >
+        {/* Big Photo */}
+        <Image
+          source={getEventImage(item)}
+          style={styles.portraitImage}
+          resizeMode="cover"
+        />
+
+        {/* Dark gradient overlay */}
+        <View style={styles.portraitOverlay} />
+
+        {/* Type badge */}
+        <View style={styles.typeBadge}>
+          <Text style={styles.typeBadgeText}>{item.type || 'Event'}</Text>
+        </View>
+
+        {/* Bottom info */}
+        <View style={styles.portraitBottom}>
+          <Text style={styles.portraitName} numberOfLines={2}>{item.title}</Text>
+          <View style={styles.portraitDateRow}>
+            <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.portraitDate}>{formatDate(item.date)}</Text>
+          </View>
+
+          {/* Progress bar */}
+          <View style={styles.portraitProgressBar}>
+            <View style={[styles.portraitProgressFill, { width: `${progress * 100}%` }]} />
+          </View>
+
+          <View style={styles.portraitAmountRow}>
+            <Text style={styles.portraitAmount}>{formatAmount(item.total_raised)}</Text>
+            <Text style={styles.portraitPercent}>{Math.round(progress * 100)}%</Text>
+          </View>
+
+          {/* Contribute button */}
+          <TouchableOpacity
+            style={styles.portraitBtn}
+            onPress={onContribute}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="heart" size={12} color={WHITE} />
+            <Text style={styles.portraitBtnText}>Contribute</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -171,26 +230,11 @@ export default function HomeScreen({ navigation }) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalList}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.upcomingCard}
-                  activeOpacity={0.85}
+                <PortraitCard
+                  item={item}
                   onPress={() => navigation.navigate('EventPage', { event: item })}
-                >
-                  <Image
-                    source={getEventImage(item)}
-                    style={styles.upcomingImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.upcomingInfo}>
-                    <Text style={styles.upcomingName}>{item.title}</Text>
-                    <Text style={styles.upcomingType}>{item.type}</Text>
-                    <Text style={styles.upcomingDate}>{formatDate(item.date)}</Text>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: `${getProgress(item) * 100}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{Math.round(getProgress(item) * 100)}%</Text>
-                  </View>
-                </TouchableOpacity>
+                  onContribute={() => navigation.navigate('Contribute', { event: item })}
+                />
               )}
             />
           </>
@@ -218,34 +262,11 @@ export default function HomeScreen({ navigation }) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalList}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.featuredCard}
-                activeOpacity={0.85}
+              <PortraitCard
+                item={item}
                 onPress={() => navigation.navigate('EventPage', { event: item })}
-              >
-                <Image
-                  source={getEventImage(item)}
-                  style={styles.featuredImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.featuredInfo}>
-                  <Text style={styles.featuredName}>{item.title}</Text>
-                  <Text style={styles.featuredType}>{item.type}</Text>
-                  <Text style={styles.featuredDate}>{formatDate(item.date)}</Text>
-                  <Text style={styles.featuredAmount}>{formatAmount(item.total_raised)} raised</Text>
-                </View>
-                <View style={styles.featuredActions}>
-                  <TouchableOpacity style={styles.heartBtn}>
-                    <Ionicons name="heart" size={18} color={WINE} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.plusBtn}
-                    onPress={() => navigation.navigate('Contribute', { event: item })}
-                  >
-                    <Ionicons name="add" size={22} color={WINE} />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
+                onContribute={() => navigation.navigate('Contribute', { event: item })}
+              />
             )}
           />
         )}
@@ -329,34 +350,125 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   sectionTitle: { fontSize: 17, fontWeight: '800', color: BLACK },
   seeAll: { fontSize: 14, color: WINE, fontWeight: '600' },
-  horizontalList: { paddingRight: 20, marginBottom: 24 },
-  upcomingCard: { flexDirection: 'row', backgroundColor: WINE_LIGHT, borderRadius: 16, marginRight: 14, overflow: 'hidden', width: width * 0.75 },
-  upcomingImage: { width: 110, height: 130 },
-  upcomingInfo: { flex: 1, padding: 12 },
-  upcomingName: { fontSize: 16, fontWeight: '800', color: BLACK, marginBottom: 2 },
-  upcomingType: { fontSize: 13, color: GRAY, marginBottom: 4 },
-  upcomingDate: { fontSize: 13, color: BLACK, marginBottom: 10 },
-  progressBar: { height: 6, backgroundColor: '#F0D0D8', borderRadius: 4, marginBottom: 4 },
-  progressFill: { height: 6, backgroundColor: WINE, borderRadius: 4 },
-  progressText: { fontSize: 12, color: GRAY, textAlign: 'right' },
-  featuredCard: { flexDirection: 'row', backgroundColor: WHITE, borderRadius: 16, marginRight: 14, width: width * 0.7, borderWidth: 1, borderColor: BORDER, alignItems: 'center', padding: 10, gap: 10 },
-  featuredImage: { width: 80, height: 90, borderRadius: 12 },
-  featuredInfo: { flex: 1 },
-  featuredName: { fontSize: 15, fontWeight: '800', color: BLACK, marginBottom: 2 },
-  featuredType: { fontSize: 13, color: GRAY, marginBottom: 4 },
-  featuredDate: { fontSize: 13, color: BLACK, marginBottom: 2 },
-  featuredAmount: { fontSize: 12, color: WINE, fontWeight: '600' },
-  featuredActions: { gap: 8, alignItems: 'center' },
-  heartBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
-  plusBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  horizontalList: { paddingRight: 20, paddingBottom: 8, marginBottom: 24 },
+
+  // ── Portrait Card ──
+  portraitCard: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 20,
+    marginRight: 14,
+    overflow: 'hidden',
+    backgroundColor: BLACK,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  portraitImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  portraitOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 20,
+  },
+  typeBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: WINE,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  typeBadgeText: {
+    color: WHITE,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  portraitBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+  },
+  portraitName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: WHITE,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  portraitDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  portraitDate: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  portraitProgressBar: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    marginBottom: 4,
+  },
+  portraitProgressFill: {
+    height: 3,
+    backgroundColor: WINE,
+    borderRadius: 2,
+  },
+  portraitAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  portraitAmount: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+  },
+  portraitPercent: {
+    fontSize: 10,
+    color: WINE,
+    fontWeight: '700',
+  },
+  portraitBtn: {
+    backgroundColor: WINE,
+    borderRadius: 20,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  portraitBtnText: {
+    color: WHITE,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // ── Empty ──
   emptyBox: { alignItems: 'center', paddingVertical: 40, marginBottom: 24 },
   emptyText: { fontSize: 18, fontWeight: '700', color: BLACK, marginTop: 12 },
   emptySubText: { fontSize: 14, color: GRAY, marginTop: 4 },
+
+  // ── Quick Actions ──
   quickActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   quickAction: { alignItems: 'center', gap: 8, flex: 1 },
   quickActionIcon: { width: 72, height: 72, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
   dashboardIcon: { backgroundColor: WINE },
   quickActionLabel: { fontSize: 11, color: BLACK, fontWeight: '600', textAlign: 'center' },
+
+  // ── Tab Bar ──
   tabBar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: BORDER, backgroundColor: WHITE, paddingVertical: 10, paddingHorizontal: 10 },
   tabItem: { flex: 1, alignItems: 'center', gap: 4 },
   tabLabel: { fontSize: 10, color: GRAY },

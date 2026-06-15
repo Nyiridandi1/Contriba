@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, SafeAreaView, Image, Dimensions, ActivityIndicator,
-  Platform, Alert, Modal, TextInput,
+  Platform, Alert, Modal, TextInput, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,8 +29,9 @@ export default function EventPageScreen({ navigation, route }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [editModal, setEditModal]     = useState(false);
   const [saving, setSaving]           = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [showControls, setShowControls] = useState(true);
 
-  // Edit fields
   const [editTitle, setEditTitle]               = useState('');
   const [editLocation, setEditLocation]         = useState('');
   const [editDescription, setEditDescription]   = useState('');
@@ -61,17 +62,22 @@ export default function EventPageScreen({ navigation, route }) {
   };
 
   const isOwner = currentUser?.id === event?.owner_id;
-
   const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString();
-
   const progress = event?.goal_amount > 0
     ? Math.min((event?.total_raised || 0) / event?.goal_amount, 1) : 0;
   const percent = Math.round(progress * 100);
 
-  const getHeroImage = () => {
-    if (event?.cover_image) return { uri: event.cover_image };
-    return require('../../assets/couple.png');
+  const getPhotos = () => {
+    const photos = [];
+    if (event?.cover_image) photos.push(event.cover_image);
+    if (event?.photo2_url) photos.push(event.photo2_url);
+    if (event?.photo3_url) photos.push(event.photo3_url);
+    if (event?.photo4_url) photos.push(event.photo4_url);
+    if (photos.length === 0) photos.push(null);
+    return photos;
   };
+
+  const photos = getPhotos();
 
   const handleEdit = () => {
     setEditTitle(event?.title || '');
@@ -166,61 +172,130 @@ export default function EventPageScreen({ navigation, route }) {
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Hero Image */}
+        {/* ✅ Swipeable Photo Carousel */}
         <View style={styles.heroWrapper}>
-          <Image source={getHeroImage()} style={styles.heroImage} resizeMode="cover" />
-          <View style={styles.heroOverlay} />
 
-          {/* Top buttons */}
-          <View style={styles.heroTop}>
-            <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={20} color={BLACK} />
-            </TouchableOpacity>
-            <View style={styles.heroTopRight}>
-              {isOwner && (
-                <>
-                  <TouchableOpacity style={styles.heroBtn} onPress={handleEdit}>
-                    <Ionicons name="pencil-outline" size={20} color={BLACK} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#FFE4E4' }]} onPress={handleDelete}>
-                    <Ionicons name="trash-outline" size={20} color={WINE} />
-                  </TouchableOpacity>
-                </>
+          {/* ✅ FlatList without TouchableOpacity wrapper */}
+          <View style={{ width, height: height * 0.48 }}>
+            <FlatList
+              data={photos}
+              keyExtractor={(_, index) => index.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / width);
+                setActivePhotoIndex(index);
+              }}
+              renderItem={({ item }) => (
+                // ✅ TouchableOpacity INSIDE renderItem for tap to hide
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => setShowControls(!showControls)}
+                  style={{ width, height: height * 0.48 }}
+                >
+                  {item ? (
+                    <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
+                  ) : (
+                    <Image source={require('../../assets/couple.png')} style={styles.heroImage} resizeMode="cover" />
+                  )}
+                  <View style={styles.heroOverlay} />
+                </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('ShareEvent', { event })}>
-                <Ionicons name="share-social-outline" size={20} color={BLACK} />
-              </TouchableOpacity>
-            </View>
+            />
           </View>
 
-          {/* Badges */}
-          <View style={styles.typeBadge}>
-            <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : event?.type === 'Introduction' ? 'people' : 'calendar'} size={12} color={WHITE} />
-            <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
-          </View>
-          {isOwner && (
-            <View style={styles.ownerBadge}>
-              <Ionicons name="ribbon-outline" size={12} color={WHITE} />
-              <Text style={styles.ownerBadgeText}>Your Event</Text>
+          {/* ✅ Dot Indicators - always visible */}
+          {photos.length > 1 && (
+            <View style={styles.dotsContainer}>
+              {photos.map((_, index) => (
+                <View
+                  key={index}
+                  style={[styles.dot, index === activePhotoIndex ? styles.dotActive : styles.dotInactive]}
+                />
+              ))}
             </View>
           )}
 
-          {/* Hero info */}
-          <View style={styles.heroInfo}>
-            <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
-            <View style={styles.heroMetaRow}>
-              <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.heroDate}>{event?.date || ''}</Text>
-              {event?.location && (
-                <>
-                  <Text style={styles.heroDot}>•</Text>
-                  <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
-                  <Text style={styles.heroDate}>{event.location}</Text>
-                </>
+          {/* ✅ Controls - show/hide on tap */}
+          {showControls && (
+            <>
+              {/* Photo count badge */}
+              {photos.length > 1 && (
+                <View style={styles.photoCountBadge}>
+                  <Ionicons name="images-outline" size={12} color={WHITE} />
+                  <Text style={styles.photoCountText}>{activePhotoIndex + 1}/{photos.length}</Text>
+                </View>
               )}
-            </View>
-            {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
-          </View>
+
+              {/* Top buttons */}
+              <View style={styles.heroTop}>
+                <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.goBack()}>
+                  <Ionicons name="arrow-back" size={20} color={BLACK} />
+                </TouchableOpacity>
+                <View style={styles.heroTopRight}>
+                  {isOwner && (
+                    <>
+                      <TouchableOpacity style={styles.heroBtn} onPress={handleEdit}>
+                        <Ionicons name="pencil-outline" size={20} color={BLACK} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#FFE4E4' }]} onPress={handleDelete}>
+                        <Ionicons name="trash-outline" size={20} color={WINE} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('ShareEvent', { event })}>
+                    <Ionicons name="share-social-outline" size={20} color={BLACK} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Badges */}
+              <View style={styles.typeBadge}>
+                <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : 'calendar'} size={12} color={WHITE} />
+                <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
+              </View>
+              {isOwner && (
+                <View style={styles.ownerBadge}>
+                  <Ionicons name="ribbon-outline" size={12} color={WHITE} />
+                  <Text style={styles.ownerBadgeText}>Your Event</Text>
+                </View>
+              )}
+
+              {/* Hero info */}
+              <View style={styles.heroInfo}>
+                <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
+                <View style={styles.heroMetaRow}>
+                  <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.heroDate}>{event?.date || ''}</Text>
+                  {event?.location && (
+                    <>
+                      <Text style={styles.heroDot}>•</Text>
+                      <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
+                      <Text style={styles.heroDate}>{event.location}</Text>
+                    </>
+                  )}
+                </View>
+                {event?.description && <Text style={styles.heroQuote}>"{event.description}"</Text>}
+              </View>
+
+              {/* Tap hint */}
+              <View style={styles.tapHint}>
+                <Text style={styles.tapHintText}>Tap to hide • Swipe for photos</Text>
+              </View>
+            </>
+          )}
+
+          {/* ✅ Always show back button */}
+          {!showControls && (
+            <TouchableOpacity
+              style={[styles.heroBtn, styles.backBtnAlways]}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={20} color={BLACK} />
+            </TouchableOpacity>
+          )}
+
         </View>
 
         {/* Content */}
@@ -229,7 +304,6 @@ export default function EventPageScreen({ navigation, route }) {
             <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
           ) : (
             <>
-              {/* Owner actions */}
               {isOwner && (
                 <View style={styles.ownerActions}>
                   <TouchableOpacity style={styles.ownerActionBtn} onPress={handleEdit}>
@@ -243,7 +317,6 @@ export default function EventPageScreen({ navigation, route }) {
                 </View>
               )}
 
-              {/* Amount raised */}
               <View style={styles.amountSection}>
                 <View style={styles.amountRow}>
                   <View>
@@ -259,7 +332,6 @@ export default function EventPageScreen({ navigation, route }) {
                 </View>
               </View>
 
-              {/* Live Feed */}
               <TouchableOpacity style={styles.liveFeedBtn} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
                 <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
                 <View style={styles.liveFeedInfo}>
@@ -269,7 +341,6 @@ export default function EventPageScreen({ navigation, route }) {
                 <Ionicons name="chevron-forward" size={20} color={WINE} />
               </TouchableOpacity>
 
-              {/* Contribute card */}
               <View style={styles.contributeCard}>
                 <View style={styles.contributeIconBox}><Ionicons name="heart" size={24} color={WINE} /></View>
                 <View style={styles.contributeText}>
@@ -278,15 +349,6 @@ export default function EventPageScreen({ navigation, route }) {
                 </View>
               </View>
 
-              {/* Second photo */}
-              {event?.photo2_url && (
-                <View style={styles.photo2Container}>
-                  <Image source={{ uri: event.photo2_url }} style={styles.photo2} resizeMode="cover" />
-                  <View style={styles.photo2Overlay}><Text style={styles.photo2Label}>Invitation Card</Text></View>
-                </View>
-              )}
-
-              {/* Event details */}
               <View style={styles.detailsCard}>
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconBox}><Ionicons name="calendar-outline" size={20} color={WINE} /></View>
@@ -309,7 +371,6 @@ export default function EventPageScreen({ navigation, route }) {
                 </View>
               </View>
 
-              {/* Contributors row */}
               <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
                 <View style={styles.avatarStack}>
                   {[0, 1, 2, 3].map((i) => (
@@ -414,16 +475,25 @@ const styles = StyleSheet.create({
   heroTop: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroTopRight: { flexDirection: 'row', gap: 10 },
   heroBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
+  backBtnAlways: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, left: 16 },
   typeBadge: { position: 'absolute', top: Platform.OS === 'android' ? 100 : 110, left: 20, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   typeBadgeText: { fontSize: 11, fontWeight: '700', color: WHITE },
   ownerBadge: { position: 'absolute', top: Platform.OS === 'android' ? 100 : 110, right: 20, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   ownerBadgeText: { fontSize: 11, fontWeight: '700', color: WHITE },
-  heroInfo: { position: 'absolute', bottom: 24, left: 20, right: 20 },
+  heroInfo: { position: 'absolute', bottom: 40, left: 20, right: 20 },
   heroName: { fontSize: 28, fontWeight: '800', color: WHITE, marginBottom: 6 },
   heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' },
   heroDate: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
   heroDot: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
   heroQuote: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontStyle: 'italic' },
+  tapHint: { position: 'absolute', bottom: 16, left: 0, right: 0, alignItems: 'center' },
+  tapHintText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  dotsContainer: { position: 'absolute', bottom: 8, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  dot: { height: 6, borderRadius: 3 },
+  dotActive: { width: 20, backgroundColor: WHITE },
+  dotInactive: { width: 6, backgroundColor: 'rgba(255,255,255,0.5)' },
+  photoCountBadge: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, alignSelf: 'center', left: '40%', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  photoCountText: { fontSize: 11, fontWeight: '700', color: WHITE },
   content: { paddingHorizontal: 20, paddingTop: 20 },
   ownerActions: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   ownerActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: WINE_LIGHT, borderRadius: 12, paddingVertical: 12, borderWidth: 1.5, borderColor: WINE },
@@ -449,10 +519,6 @@ const styles = StyleSheet.create({
   contributeText: { flex: 1 },
   contributeTitle: { fontSize: 15, fontWeight: '700', color: BLACK, marginBottom: 4 },
   contributeSubtitle: { fontSize: 13, color: GRAY, lineHeight: 20 },
-  photo2Container: { borderRadius: 16, overflow: 'hidden', marginBottom: 16, height: 180, position: 'relative' },
-  photo2: { width: '100%', height: '100%' },
-  photo2Overlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', padding: 10 },
-  photo2Label: { color: WHITE, fontSize: 13, fontWeight: '700' },
   detailsCard: { borderWidth: 1, borderColor: BORDER, borderRadius: 16, padding: 16, marginBottom: 16 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6 },
   detailIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },

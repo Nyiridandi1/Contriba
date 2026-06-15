@@ -35,16 +35,10 @@ const paymentMethods = [
   { id: 'airtel', label: 'Airtel Money', icon: 'phone-portrait-outline', color: '#FF0000' },
 ];
 
-// Upload photo to Supabase Storage
 const uploadPhotoToSupabase = async (uri, fileName) => {
   try {
-    console.log('Starting upload for:', fileName);
-    console.log('URI:', uri);
-
     const response = await fetch(uri);
     const blob = await response.blob();
-    console.log('Blob type:', blob.type, 'size:', blob.size);
-
     const uploadResponse = await fetch(
       `${SUPABASE_URL}/storage/v1/object/event-photos/${fileName}`,
       {
@@ -57,17 +51,9 @@ const uploadPhotoToSupabase = async (uri, fileName) => {
         body: blob,
       }
     );
-
-    console.log('Upload status:', uploadResponse.status);
-    const uploadText = await uploadResponse.text();
-    console.log('Upload response:', uploadText);
-
     if (uploadResponse.ok) {
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/event-photos/${fileName}`;
-      console.log('Public URL:', publicUrl);
-      return publicUrl;
+      return `${SUPABASE_URL}/storage/v1/object/public/event-photos/${fileName}`;
     }
-    console.error('Upload failed:', uploadText);
     return null;
   } catch (error) {
     console.error('Upload error:', error);
@@ -85,8 +71,8 @@ export default function CreateEventScreen({ navigation }) {
   const [goalAmount, setGoalAmount]                 = useState('');
   const [ownerPhone, setOwnerPhone]                 = useState('');
   const [ownerPaymentMethod, setOwnerPaymentMethod] = useState('mtn');
-  const [photo1, setPhoto1]                         = useState(null);
-  const [photo2, setPhoto2]                         = useState(null);
+  // ✅ 4 photos instead of 2
+  const [photos, setPhotos] = useState([null, null, null, null]);
   const [loading, setLoading]                       = useState(false);
   const [uploadProgress, setUploadProgress]         = useState('');
 
@@ -103,7 +89,7 @@ export default function CreateEventScreen({ navigation }) {
     if (selectedDate) setDate(selectedDate);
   };
 
-  const handlePickPhoto = async (photoNum) => {
+  const handlePickPhoto = async (index) => {
     Alert.alert(
       'Add Photo',
       'Choose an option',
@@ -115,11 +101,12 @@ export default function CreateEventScreen({ navigation }) {
             if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true, aspect: [16, 9], quality: 0.8,
+              allowsEditing: true, aspect: [4, 3], quality: 0.8,
             });
             if (!result.canceled) {
-              if (photoNum === 1) setPhoto1(result.assets[0].uri);
-              else setPhoto2(result.assets[0].uri);
+              const newPhotos = [...photos];
+              newPhotos[index] = result.assets[0].uri;
+              setPhotos(newPhotos);
             }
           },
         },
@@ -128,10 +115,11 @@ export default function CreateEventScreen({ navigation }) {
           onPress: async () => {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
             if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
-            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [16, 9], quality: 0.8 });
+            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
             if (!result.canceled) {
-              if (photoNum === 1) setPhoto1(result.assets[0].uri);
-              else setPhoto2(result.assets[0].uri);
+              const newPhotos = [...photos];
+              newPhotos[index] = result.assets[0].uri;
+              setPhotos(newPhotos);
             }
           },
         },
@@ -140,12 +128,23 @@ export default function CreateEventScreen({ navigation }) {
     );
   };
 
-  const getPhotoLabels = () => {
+  const removePhoto = (index) => {
+    const newPhotos = [...photos];
+    newPhotos[index] = null;
+    setPhotos(newPhotos);
+  };
+
+  const getPhotoLabel = (index) => {
     const type = eventTypes.find(t => t.id === selectedType)?.type;
-    if (type === 'Wedding') return ['Couple Photo', 'Invitation Card'];
-    if (type === 'Birthday') return ['Birthday Person Photo', 'Invitation Card'];
-    if (type === 'Introduction') return ['Couple Photo', 'Invitation Card'];
-    return ['Event Photo 1', 'Event Photo 2'];
+    if (type === 'Wedding') {
+      const labels = ['Couple Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'];
+      return labels[index];
+    }
+    if (type === 'Birthday') {
+      const labels = ['Birthday Person', 'Invitation Card', 'Venue Photo', 'Extra Photo'];
+      return labels[index];
+    }
+    return `Event Photo ${index + 1}`;
   };
 
   const handleCreate = async () => {
@@ -156,21 +155,14 @@ export default function CreateEventScreen({ navigation }) {
     setLoading(true);
 
     try {
-      let coverImageUrl = null;
-      let photo2Url = null;
+      const photoUrls = [null, null, null, null];
 
-      if (photo1) {
-        setUploadProgress('Uploading cover photo...');
-        const fileName = `event-${Date.now()}-cover.jpg`;
-        coverImageUrl = await uploadPhotoToSupabase(photo1, fileName);
-        console.log('Cover image URL:', coverImageUrl);
-      }
-
-      if (photo2) {
-        setUploadProgress('Uploading second photo...');
-        const fileName = `event-${Date.now()}-photo2.jpg`;
-        photo2Url = await uploadPhotoToSupabase(photo2, fileName);
-        console.log('Photo2 URL:', photo2Url);
+      for (let i = 0; i < photos.length; i++) {
+        if (photos[i]) {
+          setUploadProgress(`Uploading photo ${i + 1} of ${photos.filter(p => p).length}...`);
+          const fileName = `event-${Date.now()}-photo${i + 1}.jpg`;
+          photoUrls[i] = await uploadPhotoToSupabase(photos[i], fileName);
+        }
       }
 
       setUploadProgress('Creating event...');
@@ -184,11 +176,11 @@ export default function CreateEventScreen({ navigation }) {
         goal_amount: goalAmount ? parseInt(goalAmount) : 0,
         owner_phone: ownerPhone,
         owner_payment_method: ownerPaymentMethod,
-        cover_image: coverImageUrl,
-        photo2_url: photo2Url,
+        cover_image: photoUrls[0],
+        photo2_url: photoUrls[1],
+        photo3_url: photoUrls[2],
+        photo4_url: photoUrls[3],
       });
-
-      console.log('Create event result:', JSON.stringify(result));
 
       if (result.success) {
         Alert.alert(
@@ -210,8 +202,6 @@ export default function CreateEventScreen({ navigation }) {
       setUploadProgress('');
     }
   };
-
-  const photoLabels = getPhotoLabels();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -305,51 +295,45 @@ export default function CreateEventScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Event Photos */}
+        {/* ✅ Event Photos — 4 photos */}
         <View style={styles.sectionDivider}>
           <Ionicons name="images-outline" size={18} color={WINE} />
-          <Text style={styles.sectionDividerText}>Event Photos</Text>
+          <Text style={styles.sectionDividerText}>Event Photos (up to 4)</Text>
         </View>
 
-        <Text style={styles.photosHint}>📸 Add real photos to make your event stand out!</Text>
+        <Text style={styles.photosHint}>📸 Add up to 4 photos to make your event stand out!</Text>
 
-        <Text style={styles.label}>{photoLabels[0]}</Text>
-        <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(1)} activeOpacity={0.8}>
-          {photo1 ? (
-            <>
-              <Image source={{ uri: photo1 }} style={styles.photoPreview} resizeMode="cover" />
-              <View style={styles.photoOverlay}>
-                <Ionicons name="camera-outline" size={20} color={WHITE} />
-                <Text style={styles.changePhotoText}>Tap to change</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <Ionicons name="camera-outline" size={36} color={WINE} />
-              <Text style={styles.photoPlaceholderText}>Tap to add {photoLabels[0]}</Text>
-              <Text style={styles.photoPlaceholderSub}>JPG, PNG supported</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.label}>{photoLabels[1]}</Text>
-        <TouchableOpacity style={styles.photoBox} onPress={() => handlePickPhoto(2)} activeOpacity={0.8}>
-          {photo2 ? (
-            <>
-              <Image source={{ uri: photo2 }} style={styles.photoPreview} resizeMode="cover" />
-              <View style={styles.photoOverlay}>
-                <Ionicons name="camera-outline" size={20} color={WHITE} />
-                <Text style={styles.changePhotoText}>Tap to change</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <Ionicons name="camera-outline" size={36} color={WINE} />
-              <Text style={styles.photoPlaceholderText}>Tap to add {photoLabels[1]}</Text>
-              <Text style={styles.photoPlaceholderSub}>JPG, PNG supported</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {/* 2x2 Photo Grid */}
+        <View style={styles.photoGrid}>
+          {photos.map((photo, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.photoBox}
+              onPress={() => handlePickPhoto(index)}
+              activeOpacity={0.8}
+            >
+              {photo ? (
+                <>
+                  <Image source={{ uri: photo }} style={styles.photoPreview} resizeMode="cover" />
+                  <TouchableOpacity
+                    style={styles.removePhotoBtn}
+                    onPress={() => removePhoto(index)}
+                  >
+                    <Ionicons name="close-circle" size={22} color={WHITE} />
+                  </TouchableOpacity>
+                  <View style={styles.photoOverlay}>
+                    <Ionicons name="camera-outline" size={16} color={WHITE} />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="add-circle-outline" size={32} color={WINE} />
+                  <Text style={styles.photoPlaceholderText}>{getPhotoLabel(index)}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -412,13 +396,31 @@ const styles = StyleSheet.create({
   paymentMethodLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: GRAY },
   paymentMethodLabelActive: { color: WINE },
   photosHint: { fontSize: 13, color: WINE, fontWeight: '600', marginBottom: 16, backgroundColor: WINE_LIGHT, padding: 10, borderRadius: 10 },
-  photoBox: { width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', backgroundColor: '#F5F5F5', marginBottom: 20, position: 'relative', borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed' },
+
+  // ✅ 2x2 Photo Grid
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+  },
+  photoBox: {
+    width: (width - 50) / 2,
+    height: (width - 50) / 2,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    borderStyle: 'dashed',
+    position: 'relative',
+  },
   photoPreview: { width: '100%', height: '100%' },
-  photoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  photoPlaceholderText: { fontSize: 14, color: GRAY, fontWeight: '600' },
-  photoPlaceholderSub: { fontSize: 12, color: '#BBBBBB' },
-  photoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 6 },
-  changePhotoText: { fontSize: 13, color: WHITE, fontWeight: '600' },
+  photoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },
+  photoPlaceholderText: { fontSize: 11, color: GRAY, fontWeight: '600', textAlign: 'center', paddingHorizontal: 8 },
+  photoOverlay: { position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 },
+  removePhotoBtn: { position: 'absolute', top: 6, right: 6, zIndex: 10 },
+
   bottomBtn: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER },
   uploadProgressBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   uploadProgressText: { fontSize: 13, color: WINE, fontWeight: '600' },
