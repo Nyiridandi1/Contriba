@@ -13,6 +13,7 @@ import {
   StatusBar,
   SafeAreaView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -95,13 +96,20 @@ export default function OnboardingScreen({ navigation }) {
     viewAreaCoveragePercentThreshold: 50,
   }).current;
 
-  const handleNext = () => {
+  // ✅ Save onboarding_seen flag when done
+  const handleNext = async () => {
     if (isLast) {
-      // ✅ Changed replace to navigate
+      await AsyncStorage.setItem('onboarding_seen', 'true');
       navigation.navigate('GetStarted');
       return;
     }
     flatListRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+  };
+
+  // ✅ Also save when skipping directly to login
+  const handleSkipToLogin = async () => {
+    await AsyncStorage.setItem('onboarding_seen', 'true');
+    navigation.navigate('Login');
   };
 
   const pressIn  = () => Animated.spring(btnScale, { toValue: 0.96, useNativeDriver: true }).start();
@@ -143,7 +151,7 @@ export default function OnboardingScreen({ navigation }) {
         </Animated.View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('Login')}
+          onPress={handleSkipToLogin}
           hitSlop={{ top: 12, bottom: 12, left: 24, right: 24 }}
         >
           <Text style={styles.signInText}>I already have an account</Text>
