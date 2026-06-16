@@ -121,7 +121,7 @@ export default function LoginScreen({ navigation }) {
       const result = await response.json();
       if (result.success) {
         if (result.email_sent) {
-          setOtpInfo(`OTP sent to ${result.email_hint || 'your email'} 📧`);
+          setOtpInfo(`OTP sent to ${result.email_hint || 'your email'}`);
         }
         setTimeout(() => navigation.navigate('OTP', { phone: fullPhone }), 1500);
       } else {
@@ -140,25 +140,30 @@ export default function LoginScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
+        {/* Back Button */}
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={TEXT} />
         </TouchableOpacity>
 
-        {/* LOGO */}
+        {/* Logo */}
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
+        {/* ✅ No emojis in title */}
         <Text style={[styles.title, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Murakaza neza 👋' : 'Welcome back 👋'}
+          {language === 'Kinyarwanda' ? 'Murakaza neza' : 'Welcome back'}
         </Text>
         <Text style={[styles.subtitle, { color: SUB }]}>
           {language === 'Kinyarwanda'
             ? 'Injiza numero ya telefoni yawe'
-            : "Enter your phone number and we'll\nsend your OTP to your registered email!"}
+            : "Enter your phone number and we'll\nsend your OTP to your registered email."}
         </Text>
 
+        {/* Phone Label */}
         <Text style={[styles.label, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone number'}
         </Text>
+
+        {/* Phone Input */}
         <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
           <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
             <CountryPicker
@@ -189,6 +194,7 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
+        {/* OTP Info */}
         {otpInfo && (
           <View style={styles.otpInfoBox}>
             <Ionicons name="mail-outline" size={16} color={WINE} />
@@ -196,6 +202,7 @@ export default function LoginScreen({ navigation }) {
           </View>
         )}
 
+        {/* Continue Button */}
         <TouchableOpacity
           style={[styles.continueBtn, (phone.length < 8 || loading) && styles.continueBtnDisabled]}
           onPress={handleContinue}
@@ -214,6 +221,7 @@ export default function LoginScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
+        {/* OR Divider */}
         <View style={styles.orRow}>
           <View style={[styles.orLine, { backgroundColor: BORDER }]} />
           <Text style={[styles.orText, { color: SUB }]}>
@@ -222,6 +230,7 @@ export default function LoginScreen({ navigation }) {
           <View style={[styles.orLine, { backgroundColor: BORDER }]} />
         </View>
 
+        {/* Google Button */}
         <TouchableOpacity
           style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]}
           activeOpacity={0.8}
@@ -240,6 +249,7 @@ export default function LoginScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
+        {/* Apple Button — iOS only */}
         {Platform.OS === 'ios' && (
           <TouchableOpacity style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]} activeOpacity={0.8}>
             <Image source={require('../../assets/apple.png')} style={styles.socialIcon} resizeMode="contain" />
@@ -249,8 +259,11 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* ✅ Terms — shield icon instead of emoji */}
         <View style={styles.termsRow}>
-          <Text style={styles.shieldIcon}>🛡️</Text>
+          <View style={styles.shieldIconBox}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={WINE} />
+          </View>
           <Text style={[styles.termsText, { color: SUB }]}>
             {language === 'Kinyarwanda' ? 'Ukomeza, wemeye ' : 'By continuing, you agree to our '}
             <Text style={styles.termsLink}>
@@ -263,13 +276,14 @@ export default function LoginScreen({ navigation }) {
           </Text>
         </View>
 
+        {/* Bottom Row */}
         <View style={styles.bottomRow}>
           <Text style={[styles.bottomText, { color: TEXT }]}>
             {language === 'Kinyarwanda' ? 'Nta konti?' : "Don't have an account?"}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={styles.bottomLink}>
-              {language === 'Kinyarwanda' ? '  Iyandikishe →' : '  Sign Up →'}
+              {language === 'Kinyarwanda' ? '  Iyandikishe' : '  Sign Up'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -304,8 +318,10 @@ const styles = StyleSheet.create({
   socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 14, height: 56, marginBottom: 12, gap: 14 },
   socialIcon: { width: 32, height: 32 },
   socialBtnText: { fontSize: 15, fontWeight: '600' },
+
+  // ✅ Shield icon box instead of emoji
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
-  shieldIcon: { fontSize: 18 },
+  shieldIconBox: { marginTop: 2 },
   termsText: { flex: 1, fontSize: 13, lineHeight: 20 },
   termsLink: { color: WINE, fontWeight: '600' },
   bottomRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
