@@ -129,6 +129,11 @@ export default function EventPageScreen({ navigation, route }) {
     return `${days}d ago`;
   };
 
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   const isOwner = currentUser?.id === event?.owner_id;
   const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString();
   const progress = event?.goal_amount > 0
@@ -347,6 +352,7 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 )}
 
+                {/* Amount raised */}
                 <View style={styles.amountSection}>
                   <View style={styles.amountRow}>
                     <View>
@@ -364,6 +370,7 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 </View>
 
+                {/* Live Feed */}
                 <TouchableOpacity style={[styles.liveFeedBtn, { backgroundColor: CARD }]} onPress={() => navigation.navigate('LiveFeed', { event })} activeOpacity={0.85}>
                   <View style={styles.liveDotContainer}><View style={styles.liveDot} /></View>
                   <View style={styles.liveFeedInfo}>
@@ -377,6 +384,7 @@ export default function EventPageScreen({ navigation, route }) {
                   <Ionicons name="chevron-forward" size={20} color={WINE} />
                 </TouchableOpacity>
 
+                {/* Contribute card */}
                 <View style={[styles.contributeCard, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
                   <View style={[styles.contributeIconBox, { backgroundColor: CARD }]}>
                     <Ionicons name="heart" size={24} color={WINE} />
@@ -391,11 +399,12 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 </View>
 
+                {/* Event details */}
                 <View style={[styles.detailsCard, { borderColor: BORDER, backgroundColor: CARD }]}>
                   {[
-                    { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date', value: event?.date || 'TBD' },
-                    { icon: 'people-outline',   label: language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type',  value: event?.type || 'Event' },
-                    { icon: 'location-outline', label: language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location',        value: event?.location || 'Kigali, Rwanda' },
+                    { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date',    value: event?.date || 'TBD' },
+                    { icon: 'people-outline',   label: language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type',   value: event?.type || 'Event' },
+                    { icon: 'location-outline', label: language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location',          value: event?.location || 'Kigali, Rwanda' },
                     { icon: 'flag-outline',     label: language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount', value: formatAmount(event?.goal_amount) },
                   ].map((item, i, arr) => (
                     <View key={i}>
@@ -413,6 +422,85 @@ export default function EventPageScreen({ navigation, route }) {
                   ))}
                 </View>
 
+                {/* ✅ CREATOR CARD */}
+                {event?.creator && (
+                  <View style={[styles.creatorCard, { backgroundColor: CARD, borderColor: BORDER }]}>
+                    <View style={styles.creatorHeader}>
+                      <Ionicons name="person-circle-outline" size={20} color={WINE} />
+                      <Text style={[styles.creatorHeaderTitle, { color: TEXT }]}>
+                        {language === 'Kinyarwanda' ? 'Uwateranye Ikirori' : 'Event Organizer'}
+                      </Text>
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="shield-checkmark" size={12} color={WHITE} />
+                        <Text style={styles.verifiedText}>
+                          {language === 'Kinyarwanda' ? 'Yemejwe' : 'Verified'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.creatorDivider} />
+
+                    <View style={styles.creatorBody}>
+                      {/* Avatar */}
+                      {event.creator.avatar_url ? (
+                        <Image source={{ uri: event.creator.avatar_url }} style={styles.creatorAvatar} />
+                      ) : (
+                        <View style={[styles.creatorAvatar, styles.creatorAvatarPlaceholder]}>
+                          <Text style={styles.creatorAvatarText}>
+                            {getInitials(event.creator.name)}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Info */}
+                      <View style={styles.creatorInfo}>
+                        <Text style={[styles.creatorName, { color: TEXT }]}>
+                          {event.creator.name || language === 'Kinyarwanda' ? 'Ntazwi' : 'Unknown'}
+                        </Text>
+                        <Text style={[styles.creatorRole, { color: SUB }]}>
+                          🎗️ {language === 'Kinyarwanda' ? 'Umuteranye w\'Ikirori' : 'Event Organizer'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={[styles.creatorDivider, { marginTop: 12 }]} />
+
+                    {/* Contact details */}
+                    <View style={styles.creatorContacts}>
+                      <View style={styles.creatorContactRow}>
+                        <View style={[styles.creatorContactIcon, { backgroundColor: '#E8F5E9' }]}>
+                          <Ionicons name="call-outline" size={16} color={GREEN} />
+                        </View>
+                        <View>
+                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>
+                            {language === 'Kinyarwanda' ? 'Telefoni' : 'Phone Number'}
+                          </Text>
+                          <Text style={[styles.creatorContactValue, { color: TEXT }]}>
+                            {event.creator.phone || event.owner_phone || language === 'Kinyarwanda' ? 'Ntabwo bwashyizweho' : 'Not provided'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={[styles.creatorDivider, { marginVertical: 8 }]} />
+
+                      <View style={styles.creatorContactRow}>
+                        <View style={[styles.creatorContactIcon, { backgroundColor: '#E3F2FD' }]}>
+                          <Ionicons name="location-outline" size={16} color="#1877F2" />
+                        </View>
+                        <View>
+                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>
+                            {language === 'Kinyarwanda' ? 'Aho Batuye' : 'Location'}
+                          </Text>
+                          <Text style={[styles.creatorContactValue, { color: TEXT }]}>
+                            {event.location || 'Kigali, Rwanda'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Contributors */}
                 <TouchableOpacity style={styles.contributorsRow} activeOpacity={0.8} onPress={() => navigation.navigate('LiveFeed', { event })}>
                   <View style={styles.avatarStack}>
                     {[0, 1, 2, 3].map((i) => (
@@ -668,6 +756,27 @@ const styles = StyleSheet.create({
   detailDivider: { height: 1, marginVertical: 4 },
   detailLabel: { fontSize: 12, marginBottom: 2 },
   detailValue: { fontSize: 15, fontWeight: '700' },
+
+  // ✅ Creator Card Styles
+  creatorCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
+  creatorHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  creatorHeaderTitle: { fontSize: 15, fontWeight: '800', flex: 1 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: GREEN, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  verifiedText: { fontSize: 10, fontWeight: '700', color: WHITE },
+  creatorDivider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 4 },
+  creatorBody: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  creatorAvatar: { width: 56, height: 56, borderRadius: 28 },
+  creatorAvatarPlaceholder: { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
+  creatorAvatarText: { fontSize: 20, fontWeight: '800', color: WHITE },
+  creatorInfo: { flex: 1 },
+  creatorName: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  creatorRole: { fontSize: 13 },
+  creatorContacts: { marginTop: 4 },
+  creatorContactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  creatorContactIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  creatorContactLabel: { fontSize: 11, marginBottom: 2 },
+  creatorContactValue: { fontSize: 14, fontWeight: '600' },
+
   contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8, marginBottom: 16 },
   avatarStack: { flexDirection: 'row' },
   avatarCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
