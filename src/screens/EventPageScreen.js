@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvent, getToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
-import { formatEventDate } from '../utils/formatDate'; // ✅ Import
+import { formatEventDate } from '../utils/formatDate';
 
 const { width, height } = Dimensions.get('window');
 
@@ -182,7 +182,8 @@ export default function EventPageScreen({ navigation, route }) {
       if (result.success) {
         setEvent({ ...event, title: editTitle, location: editLocation, description: editDescription, goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0, owner_phone: editOwnerPhone, owner_payment_method: editPaymentMethod });
         setEditModal(false);
-        Alert.alert('Success! ✅', 'Event updated successfully!');
+        // ✅ No emoji in alert
+        Alert.alert('Success', 'Event updated successfully!');
       } else {
         Alert.alert('Error', result.message || 'Failed to update event');
       }
@@ -207,7 +208,8 @@ export default function EventPageScreen({ navigation, route }) {
             });
             const result = await response.json();
             if (result.success) {
-              Alert.alert('Deleted! 🗑️', 'Event deleted successfully!', [
+              // ✅ No emoji in alert
+              Alert.alert('Deleted', 'Event deleted successfully.', [
                 { text: 'OK', onPress: () => navigation.navigate('Home') },
               ]);
             } else {
@@ -228,7 +230,7 @@ export default function EventPageScreen({ navigation, route }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false}>
 
-          {/* Swipeable Photo Carousel */}
+          {/* Photo Carousel */}
           <View style={styles.heroWrapper}>
             <View style={{ width, height: height * 0.48 }}>
               <FlatList
@@ -289,7 +291,14 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 </View>
                 <View style={styles.typeBadge}>
-                  <Ionicons name={event?.type === 'Wedding' ? 'heart' : event?.type === 'Birthday' ? 'gift' : 'calendar'} size={12} color={WHITE} />
+                  <Ionicons name={
+                    event?.type === 'Wedding'    ? 'heart' :
+                    event?.type === 'Birthday'   ? 'gift' :
+                    event?.type === 'Graduation' ? 'school' :
+                    event?.type === 'Church'     ? 'sunny' :
+                    event?.type === 'Funeral'    ? 'flower' :
+                    'calendar'
+                  } size={12} color={WHITE} />
                   <Text style={styles.typeBadgeText}>{event?.type || 'Event'}</Text>
                 </View>
                 {isOwner && (
@@ -304,7 +313,6 @@ export default function EventPageScreen({ navigation, route }) {
                   <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
                   <View style={styles.heroMetaRow}>
                     <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
-                    {/* ✅ Fixed date format */}
                     <Text style={styles.heroDate}>{formatEventDate(event?.date)}</Text>
                     {event?.location && (
                       <>
@@ -401,7 +409,7 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 </View>
 
-                {/* ✅ Event details with fixed date */}
+                {/* Event details */}
                 <View style={[styles.detailsCard, { borderColor: BORDER, backgroundColor: CARD }]}>
                   {[
                     { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date',    value: formatEventDate(event?.date) || 'TBD' },
@@ -424,7 +432,7 @@ export default function EventPageScreen({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* CREATOR CARD */}
+                {/* Creator Card */}
                 {event?.creator && (
                   <View style={[styles.creatorCard, { backgroundColor: CARD, borderColor: BORDER }]}>
                     <View style={styles.creatorHeader}>
@@ -450,9 +458,11 @@ export default function EventPageScreen({ navigation, route }) {
                         <Text style={[styles.creatorName, { color: TEXT }]}>
                           {event.creator.name || 'Unknown'}
                         </Text>
-                        <Text style={[styles.creatorRole, { color: SUB }]}>
-                          🎗️ Event Organizer
-                        </Text>
+                        {/* ✅ No emoji — use icon */}
+                        <View style={styles.creatorRoleRow}>
+                          <Ionicons name="ribbon-outline" size={13} color={SUB} />
+                          <Text style={[styles.creatorRole, { color: SUB }]}>Event Organizer</Text>
+                        </View>
                       </View>
                     </View>
                     <View style={[styles.creatorDivider, { marginTop: 12, backgroundColor: BORDER }]} />
@@ -489,7 +499,8 @@ export default function EventPageScreen({ navigation, route }) {
                   <View style={styles.avatarStack}>
                     {[0, 1, 2, 3].map((i) => (
                       <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12, backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
-                        <Text style={styles.avatarText}>👤</Text>
+                        {/* ✅ No emoji — use icon */}
+                        <Ionicons name="person" size={16} color={WINE} />
                       </View>
                     ))}
                   </View>
@@ -522,23 +533,29 @@ export default function EventPageScreen({ navigation, route }) {
                         style={[styles.commentNameInput, { borderColor: BORDER, color: TEXT, backgroundColor: CARD }]}
                         placeholder={language === 'Kinyarwanda' ? 'Izina ryawe' : 'Your name'}
                         placeholderTextColor="#BBBBBB"
-                        value={isAnonymous ? 'Anonymous 🙈' : commenterName}
+                        value={isAnonymous ? 'Anonymous' : commenterName}
                         onChangeText={setCommenterName}
                         editable={!isAnonymous}
                       />
+                      {/* ✅ Anonymous button — no emoji */}
                       <TouchableOpacity
                         style={[styles.anonBtn, { borderColor: BORDER }, isAnonymous && styles.anonBtnActive]}
                         onPress={() => setIsAnonymous(!isAnonymous)}
                       >
+                        <Ionicons
+                          name={isAnonymous ? 'eye-off-outline' : 'eye-outline'}
+                          size={14}
+                          color={isAnonymous ? WINE : SUB}
+                        />
                         <Text style={[styles.anonBtnText, { color: SUB }, isAnonymous && styles.anonBtnTextActive]}>
-                          🙈 {language === 'Kinyarwanda' ? 'Nta izina' : 'Anon'}
+                          {language === 'Kinyarwanda' ? 'Nta izina' : 'Anon'}
                         </Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.commentRow}>
                       <TextInput
                         style={[styles.commentInput, { borderColor: BORDER, color: TEXT, backgroundColor: CARD }]}
-                        placeholder={language === 'Kinyarwanda' ? 'Andika igitekerezo... 💬' : 'Write a comment... 💬'}
+                        placeholder={language === 'Kinyarwanda' ? 'Andika igitekerezo...' : 'Write a comment...'}
                         placeholderTextColor="#BBBBBB"
                         value={commentText}
                         onChangeText={setCommentText}
@@ -568,21 +585,26 @@ export default function EventPageScreen({ navigation, route }) {
                         {language === 'Kinyarwanda' ? 'Nta bitekerezo nawe' : 'No comments yet'}
                       </Text>
                       <Text style={[styles.emptyCommentsSub, { color: SUB }]}>
-                        {language === 'Kinyarwanda' ? 'Banza gutanga ubutumwa! 💬' : 'Be the first to leave a message! 💬'}
+                        {language === 'Kinyarwanda' ? 'Banza gutanga ubutumwa!' : 'Be the first to leave a message!'}
                       </Text>
                     </View>
                   ) : (
                     comments.map((comment, index) => (
                       <View key={comment.id || index} style={styles.commentItem}>
+                        {/* ✅ No emoji in avatar */}
                         <View style={[styles.commentAvatar, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
-                          <Text style={styles.commentAvatarText}>
-                            {comment.is_anonymous ? '🙈' : (comment.name?.charAt(0) || '?')}
-                          </Text>
+                          {comment.is_anonymous ? (
+                            <Ionicons name="eye-off-outline" size={16} color={WINE} />
+                          ) : (
+                            <Text style={styles.commentAvatarText}>
+                              {comment.name?.charAt(0)?.toUpperCase() || '?'}
+                            </Text>
+                          )}
                         </View>
                         <View style={[styles.commentContent, { backgroundColor: darkMode ? '#1A1A1A' : '#F9F9F9' }]}>
                           <View style={styles.commentHeader}>
                             <Text style={[styles.commentName, { color: TEXT }]}>
-                              {comment.is_anonymous ? 'Anonymous 🙈' : comment.name}
+                              {comment.is_anonymous ? 'Anonymous' : comment.name}
                             </Text>
                             <Text style={[styles.commentTime, { color: SUB }]}>{formatTime(comment.created_at)}</Text>
                           </View>
@@ -601,9 +623,11 @@ export default function EventPageScreen({ navigation, route }) {
 
       {/* Bottom buttons */}
       <View style={[styles.bottomBar, { backgroundColor: CARD, borderTopColor: BORDER }]}>
+        {/* ✅ No emoji in contribute button */}
         <TouchableOpacity style={styles.contributeBtn} onPress={() => navigation.navigate('Contribute', { event })} activeOpacity={0.85}>
+          <Ionicons name="heart" size={20} color={WHITE} />
           <Text style={styles.contributeBtnText}>
-            {language === 'Kinyarwanda' ? 'Tanga Inkunga 🎁' : 'Contribute Gift 🎁'}
+            {language === 'Kinyarwanda' ? 'Tanga Inkunga' : 'Contribute'}
           </Text>
         </TouchableOpacity>
         <View style={styles.bottomActions}>
@@ -628,8 +652,9 @@ export default function EventPageScreen({ navigation, route }) {
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={[styles.modalBox, { backgroundColor: CARD }]}>
               <View style={styles.modalHeader}>
+                {/* ✅ No emoji in modal title */}
                 <Text style={[styles.modalTitle, { color: TEXT }]}>
-                  {language === 'Kinyarwanda' ? 'Hindura Ikirori ✏️' : 'Edit Event ✏️'}
+                  {language === 'Kinyarwanda' ? 'Hindura Ikirori' : 'Edit Event'}
                 </Text>
                 <TouchableOpacity onPress={() => setEditModal(false)}>
                   <Ionicons name="close" size={24} color={TEXT} />
@@ -653,8 +678,9 @@ export default function EventPageScreen({ navigation, route }) {
                     style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]}
                     onPress={() => setEditPaymentMethod(method)}
                   >
+                    <Ionicons name="phone-portrait-outline" size={16} color={editPaymentMethod === method ? WINE : SUB} />
                     <Text style={[styles.paymentOptionText, { color: SUB }, editPaymentMethod === method && { color: WINE }]}>
-                      {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
+                      {method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -752,6 +778,7 @@ const styles = StyleSheet.create({
   creatorAvatarText: { fontSize: 20, fontWeight: '800', color: WHITE },
   creatorInfo: { flex: 1 },
   creatorName: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  creatorRoleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   creatorRole: { fontSize: 13 },
   creatorContacts: { marginTop: 4 },
   creatorContactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
@@ -761,7 +788,6 @@ const styles = StyleSheet.create({
   contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8, marginBottom: 16 },
   avatarStack: { flexDirection: 'row' },
   avatarCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
-  avatarText: { fontSize: 16 },
   contributorsInfo: { flex: 1 },
   contributorsCount: { fontSize: 15, fontWeight: '700' },
   contributorsSub: { fontSize: 12, marginTop: 2 },
@@ -771,7 +797,7 @@ const styles = StyleSheet.create({
   commentInputBox: { borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1 },
   commentNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   commentNameInput: { flex: 1, fontSize: 13, fontWeight: '600', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  anonBtn: { borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
+  anonBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
   anonBtnActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
   anonBtnText: { fontSize: 12, fontWeight: '600' },
   anonBtnTextActive: { color: WINE },
@@ -791,7 +817,7 @@ const styles = StyleSheet.create({
   commentTime: { fontSize: 11 },
   commentMessage: { fontSize: 13, lineHeight: 20 },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 30, paddingTop: 12, borderTopWidth: 1, gap: 10 },
-  contributeBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
+  contributeBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   contributeBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
   bottomActions: { flexDirection: 'row', gap: 12 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5 },
@@ -804,7 +830,7 @@ const styles = StyleSheet.create({
   modalLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   modalInput: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 16 },
   paymentRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  paymentOption: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12 },
   paymentOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
   paymentOptionText: { fontSize: 13, fontWeight: '600' },
   modalBtns: { flexDirection: 'row', gap: 12, marginTop: 4 },
