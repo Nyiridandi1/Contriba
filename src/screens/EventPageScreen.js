@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvent, getToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
+import { formatEventDate } from '../utils/formatDate'; // ✅ Import
 
 const { width, height } = Dimensions.get('window');
 
@@ -303,7 +304,8 @@ export default function EventPageScreen({ navigation, route }) {
                   <Text style={styles.heroName}>{event?.title || 'Event'}</Text>
                   <View style={styles.heroMetaRow}>
                     <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.9)" />
-                    <Text style={styles.heroDate}>{event?.date || ''}</Text>
+                    {/* ✅ Fixed date format */}
+                    <Text style={styles.heroDate}>{formatEventDate(event?.date)}</Text>
                     {event?.location && (
                       <>
                         <Text style={styles.heroDot}>•</Text>
@@ -399,10 +401,10 @@ export default function EventPageScreen({ navigation, route }) {
                   </View>
                 </View>
 
-                {/* Event details */}
+                {/* ✅ Event details with fixed date */}
                 <View style={[styles.detailsCard, { borderColor: BORDER, backgroundColor: CARD }]}>
                   {[
-                    { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date',    value: event?.date || 'TBD' },
+                    { icon: 'calendar-outline', label: language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date',    value: formatEventDate(event?.date) || 'TBD' },
                     { icon: 'people-outline',   label: language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type',   value: event?.type || 'Event' },
                     { icon: 'location-outline', label: language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location',          value: event?.location || 'Kigali, Rwanda' },
                     { icon: 'flag-outline',     label: language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount', value: formatAmount(event?.goal_amount) },
@@ -422,7 +424,7 @@ export default function EventPageScreen({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* ✅ CREATOR CARD — fixed, always English */}
+                {/* CREATOR CARD */}
                 {event?.creator && (
                   <View style={[styles.creatorCard, { backgroundColor: CARD, borderColor: BORDER }]}>
                     <View style={styles.creatorHeader}>
@@ -433,9 +435,7 @@ export default function EventPageScreen({ navigation, route }) {
                         <Text style={styles.verifiedText}>Verified</Text>
                       </View>
                     </View>
-
                     <View style={[styles.creatorDivider, { backgroundColor: BORDER }]} />
-
                     <View style={styles.creatorBody}>
                       {event.creator.avatar_url ? (
                         <Image source={{ uri: event.creator.avatar_url }} style={styles.creatorAvatar} />
@@ -447,7 +447,6 @@ export default function EventPageScreen({ navigation, route }) {
                         </View>
                       )}
                       <View style={styles.creatorInfo}>
-                        {/* ✅ Fixed: proper parentheses */}
                         <Text style={[styles.creatorName, { color: TEXT }]}>
                           {event.creator.name || 'Unknown'}
                         </Text>
@@ -456,9 +455,7 @@ export default function EventPageScreen({ navigation, route }) {
                         </Text>
                       </View>
                     </View>
-
                     <View style={[styles.creatorDivider, { marginTop: 12, backgroundColor: BORDER }]} />
-
                     <View style={styles.creatorContacts}>
                       <View style={styles.creatorContactRow}>
                         <View style={[styles.creatorContactIcon, { backgroundColor: '#E8F5E9' }]}>
@@ -466,15 +463,12 @@ export default function EventPageScreen({ navigation, route }) {
                         </View>
                         <View>
                           <Text style={[styles.creatorContactLabel, { color: SUB }]}>Phone Number</Text>
-                          {/* ✅ Fixed: proper parentheses */}
                           <Text style={[styles.creatorContactValue, { color: TEXT }]}>
                             {event.creator.phone || event.owner_phone || 'Not provided'}
                           </Text>
                         </View>
                       </View>
-
                       <View style={[styles.creatorDivider, { marginVertical: 8, backgroundColor: BORDER }]} />
-
                       <View style={styles.creatorContactRow}>
                         <View style={[styles.creatorContactIcon, { backgroundColor: '#E3F2FD' }]}>
                           <Ionicons name="location-outline" size={16} color="#1877F2" />
