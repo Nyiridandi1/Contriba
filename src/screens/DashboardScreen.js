@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDashboard, getToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
-import { formatEventDate } from '../utils/formatDate'; // ✅ Import
+import { formatEventDate } from '../utils/formatDate';
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
@@ -152,7 +152,8 @@ export default function DashboardScreen({ navigation }) {
       const result = await response.json();
       if (result.success) {
         setEditModal(false);
-        Alert.alert('Success! ✅', 'Event updated!');
+        // ✅ No emoji
+        Alert.alert('Success', 'Event updated!');
         loadData();
       } else {
         Alert.alert('Error', result.message || 'Failed to update event');
@@ -178,7 +179,8 @@ export default function DashboardScreen({ navigation }) {
             });
             const result = await response.json();
             if (result.success) {
-              Alert.alert('Deleted! 🗑️', 'Event deleted successfully!');
+              // ✅ No emoji
+              Alert.alert('Deleted', 'Event deleted successfully.');
               loadData();
             } else {
               Alert.alert('Error', result.message || 'Failed to delete');
@@ -214,15 +216,18 @@ export default function DashboardScreen({ navigation }) {
           <Text style={[styles.headerTitle, { color: TEXT }]}>
             {language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard'}
           </Text>
+          {/* ✅ No emoji in greeting */}
           <Text style={[styles.headerSub, { color: SUB }]}>
-            {language === 'Kinyarwanda' ? `Muraho, ${getUserName()} 👋` : `Hello, ${getUserName()} 👋`}
+            {language === 'Kinyarwanda' ? `Muraho, ${getUserName()}` : `Hello, ${getUserName()}`}
           </Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
             <Ionicons name="notifications-outline" size={22} color={TEXT} />
             {dashboard?.unread_notifications > 0 && (
-              <View style={styles.badge}><Text style={styles.badgeText}>{dashboard.unread_notifications}</Text></View>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{dashboard.unread_notifications}</Text>
+              </View>
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
@@ -275,7 +280,6 @@ export default function DashboardScreen({ navigation }) {
                   <Image source={getEventImage(event)} style={styles.eventImage} resizeMode="cover" />
                   <View style={styles.eventInfo}>
                     <Text style={[styles.eventTitle, { color: TEXT }]}>{event.title}</Text>
-                    {/* ✅ Fixed date format */}
                     <Text style={[styles.eventType, { color: SUB }]}>
                       {event.type} • {formatEventDate(event.date)}
                     </Text>
@@ -332,10 +336,10 @@ export default function DashboardScreen({ navigation }) {
 
               <View style={styles.detailsGrid}>
                 {[
-                  { icon: 'wallet-outline', bg: '#FFE4E9', color: WINE, label: language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised', value: formatAmount(selectedEvent.total_raised) },
-                  { icon: 'people-outline', bg: '#E8F5E9', color: GREEN, label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', value: selectedEvent.total_contributors || contributions.length },
-                  { icon: 'time-outline', bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Iminsi Isigaye' : 'Days Left', value: getDaysLeft(selectedEvent.date) },
-                  { icon: 'flag-outline', bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Intego' : 'Goal', value: formatAmount(selectedEvent.goal_amount), small: true },
+                  { icon: 'wallet-outline',  bg: '#FFE4E9', color: WINE,      label: language === 'Kinyarwanda' ? 'Byakomejwe'     : 'Total Raised',  value: formatAmount(selectedEvent.total_raised) },
+                  { icon: 'people-outline',  bg: '#E8F5E9', color: GREEN,     label: language === 'Kinyarwanda' ? 'Abakunzi'       : 'Contributors',  value: selectedEvent.total_contributors || contributions.length },
+                  { icon: 'time-outline',    bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Iminsi Isigaye' : 'Days Left',     value: getDaysLeft(selectedEvent.date) },
+                  { icon: 'flag-outline',    bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Intego'         : 'Goal',          value: formatAmount(selectedEvent.goal_amount), small: true },
                 ].map((item, i) => (
                   <View key={i} style={[styles.detailItem, { backgroundColor: darkMode ? '#2A2A2A' : '#F5F5F5' }]}>
                     <View style={[styles.detailIcon, { backgroundColor: item.bg }]}>
@@ -382,14 +386,20 @@ export default function DashboardScreen({ navigation }) {
                 {contributions.map((item, index) => (
                   <View key={item.id}>
                     <View style={styles.contribRow}>
+                      {/* ✅ No emoji in avatar */}
                       <View style={[styles.contribAvatar, { backgroundColor: item.is_anonymous ? (darkMode ? '#2A2A2A' : '#F5F5F5') : WINE_LIGHT }]}>
-                        <Text style={[styles.contribInitials, { color: item.is_anonymous ? SUB : WINE }]}>
-                          {item.is_anonymous ? '🙈' : getInitials(item.contributor_name)}
-                        </Text>
+                        {item.is_anonymous ? (
+                          <Ionicons name="eye-off-outline" size={16} color={SUB} />
+                        ) : (
+                          <Text style={[styles.contribInitials, { color: WINE }]}>
+                            {getInitials(item.contributor_name)}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.contribInfo}>
+                        {/* ✅ No emoji in name */}
                         <Text style={[styles.contribName, { color: TEXT }]}>
-                          {item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}
+                          {item.is_anonymous ? 'Anonymous' : item.contributor_name}
                         </Text>
                         <Text style={[styles.contribPhone, { color: SUB }]}>
                           {item.is_anonymous ? '' : item.contributor_phone}
@@ -401,9 +411,15 @@ export default function DashboardScreen({ navigation }) {
                         <Text style={[styles.contribAmount, { color: item.status === 'success' ? GREEN : '#F59E0B' }]}>
                           {formatAmount(item.amount)}
                         </Text>
+                        {/* ✅ No emoji in status badge */}
                         <View style={[styles.statusBadge, { backgroundColor: item.status === 'success' ? '#E8F5E9' : '#FFF3E0' }]}>
+                          <Ionicons
+                            name={item.status === 'success' ? 'checkmark-circle' : 'time-outline'}
+                            size={10}
+                            color={item.status === 'success' ? GREEN : '#F59E0B'}
+                          />
                           <Text style={[styles.statusText, { color: item.status === 'success' ? GREEN : '#F59E0B' }]}>
-                            {item.status === 'success' ? '✓ Paid' : '⏳ Pending'}
+                            {item.status === 'success' ? 'Paid' : 'Pending'}
                           </Text>
                         </View>
                       </View>
@@ -422,10 +438,10 @@ export default function DashboardScreen({ navigation }) {
         </Text>
         <View style={styles.quickGrid}>
           {[
-            { icon: 'add-circle-outline', bg: WINE_LIGHT, color: WINE, label: language === 'Kinyarwanda' ? 'Ikirori Gishya' : 'New Event', screen: 'CreateEvent' },
-            { icon: 'radio-outline', bg: '#E8F5E9', color: GREEN, label: language === 'Kinyarwanda' ? 'Ikiganiro Giheruka' : 'Live Feed', screen: 'LiveFeed' },
-            { icon: 'wallet-outline', bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet', screen: 'Wallet' },
-            { icon: 'share-social-outline', bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Sangira' : 'Share', screen: 'ShareEvent' },
+            { icon: 'add-circle-outline',  bg: WINE_LIGHT,  color: WINE,      label: language === 'Kinyarwanda' ? 'Ikirori Gishya'       : 'New Event',  screen: 'CreateEvent' },
+            { icon: 'radio-outline',       bg: '#E8F5E9',   color: GREEN,     label: language === 'Kinyarwanda' ? 'Ikiganiro Giheruka'   : 'Live Feed',  screen: 'LiveFeed'    },
+            { icon: 'wallet-outline',      bg: '#EDE7F6',   color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Amafaranga'           : 'Wallet',     screen: 'Wallet'      },
+            { icon: 'share-social-outline',bg: '#FFF3E0',   color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Sangira'              : 'Share',      screen: 'ShareEvent'  },
           ].map((action, i) => (
             <TouchableOpacity
               key={i}
@@ -454,7 +470,9 @@ export default function DashboardScreen({ navigation }) {
           <Text style={[styles.tabLabel, { color: WINE, fontWeight: '700' }]}>{language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabCenter} onPress={() => navigation.navigate('CreateEvent')}>
-          <View style={styles.tabCenterBtn}><Ionicons name="add" size={28} color={WHITE} /></View>
+          <View style={styles.tabCenterBtn}>
+            <Ionicons name="add" size={28} color={WHITE} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Wallet')}>
           <Ionicons name="wallet-outline" size={22} color={SUB} />
@@ -472,7 +490,8 @@ export default function DashboardScreen({ navigation }) {
           <ScrollView contentContainerStyle={{ justifyContent: 'flex-end' }} keyboardShouldPersistTaps="handled">
             <View style={[styles.modalBox, { backgroundColor: CARD }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: TEXT }]}>Edit Event ✏️</Text>
+                {/* ✅ No emoji in modal title */}
+                <Text style={[styles.modalTitle, { color: TEXT }]}>Edit Event</Text>
                 <TouchableOpacity onPress={() => setEditModal(false)}>
                   <Ionicons name="close" size={24} color={TEXT} />
                 </TouchableOpacity>
@@ -495,8 +514,10 @@ export default function DashboardScreen({ navigation }) {
                     style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]}
                     onPress={() => setEditPaymentMethod(method)}
                   >
+                    {/* ✅ No emoji — use icon */}
+                    <Ionicons name="phone-portrait-outline" size={16} color={editPaymentMethod === method ? WINE : SUB} />
                     <Text style={[styles.paymentOptionText, { color: SUB }, editPaymentMethod === method && { color: WINE }]}>
-                      {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
+                      {method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -506,7 +527,9 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={[styles.modalCancelText, { color: SUB }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalSave} onPress={handleSaveEdit} disabled={saving}>
-                  {saving ? <ActivityIndicator color={WHITE} size="small" /> : <Text style={styles.modalSaveText}>Save Changes</Text>}
+                  {saving ? <ActivityIndicator color={WHITE} size="small" /> : (
+                    <Text style={styles.modalSaveText}>Save Changes</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -581,7 +604,7 @@ const styles = StyleSheet.create({
   contribTime: { fontSize: 11 },
   contribRight: { alignItems: 'flex-end', gap: 4 },
   contribAmount: { fontSize: 13, fontWeight: '800' },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   statusText: { fontSize: 10, fontWeight: '700' },
   rowDivider: { height: 1, marginHorizontal: 14 },
   quickGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
@@ -600,7 +623,7 @@ const styles = StyleSheet.create({
   modalLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   modalInput: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 16 },
   paymentRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  paymentOption: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12 },
   paymentOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
   paymentOptionText: { fontSize: 13, fontWeight: '600' },
   modalBtns: { flexDirection: 'row', gap: 12 },
