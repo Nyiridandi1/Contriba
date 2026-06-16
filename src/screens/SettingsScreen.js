@@ -80,7 +80,7 @@ For privacy concerns, contact us at:
 privacy@contriba.rw
 support@contriba.rw
 
-Contriba is proudly made in Rwanda 🇷🇼`;
+Contriba is proudly made in Rwanda.`;
 
 const TERMS_CONDITIONS = `Last updated: June 2026
 
@@ -101,7 +101,7 @@ Contriba is a digital platform that modernizes the traditional Rwandan practice 
 3. PLATFORM FEE
 - Contriba charges a 1% fee on all contributions
 - This fee is deducted before the event owner receives payment
-- Example: RWF 10,000 contribution → Owner receives RWF 9,900
+- Example: RWF 10,000 contribution — Owner receives RWF 9,900
 
 4. PAYMENTS
 - All payments are processed through Paypack
@@ -151,7 +151,7 @@ For questions about these terms:
 legal@contriba.rw
 support@contriba.rw
 
-Contriba — Contribute Easily. Smart & Secure. 🇷🇼`;
+Contriba — Contribute Easily. Smart & Secure.`;
 
 export default function SettingsScreen({ navigation }) {
   const { darkMode, language, toggleDarkMode, changeLanguage, colors } = useTheme();
@@ -179,7 +179,7 @@ export default function SettingsScreen({ navigation }) {
     await changeLanguage(lang);
     setLangModal(false);
     Alert.alert(
-      lang === 'Kinyarwanda' ? 'Ururimi rwahinduwe! 🇷🇼' : 'Language Changed! 🇬🇧',
+      lang === 'Kinyarwanda' ? 'Ururimi rwahinduwe' : 'Language Changed',
       lang === 'Kinyarwanda' ? 'Ubu ukoresheje Kinyarwanda!' : 'App is now in English!'
     );
   };
@@ -227,13 +227,13 @@ export default function SettingsScreen({ navigation }) {
     <Text style={[styles.sectionTitle, { color: SUB }]}>{title}</Text>
   );
 
-  // ✅ Legal Modal with Logo
+  // ✅ Legal Modal with Logo — no emojis
   const LegalModal = ({ visible, onClose, title, content, icon, iconColor, iconBg }) => (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={[styles.legalModalBox, { backgroundColor: CARD }]}>
 
-          {/* ✅ Wine red logo header */}
+          {/* Wine red logo header */}
           <View style={styles.legalLogoHeader}>
             <Image
               source={require('../../assets/icon.png')}
@@ -271,7 +271,7 @@ export default function SettingsScreen({ navigation }) {
           {/* Bottom Button */}
           <TouchableOpacity style={styles.legalCloseFooterBtn} onPress={onClose}>
             <Text style={styles.legalCloseFooterText}>
-              {language === 'Kinyarwanda' ? 'Nsohoye ✓' : 'I Understand ✓'}
+              {language === 'Kinyarwanda' ? 'Nsohoye' : 'I Understand'}
             </Text>
           </TouchableOpacity>
 
@@ -309,7 +309,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: TEXT }]}>{user?.name || 'Your Name'}</Text>
             <Text style={[styles.profileEmail, { color: SUB }]}>{user?.email || user?.phone || ''}</Text>
-            <Text style={styles.profileEdit}>Edit Profile →</Text>
+            <Text style={styles.profileEdit}>Edit Profile</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={SUB} />
         </TouchableOpacity>
@@ -317,27 +317,45 @@ export default function SettingsScreen({ navigation }) {
         {/* ACCOUNT */}
         <SectionTitle title={language === 'Kinyarwanda' ? 'Konti' : 'Account'} />
         <View style={[styles.section, { backgroundColor: CARD, borderColor: BORDER }]}>
-          <SettingRow icon="person-outline" iconBg={WINE_LIGHT} iconColor={WINE} label={language === 'Kinyarwanda' ? 'Hindura Profili' : 'Edit Profile'} sub={language === 'Kinyarwanda' ? 'Vugurura izina, ifoto' : 'Update your name, photo'} onPress={() => navigation.navigate('Profile')} />
+          <SettingRow icon="person-outline" iconBg={WINE_LIGHT} iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Hindura Profili' : 'Edit Profile'}
+            sub={language === 'Kinyarwanda' ? 'Vugurura izina, ifoto' : 'Update your name, photo'}
+            onPress={() => navigation.navigate('Profile')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="mail-outline" iconBg="#E3F2FD" iconColor="#1877F2" label={language === 'Kinyarwanda' ? 'Hindura Imeli' : 'Change Email'} sub={user?.email || 'Not set'} onPress={() => Alert.alert('Coming Soon', 'Email change will be available soon.')} />
+          <SettingRow icon="mail-outline" iconBg="#E3F2FD" iconColor="#1877F2"
+            label={language === 'Kinyarwanda' ? 'Hindura Imeli' : 'Change Email'}
+            sub={user?.email || 'Not set'}
+            onPress={() => Alert.alert('Coming Soon', 'Email change will be available soon.')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="call-outline" iconBg="#E8F5E9" iconColor={GREEN} label={language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone Number'} sub={user?.phone || 'Not set'} onPress={() => Alert.alert('Info', 'Phone number cannot be changed.')} />
+          <SettingRow icon="call-outline" iconBg="#E8F5E9" iconColor={GREEN}
+            label={language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone Number'}
+            sub={user?.phone || 'Not set'}
+            onPress={() => Alert.alert('Info', 'Phone number cannot be changed.')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="wallet-outline" iconBg="#EDE7F6" iconColor="#7C3AED" label={language === 'Kinyarwanda' ? 'Ubutaka Bwanjye' : 'My Wallet'} sub={language === 'Kinyarwanda' ? 'Reba umuvuno & amafaranga' : 'View balance & transactions'} onPress={() => navigation.navigate('Wallet')} />
+          <SettingRow icon="wallet-outline" iconBg="#EDE7F6" iconColor="#7C3AED"
+            label={language === 'Kinyarwanda' ? 'Ubutaka Bwanjye' : 'My Wallet'}
+            sub={language === 'Kinyarwanda' ? 'Reba umuvuno & amafaranga' : 'View balance & transactions'}
+            onPress={() => navigation.navigate('Wallet')} />
         </View>
 
         {/* NOTIFICATIONS */}
         <SectionTitle title={language === 'Kinyarwanda' ? 'Impinduka' : 'Notifications'} />
         <View style={[styles.section, { backgroundColor: CARD, borderColor: BORDER }]}>
-          <SettingRow icon="mail-outline" iconBg={WINE_LIGHT} iconColor={WINE} label={language === 'Kinyarwanda' ? 'Impinduka za Imeli' : 'Email Notifications'} sub="OTP and account alerts" showArrow={false}
+          <SettingRow icon="mail-outline" iconBg={WINE_LIGHT} iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Impinduka za Imeli' : 'Email Notifications'}
+            sub="OTP and account alerts" showArrow={false}
             rightElement={<Switch value={emailNotifs} onValueChange={setEmailNotifs} trackColor={{ false: MID_GREY, true: WINE }} thumbColor={WHITE} />}
           />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="heart-outline" iconBg="#FFE4E9" iconColor={WINE} label={language === 'Kinyarwanda' ? 'Impinduka z\'Inkunga' : 'Contribution Alerts'} sub={language === 'Kinyarwanda' ? 'Iyo umuntu yatanze' : 'When someone contributes'} showArrow={false}
+          <SettingRow icon="heart-outline" iconBg="#FFE4E9" iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Impinduka z\'Inkunga' : 'Contribution Alerts'}
+            sub={language === 'Kinyarwanda' ? 'Iyo umuntu yatanze' : 'When someone contributes'} showArrow={false}
             rightElement={<Switch value={contributionAlerts} onValueChange={setContributionAlerts} trackColor={{ false: MID_GREY, true: WINE }} thumbColor={WHITE} />}
           />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="calendar-outline" iconBg="#E8F5E9" iconColor={GREEN} label={language === 'Kinyarwanda' ? 'Ibiganiro by\'Ibirori' : 'Event Reminders'} sub={language === 'Kinyarwanda' ? 'Mbere y\'itariki y\'ikirori' : 'Before your event date'} showArrow={false}
+          <SettingRow icon="calendar-outline" iconBg="#E8F5E9" iconColor={GREEN}
+            label={language === 'Kinyarwanda' ? 'Ibiganiro by\'Ibirori' : 'Event Reminders'}
+            sub={language === 'Kinyarwanda' ? 'Mbere y\'itariki y\'ikirori' : 'Before your event date'} showArrow={false}
             rightElement={<Switch value={eventReminders} onValueChange={setEventReminders} trackColor={{ false: MID_GREY, true: GREEN }} thumbColor={WHITE} />}
           />
         </View>
@@ -352,7 +370,9 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => setLangModal(true)}
             rightElement={
               <View style={[styles.langBadge, { backgroundColor: darkMode ? '#2A2A2A' : LIGHT_GREY }]}>
-                <Text style={[styles.langBadgeText, { color: TEXT }]}>{language === 'English' ? '🇬🇧 EN' : '🇷🇼 RW'}</Text>
+                <Text style={[styles.langBadgeText, { color: TEXT }]}>
+                  {language === 'English' ? 'EN' : 'RW'}
+                </Text>
               </View>
             }
           />
@@ -393,28 +413,44 @@ export default function SettingsScreen({ navigation }) {
             icon="lock-closed-outline" iconBg="#EDE7F6" iconColor="#7C3AED"
             label={language === 'Kinyarwanda' ? 'Umutekano' : 'Security'}
             sub="OTP-based authentication"
-            onPress={() => Alert.alert('Security 🔒', 'Your account is protected with OTP-based authentication via email. No passwords are stored on our servers.')}
+            onPress={() => Alert.alert('Security', 'Your account is protected with OTP-based authentication via email. No passwords are stored on our servers.')}
           />
         </View>
 
         {/* SUPPORT */}
         <SectionTitle title={language === 'Kinyarwanda' ? 'Ubufasha' : 'Support'} />
         <View style={[styles.section, { backgroundColor: CARD, borderColor: BORDER }]}>
-          <SettingRow icon="help-circle-outline" iconBg="#FFF3E0" iconColor="#F59E0B" label={language === 'Kinyarwanda' ? 'Ikigo cy\'Ubufasha' : 'Help Center'} sub="FAQs and guides" onPress={() => Alert.alert('Help Center', 'For help, contact us at support@contriba.rw')} />
+          <SettingRow icon="help-circle-outline" iconBg="#FFF3E0" iconColor="#F59E0B"
+            label={language === 'Kinyarwanda' ? 'Ikigo cy\'Ubufasha' : 'Help Center'}
+            sub="FAQs and guides"
+            onPress={() => Alert.alert('Help Center', 'For help, contact us at support@contriba.rw')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="chatbubble-outline" iconBg="#E3F2FD" iconColor="#1877F2" label={language === 'Kinyarwanda' ? 'Twandikire' : 'Contact Us'} sub="support@contriba.rw" onPress={() => Alert.alert('Contact Us', 'Email us at support@contriba.rw\nWe respond within 24 hours!')} />
+          <SettingRow icon="chatbubble-outline" iconBg="#E3F2FD" iconColor="#1877F2"
+            label={language === 'Kinyarwanda' ? 'Twandikire' : 'Contact Us'}
+            sub="support@contriba.rw"
+            onPress={() => Alert.alert('Contact Us', 'Email us at support@contriba.rw\nWe respond within 24 hours.')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="bug-outline" iconBg="#FCE4EC" iconColor={WINE} label={language === 'Kinyarwanda' ? 'Tanga Ikibazo' : 'Report a Problem'} sub={language === 'Kinyarwanda' ? 'Dufashe kunoza Contriba' : 'Help us improve Contriba'} onPress={() => Alert.alert('Report a Problem', 'Email us at bugs@contriba.rw')} />
+          <SettingRow icon="bug-outline" iconBg="#FCE4EC" iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Tanga Ikibazo' : 'Report a Problem'}
+            sub={language === 'Kinyarwanda' ? 'Dufashe kunoza Contriba' : 'Help us improve Contriba'}
+            onPress={() => Alert.alert('Report a Problem', 'Email us at bugs@contriba.rw')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="star-outline" iconBg="#FFF3E0" iconColor="#F59E0B" label={language === 'Kinyarwanda' ? 'Tuhe Amanota' : 'Rate the App'} sub={language === 'Kinyarwanda' ? 'Ukunda Contriba? Tuhe amanota! ⭐' : 'Love Contriba? Rate us! ⭐'} onPress={() => Alert.alert('Rate Us ⭐', 'Thank you for using Contriba! Rating will be available once we launch on App Store & Play Store.')} />
+          <SettingRow icon="star-outline" iconBg="#FFF3E0" iconColor="#F59E0B"
+            label={language === 'Kinyarwanda' ? 'Tuhe Amanota' : 'Rate the App'}
+            sub={language === 'Kinyarwanda' ? 'Ukunda Contriba? Tuhe amanota' : 'Love Contriba? Rate us'}
+            onPress={() => Alert.alert('Rate Us', 'Thank you for using Contriba! Rating will be available once we launch on App Store & Play Store.')} />
         </View>
 
         {/* ABOUT */}
         <SectionTitle title={language === 'Kinyarwanda' ? 'Ibyerekeye' : 'About'} />
         <View style={[styles.section, { backgroundColor: CARD, borderColor: BORDER }]}>
-          <SettingRow icon="information-circle-outline" iconBg={WINE_LIGHT} iconColor={WINE} label={language === 'Kinyarwanda' ? 'Verisiyo y\'Porogaramu' : 'App Version'} sub="Version 1.0.0" showArrow={false} />
+          <SettingRow icon="information-circle-outline" iconBg={WINE_LIGHT} iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Verisiyo y\'Porogaramu' : 'App Version'}
+            sub="Version 1.0.0" showArrow={false} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
-          <SettingRow icon="heart" iconBg="#FFE4E9" iconColor={WINE} label={language === 'Kinyarwanda' ? 'Yakozwe mu Rwanda ❤️' : 'Made with ❤️ in Rwanda'} sub="Contriba © 2026 🇷🇼" showArrow={false} />
+          <SettingRow icon="heart" iconBg="#FFE4E9" iconColor={WINE}
+            label={language === 'Kinyarwanda' ? 'Yakozwe mu Rwanda' : 'Made with love in Rwanda'}
+            sub="Contriba 2026" showArrow={false} />
         </View>
 
         {/* LOGOUT */}
@@ -439,16 +475,26 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.modalTitle, { color: TEXT }]}>
               {language === 'Kinyarwanda' ? 'Hitamo Ururimi' : 'Choose Language'}
             </Text>
-            <TouchableOpacity style={[styles.langOption, language === 'English' && styles.langOptionActive]} onPress={() => handleLanguageChange('English')}>
-              <Text style={styles.langOptionFlag}>🇬🇧</Text>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'English' && styles.langOptionActive]}
+              onPress={() => handleLanguageChange('English')}
+            >
+              <View style={[styles.langFlagBox, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="globe-outline" size={24} color="#1877F2" />
+              </View>
               <View style={styles.langOptionInfo}>
                 <Text style={[styles.langOptionLabel, { color: TEXT }]}>English</Text>
                 <Text style={[styles.langOptionSub, { color: SUB }]}>English language</Text>
               </View>
               {language === 'English' && <Ionicons name="checkmark-circle" size={24} color={WINE} />}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.langOption, language === 'Kinyarwanda' && styles.langOptionActive]} onPress={() => handleLanguageChange('Kinyarwanda')}>
-              <Text style={styles.langOptionFlag}>🇷🇼</Text>
+            <TouchableOpacity
+              style={[styles.langOption, language === 'Kinyarwanda' && styles.langOptionActive]}
+              onPress={() => handleLanguageChange('Kinyarwanda')}
+            >
+              <View style={[styles.langFlagBox, { backgroundColor: WINE_LIGHT }]}>
+                <Ionicons name="globe-outline" size={24} color={WINE} />
+              </View>
               <View style={styles.langOptionInfo}>
                 <Text style={[styles.langOptionLabel, { color: TEXT }]}>Kinyarwanda</Text>
                 <Text style={[styles.langOptionSub, { color: SUB }]}>Ururimi rw'u Rwanda</Text>
@@ -462,7 +508,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* ✅ PRIVACY POLICY MODAL */}
+      {/* PRIVACY POLICY MODAL */}
       <LegalModal
         visible={privacyModal}
         onClose={() => setPrivacyModal(false)}
@@ -473,7 +519,7 @@ export default function SettingsScreen({ navigation }) {
         iconBg="#E8F5E9"
       />
 
-      {/* ✅ TERMS & CONDITIONS MODAL */}
+      {/* TERMS & CONDITIONS MODAL */}
       <LegalModal
         visible={termsModal}
         onClose={() => setTermsModal(false)}
@@ -509,7 +555,7 @@ const styles = StyleSheet.create({
   settingLabel: { fontSize: 15, fontWeight: '600' },
   settingSub: { fontSize: 12, marginTop: 2 },
   rowDivider: { height: 1, marginLeft: 64 },
-  langBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  langBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   langBadgeText: { fontSize: 12, fontWeight: '700' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: WINE_LIGHT, marginHorizontal: 16, marginTop: 20, borderRadius: 14, paddingVertical: 16, borderWidth: 1.5, borderColor: WINE },
   logoutText: { fontSize: 16, fontWeight: '700', color: WINE },
@@ -520,14 +566,14 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 20, textAlign: 'center' },
   langOption: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, marginBottom: 10, borderWidth: 1.5, borderColor: MID_GREY },
   langOptionActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  langOptionFlag: { fontSize: 32 },
+  langFlagBox: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   langOptionInfo: { flex: 1 },
   langOptionLabel: { fontSize: 16, fontWeight: '700' },
   langOptionSub: { fontSize: 13, marginTop: 2 },
   modalCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: MID_GREY },
   modalCancelText: { fontSize: 15, fontWeight: '600', color: GRAY },
 
-  // ✅ Legal Modal
+  // Legal Modal
   legalModalBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
   legalLogoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, backgroundColor: WINE, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   legalLogo: { width: 44, height: 44, borderRadius: 10 },
