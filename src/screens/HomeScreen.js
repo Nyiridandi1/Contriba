@@ -3,13 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, SafeAreaView, FlatList, Image, Dimensions, ActivityIndicator, Platform,
+  StatusBar, SafeAreaView, FlatList, Image, Dimensions,
+  ActivityIndicator, Platform, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEvents, getDashboard } from '../api';
-
-// ✅ Import useTheme
 import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -28,11 +27,13 @@ export default function HomeScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
   const { BG, CARD, TEXT, SUB, BORDER: BORDER_C } = colors;
 
-  const [events, setEvents]       = useState([]);
-  const [myEvents, setMyEvents]   = useState([]);
-  const [dashboard, setDashboard] = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [user, setUser]           = useState(null);
+  const [events, setEvents]         = useState([]);
+  const [myEvents, setMyEvents]     = useState([]);
+  const [dashboard, setDashboard]   = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [user, setUser]             = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');       // ✅ search query
+  const [searchActive, setSearchActive] = useState(false);  // ✅ search mode
 
   useEffect(() => {
     loadData();
@@ -60,6 +61,18 @@ export default function HomeScreen({ navigation }) {
       setLoading(false);
     }
   };
+
+  // ✅ Filter events by search query
+  const filteredEvents = events.filter((e) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      e.title?.toLowerCase().includes(q) ||
+      e.type?.toLowerCase().includes(q) ||
+      e.location?.toLowerCase().includes(q) ||
+      e.description?.toLowerCase().includes(q)
+    );
+  });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -113,12 +126,23 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.typeBadge}>
           <Text style={styles.typeBadgeText}>{item.type || 'Event'}</Text>
         </View>
+        {item.is_private && (
+          <View style={styles.privateBadge}>
+            <Ionicons name="lock-closed" size={10} color={WHITE} />
+          </View>
+        )}
         <View style={styles.portraitBottom}>
           <Text style={styles.portraitName} numberOfLines={2}>{item.title}</Text>
           <View style={styles.portraitDateRow}>
             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.8)" />
             <Text style={styles.portraitDate}>{formatDate(item.date)}</Text>
           </View>
+          {item.location && (
+            <View style={styles.portraitDateRow}>
+              <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.portraitDate} numberOfLines={1}>{item.location}</Text>
+            </View>
+          )}
           <View style={styles.portraitProgressBar}>
             <View style={[styles.portraitProgressFill, { width: `${progress * 100}%` }]} />
           </View>
@@ -132,6 +156,62 @@ export default function HomeScreen({ navigation }) {
               {language === 'Kinyarwanda' ? 'Tanga' : 'Contribute'}
             </Text>
           </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // ✅ Search Result Card (horizontal list item)
+  const SearchCard = ({ item }) => {
+    const progress = getProgress(item);
+    return (
+      <TouchableOpacity
+        style={[styles.searchCard, { backgroundColor: CARD, borderColor: BORDER_C }]}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('EventPage', { event: item })}
+      >
+        {item.cover_image ? (
+          <Image source={{ uri: item.cover_image }} style={styles.searchCardImage} resizeMode="cover" />
+        ) : (
+          <Image source={require('../../assets/couple.png')} style={styles.searchCardImage} resizeMode="cover" />
+        )}
+        <View style={styles.searchCardInfo}>
+          <View style={styles.searchCardTop}>
+            <View style={styles.searchTypeBadge}>
+              <Text style={styles.searchTypeBadgeText}>{item.type || 'Event'}</Text>
+            </View>
+            {item.is_private && (
+              <View style={styles.searchPrivateBadge}>
+                <Ionicons name="lock-closed" size={10} color={WHITE} />
+                <Text style={styles.searchPrivateText}>Private</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.searchCardTitle, { color: TEXT }]} numberOfLines={2}>{item.title}</Text>
+          <View style={styles.searchCardMeta}>
+            <Ionicons name="calendar-outline" size={12} color={SUB} />
+            <Text style={[styles.searchCardMetaText, { color: SUB }]}>{formatDate(item.date)}</Text>
+          </View>
+          {item.location && (
+            <View style={styles.searchCardMeta}>
+              <Ionicons name="location-outline" size={12} color={SUB} />
+              <Text style={[styles.searchCardMetaText, { color: SUB }]} numberOfLines={1}>{item.location}</Text>
+            </View>
+          )}
+          <View style={[styles.searchProgressBar, { backgroundColor: darkMode ? '#2A2A2A' : '#F0D0D8' }]}>
+            <View style={[styles.searchProgressFill, { width: `${progress * 100}%` }]} />
+          </View>
+          <View style={styles.searchCardBottom}>
+            <Text style={styles.searchCardAmount}>{formatAmount(item.total_raised)}</Text>
+            <TouchableOpacity
+              style={styles.searchContributeBtn}
+              onPress={() => navigation.navigate('Contribute', { event: item })}
+            >
+              <Text style={styles.searchContributeBtnText}>
+                {language === 'Kinyarwanda' ? 'Tanga' : 'Contribute'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -170,126 +250,177 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Stats Row */}
-        {dashboard && (
-          <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
-              <Text style={styles.statValue}>{dashboard.total_events || 0}</Text>
-              <Text style={[styles.statLabel, { color: SUB }]}>
-                {language === 'Kinyarwanda' ? 'Ibirori' : 'My Events'}
-              </Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
-              <Text style={styles.statValue}>{formatAmount(dashboard.total_raised)}</Text>
-              <Text style={[styles.statLabel, { color: SUB }]}>
-                {language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised'}
-              </Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
-              <Text style={styles.statValue}>{formatAmount(dashboard.wallet_balance)}</Text>
-              <Text style={[styles.statLabel, { color: SUB }]}>
-                {language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet'}
-              </Text>
-            </View>
-          </View>
-        )}
+        {/* ✅ SEARCH BAR */}
+        <View style={[styles.searchBar, { backgroundColor: CARD, borderColor: BORDER_C }]}>
+          <Ionicons name="search-outline" size={20} color={searchActive ? WINE : SUB} />
+          <TextInput
+            style={[styles.searchInput, { color: TEXT }]}
+            placeholder={language === 'Kinyarwanda' ? 'Shakisha ibirori...' : 'Search events, weddings, birthdays...'}
+            placeholderTextColor="#BBBBBB"
+            value={searchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              setSearchActive(text.length > 0);
+            }}
+            onFocus={() => setSearchActive(true)}
+            onBlur={() => setSearchActive(searchQuery.length > 0)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchActive(false); }}>
+              <Ionicons name="close-circle" size={20} color={SUB} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* Create New Event */}
-        <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={() => navigation.navigate('CreateEvent')}>
-          <Text style={styles.createBtnText}>
-            ＋  {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* My Events */}
-        {myEvents.length > 0 && (
+        {/* ✅ SEARCH RESULTS */}
+        {searchActive && searchQuery.length > 0 ? (
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
-                {language === 'Kinyarwanda' ? 'Ibirori Byanjye' : 'My Events'}
+                {language === 'Kinyarwanda' ? `Ibisubizo (${filteredEvents.length})` : `Results (${filteredEvents.length})`}
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
-                <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
+              <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchActive(false); }}>
+                <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Hagarika' : 'Clear'}</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={myEvents}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              renderItem={({ item }) => (
-                <PortraitCard
-                  item={item}
-                  onPress={() => navigation.navigate('EventPage', { event: item })}
-                  onContribute={() => navigation.navigate('Contribute', { event: item })}
-                />
-              )}
-            />
+
+            {filteredEvents.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Ionicons name="search-outline" size={48} color={GRAY} />
+                <Text style={[styles.emptyText, { color: TEXT }]}>
+                  {language === 'Kinyarwanda' ? 'Nta bisubizo' : 'No results found'}
+                </Text>
+                <Text style={[styles.emptySubText, { color: SUB }]}>
+                  {language === 'Kinyarwanda' ? `Nta kirori kihuye na "${searchQuery}"` : `No events match "${searchQuery}"`}
+                </Text>
+              </View>
+            ) : (
+              filteredEvents.map((item) => (
+                <SearchCard key={item.id} item={item} />
+              ))
+            )}
           </>
-        )}
-
-        {/* All Events */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: TEXT }]}>
-            {language === 'Kinyarwanda' ? 'Ibirori Byose' : 'All Events'}
-          </Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
-        ) : events.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Ionicons name="calendar-outline" size={48} color={GRAY} />
-            <Text style={[styles.emptyText, { color: TEXT }]}>
-              {language === 'Kinyarwanda' ? 'Nta birori' : 'No events yet'}
-            </Text>
-            <Text style={[styles.emptySubText, { color: SUB }]}>
-              {language === 'Kinyarwanda' ? 'Shiraho ikirori cya mbere!' : 'Create your first event!'}
-            </Text>
-          </View>
         ) : (
-          <FlatList
-            data={events}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => (
-              <PortraitCard
-                item={item}
-                onPress={() => navigation.navigate('EventPage', { event: item })}
-                onContribute={() => navigation.navigate('Contribute', { event: item })}
+          <>
+            {/* Stats Row */}
+            {dashboard && (
+              <View style={styles.statsRow}>
+                <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
+                  <Text style={styles.statValue}>{dashboard.total_events || 0}</Text>
+                  <Text style={[styles.statLabel, { color: SUB }]}>
+                    {language === 'Kinyarwanda' ? 'Ibirori' : 'My Events'}
+                  </Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
+                  <Text style={styles.statValue}>{formatAmount(dashboard.total_raised)}</Text>
+                  <Text style={[styles.statLabel, { color: SUB }]}>
+                    {language === 'Kinyarwanda' ? 'Byakomejwe' : 'Total Raised'}
+                  </Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
+                  <Text style={styles.statValue}>{formatAmount(dashboard.wallet_balance)}</Text>
+                  <Text style={[styles.statLabel, { color: SUB }]}>
+                    {language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Create New Event */}
+            <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={() => navigation.navigate('CreateEvent')}>
+              <Text style={styles.createBtnText}>
+                ＋  {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* My Events */}
+            {myEvents.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                    {language === 'Kinyarwanda' ? 'Ibirori Byanjye' : 'My Events'}
+                  </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+                    <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={myEvents}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                  renderItem={({ item }) => (
+                    <PortraitCard
+                      item={item}
+                      onPress={() => navigation.navigate('EventPage', { event: item })}
+                      onContribute={() => navigation.navigate('Contribute', { event: item })}
+                    />
+                  )}
+                />
+              </>
+            )}
+
+            {/* All Events */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Ibirori Byose' : 'All Events'}
+              </Text>
+            </View>
+
+            {loading ? (
+              <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
+            ) : events.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Ionicons name="calendar-outline" size={48} color={GRAY} />
+                <Text style={[styles.emptyText, { color: TEXT }]}>
+                  {language === 'Kinyarwanda' ? 'Nta birori' : 'No events yet'}
+                </Text>
+                <Text style={[styles.emptySubText, { color: SUB }]}>
+                  {language === 'Kinyarwanda' ? 'Shiraho ikirori cya mbere!' : 'Create your first event!'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={events}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+                renderItem={({ item }) => (
+                  <PortraitCard
+                    item={item}
+                    onPress={() => navigation.navigate('EventPage', { event: item })}
+                    onContribute={() => navigation.navigate('Contribute', { event: item })}
+                  />
+                )}
               />
             )}
-          />
+
+            {/* Quick Actions */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
+              </Text>
+            </View>
+
+            <View style={styles.quickActionsRow}>
+              {[
+                { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', screen: 'Dashboard'  },
+                { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira QR' : 'Share QR',   screen: 'ShareEvent' },
+                { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga' : 'My Wallet',  screen: 'Wallet'     },
+                { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard',     screen: 'Dashboard'  },
+              ].map((action, index) => (
+                <TouchableOpacity key={index} style={styles.quickAction} activeOpacity={0.8} onPress={() => action.screen && navigation.navigate(action.screen)}>
+                  <View style={[styles.quickActionIcon, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }, action.label === 'Dashboard' || action.label === 'Ikibaho' ? styles.dashboardIcon : {}]}>
+                    <Ionicons name={action.icon} size={32} color={action.label === 'Dashboard' || action.label === 'Ikibaho' ? WHITE : WINE} />
+                  </View>
+                  <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
-
-        {/* Quick Actions */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: TEXT }]}>
-            {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
-          </Text>
-        </View>
-
-        <View style={styles.quickActionsRow}>
-          {[
-            { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', screen: 'Dashboard'  },
-            { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira QR' : 'Share QR',   screen: 'ShareEvent' },
-            { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga' : 'My Wallet',  screen: 'Wallet'     },
-            { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard',     screen: 'Dashboard'  },
-          ].map((action, index) => (
-            <TouchableOpacity key={index} style={styles.quickAction} activeOpacity={0.8} onPress={() => action.screen && navigation.navigate(action.screen)}>
-              <View style={[styles.quickActionIcon, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }, action.label === 'Dashboard' || action.label === 'Ikibaho' ? styles.dashboardIcon : {}]}>
-                <Ionicons name={action.icon} size={32} color={action.label === 'Dashboard' || action.label === 'Ikibaho' ? WHITE : WINE} />
-              </View>
-              <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -331,6 +462,30 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   profileAvatar: { width: 40, height: 40, borderRadius: 20 },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
+
+  // ✅ Search Bar
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14, height: 52, marginBottom: 20 },
+  searchInput: { flex: 1, fontSize: 15 },
+
+  // ✅ Search Result Card
+  searchCard: { flexDirection: 'row', borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: 'hidden' },
+  searchCardImage: { width: 100, height: 120 },
+  searchCardInfo: { flex: 1, padding: 12 },
+  searchCardTop: { flexDirection: 'row', gap: 6, marginBottom: 6 },
+  searchTypeBadge: { backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  searchTypeBadgeText: { fontSize: 10, fontWeight: '700', color: WHITE },
+  searchPrivateBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#333', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  searchPrivateText: { fontSize: 10, fontWeight: '700', color: WHITE },
+  searchCardTitle: { fontSize: 14, fontWeight: '800', marginBottom: 6, lineHeight: 20 },
+  searchCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+  searchCardMetaText: { fontSize: 12 },
+  searchProgressBar: { height: 4, borderRadius: 2, marginVertical: 6 },
+  searchProgressFill: { height: 4, backgroundColor: WINE, borderRadius: 2 },
+  searchCardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchCardAmount: { fontSize: 12, fontWeight: '700', color: WINE },
+  searchContributeBtn: { backgroundColor: WINE, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+  searchContributeBtnText: { fontSize: 12, fontWeight: '700', color: WHITE },
+
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 13, fontWeight: '800', color: WINE, marginBottom: 4 },
@@ -346,9 +501,10 @@ const styles = StyleSheet.create({
   portraitOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20 },
   typeBadge: { position: 'absolute', top: 12, left: 12, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   typeBadgeText: { color: WHITE, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  privateBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 4 },
   portraitBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 },
   portraitName: { fontSize: 14, fontWeight: '800', color: WHITE, marginBottom: 4, lineHeight: 18 },
-  portraitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  portraitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   portraitDate: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
   portraitProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, marginBottom: 4 },
   portraitProgressFill: { height: 3, backgroundColor: WINE, borderRadius: 2 },

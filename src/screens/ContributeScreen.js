@@ -35,13 +35,12 @@ export default function ContributeScreen({ navigation, route }) {
   const [message, setMessage]         = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading]         = useState(false);
-  const [isLoggedIn, setIsLoggedIn]   = useState(false); // ✅ check login
+  const [isLoggedIn, setIsLoggedIn]   = useState(false);
 
   const getCleanAmount = () => parseInt(amount.replace(/,/g, '')) || 0;
   const platformFee = Math.round(getCleanAmount() * 0.01);
   const ownerReceives = getCleanAmount() - platformFee;
 
-  // ✅ Check if user is logged in when screen opens
   useEffect(() => {
     checkLogin();
   }, []);
@@ -51,29 +50,17 @@ export default function ContributeScreen({ navigation, route }) {
     const user = await AsyncStorage.getItem('user');
     if (token && user) {
       setIsLoggedIn(true);
-      // ✅ Auto fill name from profile
       const userData = JSON.parse(user);
       if (userData.name) setName(userData.name);
       if (userData.phone) setSenderPhone(userData.phone);
     } else {
-      // ✅ Not logged in — show login prompt
       Alert.alert(
         '🔒 Login Required',
         'You need to login or create an account to contribute to this event.',
         [
-          {
-            text: 'Login',
-            onPress: () => navigation.replace('Login'),
-          },
-          {
-            text: 'Create Account',
-            onPress: () => navigation.replace('Register'),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => navigation.goBack(),
-          },
+          { text: 'Login', onPress: () => navigation.replace('Login') },
+          { text: 'Create Account', onPress: () => navigation.replace('Register') },
+          { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
         ]
       );
     }
@@ -130,7 +117,6 @@ export default function ContributeScreen({ navigation, route }) {
     }
   };
 
-  // ✅ If not logged in, show nothing while alert shows
   if (!isLoggedIn) {
     return (
       <SafeAreaView style={styles.container}>
@@ -158,9 +144,13 @@ export default function ContributeScreen({ navigation, route }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* Event card */}
+        {/* ✅ Event card with real cover image */}
         <View style={styles.eventCard}>
-          <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+          {event?.cover_image ? (
+            <Image source={{ uri: event.cover_image }} style={styles.eventImage} resizeMode="cover" />
+          ) : (
+            <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+          )}
           <View style={styles.eventInfo}>
             <Text style={styles.eventName}>{event?.title || 'Event'}</Text>
             <Text style={styles.eventType}>{event?.type || ''}</Text>
@@ -227,7 +217,13 @@ export default function ContributeScreen({ navigation, route }) {
         {!isAnonymous && (
           <>
             <Text style={styles.label}>Your Name</Text>
-            <TextInput style={styles.input} placeholder="Enter your full name" placeholderTextColor="#BBBBBB" value={name} onChangeText={setName} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your full name"
+              placeholderTextColor="#BBBBBB"
+              value={name}
+              onChangeText={setName}
+            />
           </>
         )}
 
@@ -257,7 +253,12 @@ export default function ContributeScreen({ navigation, route }) {
         {/* Quick amounts */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAmounts}>
           {quickAmounts.map((a) => (
-            <TouchableOpacity key={a} style={[styles.quickChip, amount === a && styles.quickChipActive]} onPress={() => setAmount(a)} activeOpacity={0.8}>
+            <TouchableOpacity
+              key={a}
+              style={[styles.quickChip, amount === a && styles.quickChipActive]}
+              onPress={() => setAmount(a)}
+              activeOpacity={0.8}
+            >
               <Text style={[styles.quickChipText, amount === a && styles.quickChipTextActive]}>{a}</Text>
             </TouchableOpacity>
           ))}
@@ -284,12 +285,26 @@ export default function ContributeScreen({ navigation, route }) {
 
         {/* Message */}
         <Text style={styles.label}>Message <Text style={styles.optional}>(optional)</Text></Text>
-        <TextInput style={styles.textarea} placeholder="Write a message to the couple..." placeholderTextColor="#BBBBBB" value={message} onChangeText={setMessage} multiline numberOfLines={3} textAlignVertical="top" />
+        <TextInput
+          style={styles.textarea}
+          placeholder="Write a message to the couple..."
+          placeholderTextColor="#BBBBBB"
+          value={message}
+          onChangeText={setMessage}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
 
         {/* Payment method */}
         <Text style={styles.label}>Payment Method</Text>
         {paymentMethods.map((method) => (
-          <TouchableOpacity key={method.id} style={[styles.methodRow, selectedMethod === method.id && styles.methodRowActive]} onPress={() => setMethod(method.id)} activeOpacity={0.8}>
+          <TouchableOpacity
+            key={method.id}
+            style={[styles.methodRow, selectedMethod === method.id && styles.methodRowActive]}
+            onPress={() => setMethod(method.id)}
+            activeOpacity={0.8}
+          >
             <View style={[styles.logoBox, { backgroundColor: method.bg }]}>
               <Image source={method.logo} style={styles.logoImg} resizeMode="contain" />
             </View>
