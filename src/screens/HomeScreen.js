@@ -23,30 +23,30 @@ const BORDER     = '#F0F0F0';
 const CARD_WIDTH  = width * 0.52;
 const CARD_HEIGHT = CARD_WIDTH * 1.5;
 
-// ✅ Category filters
+// ✅ Categories — no emojis, use icons instead
 const CATEGORIES = [
-  { key: 'All',          label: 'All',          emoji: '🎊' },
-  { key: 'Wedding',      label: 'Wedding',       emoji: '💍' },
-  { key: 'Birthday',     label: 'Birthday',      emoji: '🎂' },
-  { key: 'Graduation',   label: 'Graduation',    emoji: '🎓' },
-  { key: 'Funeral',      label: 'Funeral',       emoji: '🕊️' },
-  { key: 'Church',       label: 'Church',        emoji: '⛪' },
-  { key: 'Introduction', label: 'Introduction',  emoji: '💑' },
-  { key: 'Other',        label: 'Other',         emoji: '🎉' },
+  { key: 'All',          label: 'All',          icon: 'grid-outline'         },
+  { key: 'Wedding',      label: 'Wedding',       icon: 'heart-outline'        },
+  { key: 'Birthday',     label: 'Birthday',      icon: 'gift-outline'         },
+  { key: 'Graduation',   label: 'Graduation',    icon: 'school-outline'       },
+  { key: 'Funeral',      label: 'Funeral',       icon: 'flower-outline'       },
+  { key: 'Church',       label: 'Church',        icon: 'sunny-outline'        },
+  { key: 'Introduction', label: 'Introduction',  icon: 'people-outline'       },
+  { key: 'Other',        label: 'Other',         icon: 'ellipsis-horizontal'  },
 ];
 
 export default function HomeScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
   const { BG, CARD, TEXT, SUB, BORDER: BORDER_C } = colors;
 
-  const [events, setEvents]               = useState([]);
-  const [myEvents, setMyEvents]           = useState([]);
-  const [dashboard, setDashboard]         = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [user, setUser]                   = useState(null);
-  const [searchQuery, setSearchQuery]     = useState('');
-  const [searchActive, setSearchActive]   = useState(false);
-  const [activeCategory, setActiveCategory] = useState('All'); // ✅ category state
+  const [events, setEvents]                 = useState([]);
+  const [myEvents, setMyEvents]             = useState([]);
+  const [dashboard, setDashboard]           = useState(null);
+  const [loading, setLoading]               = useState(true);
+  const [user, setUser]                     = useState(null);
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [searchActive, setSearchActive]     = useState(false);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     loadData();
@@ -131,7 +131,7 @@ export default function HomeScreen({ navigation }) {
     return require('../../assets/couple.png');
   };
 
-  // ── Portrait Event Card ──
+  // Portrait Event Card
   const PortraitCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
@@ -176,7 +176,7 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // ✅ Search Result Card
+  // Search Result Card
   const SearchCard = ({ item }) => {
     const progress = getProgress(item);
     return (
@@ -241,8 +241,9 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            {/* ✅ No emoji in greeting */}
             <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
-              {getGreeting()}, {getUserName()} 👋
+              {getGreeting()}, {getUserName()}
             </Text>
             <Text style={[styles.subGreeting, { color: SUB }]}>
               {language === 'Kinyarwanda' ? 'Ni iki tugiye gusezerana?' : 'What are we celebrating today?'}
@@ -287,7 +288,7 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* ✅ CATEGORY FILTER CHIPS */}
+        {/* ✅ CATEGORY CHIPS — icons instead of emojis */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -305,7 +306,11 @@ export default function HomeScreen({ navigation }) {
               onPress={() => setActiveCategory(cat.key)}
               activeOpacity={0.8}
             >
-              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+              <Ionicons
+                name={cat.icon}
+                size={14}
+                color={activeCategory === cat.key ? WHITE : SUB}
+              />
               <Text style={[
                 styles.categoryLabel,
                 { color: SUB },
@@ -372,8 +377,9 @@ export default function HomeScreen({ navigation }) {
 
             {/* Create New Event */}
             <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={() => navigation.navigate('CreateEvent')}>
+              <Ionicons name="add-circle-outline" size={22} color={WHITE} />
               <Text style={styles.createBtnText}>
-                ＋  {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
+                {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
               </Text>
             </TouchableOpacity>
 
@@ -405,16 +411,18 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* ✅ All Events — filtered by category */}
+            {/* All Events filtered by category */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
                 {activeCategory === 'All'
                   ? (language === 'Kinyarwanda' ? 'Ibirori Byose' : 'All Events')
-                  : `${CATEGORIES.find(c => c.key === activeCategory)?.emoji} ${activeCategory} Events`}
+                  : `${activeCategory} Events`}
               </Text>
               {activeCategory !== 'All' && (
                 <TouchableOpacity onPress={() => setActiveCategory('All')}>
-                  <Text style={styles.seeAll}>Clear</Text>
+                  <Text style={styles.seeAll}>
+                    {language === 'Kinyarwanda' ? 'Reba byose' : 'Clear'}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -423,7 +431,11 @@ export default function HomeScreen({ navigation }) {
               <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
             ) : filteredEvents.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={{ fontSize: 40 }}>{CATEGORIES.find(c => c.key === activeCategory)?.emoji}</Text>
+                <Ionicons
+                  name={CATEGORIES.find(c => c.key === activeCategory)?.icon || 'calendar-outline'}
+                  size={48}
+                  color={GRAY}
+                />
                 <Text style={[styles.emptyText, { color: TEXT }]}>
                   {language === 'Kinyarwanda' ? 'Nta birori' : `No ${activeCategory} events yet`}
                 </Text>
@@ -457,14 +469,27 @@ export default function HomeScreen({ navigation }) {
 
             <View style={styles.quickActionsRow}>
               {[
-                { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi' : 'Contributors', screen: 'Dashboard'  },
-                { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira QR' : 'Share QR',   screen: 'ShareEvent' },
-                { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga' : 'My Wallet',  screen: 'Wallet'     },
-                { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho' : 'Dashboard',     screen: 'Dashboard'  },
+                { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi'  : 'Contributors', screen: 'Dashboard'  },
+                { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira'   : 'Share QR',     screen: 'ShareEvent' },
+                { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga': 'My Wallet',    screen: 'Wallet'     },
+                { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho'   : 'Dashboard',    screen: 'Dashboard'  },
               ].map((action, index) => (
-                <TouchableOpacity key={index} style={styles.quickAction} activeOpacity={0.8} onPress={() => action.screen && navigation.navigate(action.screen)}>
-                  <View style={[styles.quickActionIcon, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }, action.label === 'Dashboard' || action.label === 'Ikibaho' ? styles.dashboardIcon : {}]}>
-                    <Ionicons name={action.icon} size={32} color={action.label === 'Dashboard' || action.label === 'Ikibaho' ? WHITE : WINE} />
+                <TouchableOpacity
+                  key={index}
+                  style={styles.quickAction}
+                  activeOpacity={0.8}
+                  onPress={() => action.screen && navigation.navigate(action.screen)}
+                >
+                  <View style={[
+                    styles.quickActionIcon,
+                    { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT },
+                    (action.label === 'Dashboard' || action.label === 'Ikibaho') && styles.dashboardIcon,
+                  ]}>
+                    <Ionicons
+                      name={action.icon}
+                      size={32}
+                      color={(action.label === 'Dashboard' || action.label === 'Ikibaho') ? WHITE : WINE}
+                    />
                   </View>
                   <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
                 </TouchableOpacity>
@@ -515,15 +540,11 @@ const styles = StyleSheet.create({
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14, height: 52, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 15 },
-
-  // ✅ Category chips
   categoryScroll: { gap: 8, paddingRight: 20 },
   categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
   categoryChipActive: { backgroundColor: WINE, borderColor: WINE },
-  categoryEmoji: { fontSize: 16 },
   categoryLabel: { fontSize: 13, fontWeight: '600' },
   categoryLabelActive: { color: WHITE },
-
   searchCard: { flexDirection: 'row', borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: 'hidden' },
   searchCardImage: { width: 100, height: 120 },
   searchCardInfo: { flex: 1, padding: 12 },
@@ -545,7 +566,7 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 13, fontWeight: '800', color: WINE, marginBottom: 4 },
   statLabel: { fontSize: 11, textAlign: 'center' },
-  createBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', marginBottom: 28, elevation: 7, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
+  createBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 28, elevation: 7, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
   createBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   sectionTitle: { fontSize: 17, fontWeight: '800' },
