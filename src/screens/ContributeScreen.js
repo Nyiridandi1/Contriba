@@ -1,11 +1,12 @@
 // src/screens/ContributeScreen.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, StatusBar, SafeAreaView, Image, ActivityIndicator, Alert, Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initiateContribution } from '../api';
 
 const WINE       = '#E60012';
@@ -34,12 +35,49 @@ export default function ContributeScreen({ navigation, route }) {
   const [message, setMessage]         = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading]         = useState(false);
+  const [isLoggedIn, setIsLoggedIn]   = useState(false); // ✅ check login
 
   const getCleanAmount = () => parseInt(amount.replace(/,/g, '')) || 0;
-
-  // ✅ Platform fee 1%
   const platformFee = Math.round(getCleanAmount() * 0.01);
   const ownerReceives = getCleanAmount() - platformFee;
+
+  // ✅ Check if user is logged in when screen opens
+  useEffect(() => {
+    checkLogin();
+  }, []);
+
+  const checkLogin = async () => {
+    const token = await AsyncStorage.getItem('token');
+    const user = await AsyncStorage.getItem('user');
+    if (token && user) {
+      setIsLoggedIn(true);
+      // ✅ Auto fill name from profile
+      const userData = JSON.parse(user);
+      if (userData.name) setName(userData.name);
+      if (userData.phone) setSenderPhone(userData.phone);
+    } else {
+      // ✅ Not logged in — show login prompt
+      Alert.alert(
+        '🔒 Login Required',
+        'You need to login or create an account to contribute to this event.',
+        [
+          {
+            text: 'Login',
+            onPress: () => navigation.replace('Login'),
+          },
+          {
+            text: 'Create Account',
+            onPress: () => navigation.replace('Register'),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    }
+  };
 
   const handleContinue = async () => {
     if (!isAnonymous && !name) {
@@ -73,7 +111,7 @@ export default function ContributeScreen({ navigation, route }) {
 
       if (result.success) {
         navigation.navigate('PaymentConfirm', {
-          amount: getCleanAmount(), // ✅ Pass as number not string
+          amount: getCleanAmount(),
           method: paymentMethods.find((m) => m.id === selectedMethod)?.label,
           contribution: result.contribution,
           event,
@@ -92,13 +130,26 @@ export default function ContributeScreen({ navigation, route }) {
     }
   };
 
+  // ✅ If not logged in, show nothing while alert shows
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={WINE} size="large" />
+          <Text style={styles.loadingText}>Checking login...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} translucent={false} />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={BLACK} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contribute to Event</Text>
@@ -120,10 +171,9 @@ export default function ContributeScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* ── PAYMENT FLOW CARD ── */}
+        {/* Payment Flow Card */}
         <View style={styles.flowCard}>
           <Text style={styles.flowTitle}>💸 Payment Flow</Text>
-
           <View style={styles.flowRow}>
             <View style={styles.flowIcon}>
               <Ionicons name="person-outline" size={18} color={WINE} />
@@ -133,13 +183,10 @@ export default function ContributeScreen({ navigation, route }) {
               <Text style={styles.flowValue}>{senderPhone || 'Your phone number'}</Text>
             </View>
           </View>
-
           <View style={styles.flowArrow}>
             <Ionicons name="arrow-down" size={16} color={GRAY} />
-            {/* ✅ Updated to 1% */}
             <Text style={styles.flowFeeText}>Contriba fee: 1%</Text>
           </View>
-
           <View style={styles.flowRow}>
             <View style={[styles.flowIcon, { backgroundColor: '#E8F5E9' }]}>
               <Ionicons name="person-circle-outline" size={18} color={GREEN} />
@@ -216,7 +263,7 @@ export default function ContributeScreen({ navigation, route }) {
           ))}
         </ScrollView>
 
-        {/* ✅ Fee breakdown with 1% */}
+        {/* Fee breakdown */}
         {getCleanAmount() >= 1000 && (
           <View style={styles.feeCard}>
             <View style={styles.feeRow}>
@@ -284,6 +331,8 @@ export default function ContributeScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: GRAY },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: WHITE },
   headerTitle: { fontSize: 18, fontWeight: '800', color: BLACK },
   scroll: { paddingHorizontal: 20, paddingTop: 20 },
