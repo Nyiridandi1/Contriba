@@ -107,8 +107,8 @@ export default function RegisterScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color={TEXT} />
         </TouchableOpacity>
 
-        {/* Logo */}
-        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        {/* ✅ Updated logo */}
+        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
         {/* Title */}
         <Text style={[styles.title, { color: TEXT }]}>
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
-  logo: { width: 70, height: 70, marginBottom: 16 },
+  logo: { width: 100, height: 100, marginBottom: 16, borderRadius: 22 }, // ✅ Updated
   title: { fontSize: 30, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
