@@ -23,11 +23,15 @@ const GREEN      = '#1A9E4A';
 const SUPABASE_URL      = 'https://etswwbmrfqeokmobvhwy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
 
+// ✅ Updated event types with all categories
 const eventTypes = [
-  { id: '1', label: 'Wedding',      icon: 'heart-circle-outline', type: 'Wedding'      },
-  { id: '2', label: 'Birthday',     icon: 'gift-outline',         type: 'Birthday'     },
-  { id: '3', label: 'Introduction', icon: 'people-outline',       type: 'Introduction' },
-  { id: '4', label: 'Other',        icon: 'heart-outline',        type: 'Other'        },
+  { id: '1', label: 'Wedding',      emoji: '💍', icon: 'heart-circle-outline',  type: 'Wedding'      },
+  { id: '2', label: 'Birthday',     emoji: '🎂', icon: 'gift-outline',          type: 'Birthday'     },
+  { id: '3', label: 'Graduation',   emoji: '🎓', icon: 'school-outline',        type: 'Graduation'   },
+  { id: '4', label: 'Funeral',      emoji: '🕊️', icon: 'flower-outline',        type: 'Funeral'      },
+  { id: '5', label: 'Church',       emoji: '⛪', icon: 'sunny-outline',         type: 'Church'       },
+  { id: '6', label: 'Introduction', emoji: '💑', icon: 'people-outline',        type: 'Introduction' },
+  { id: '7', label: 'Other',        emoji: '🎉', icon: 'heart-outline',         type: 'Other'        },
 ];
 
 const paymentMethods = [
@@ -77,7 +81,7 @@ export default function CreateEventScreen({ navigation }) {
   const [photos, setPhotos]                         = useState([null, null, null, null]);
   const [loading, setLoading]                       = useState(false);
   const [uploadProgress, setUploadProgress]         = useState('');
-  const [isPrivate, setIsPrivate]                   = useState(false); // ✅ Privacy toggle
+  const [isPrivate, setIsPrivate]                   = useState(false);
 
   const formatDateDisplay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const formatDateAPI = (d) => {
@@ -137,13 +141,34 @@ export default function CreateEventScreen({ navigation }) {
   const getPhotoLabel = (index) => {
     const type = eventTypes.find(t => t.id === selectedType)?.type;
     if (language === 'Kinyarwanda') {
-      if (type === 'Wedding') return ['Ifoto y\'Abubatse', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
-      if (type === 'Birthday') return ['Ifoto y\'Ubyukuwe', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Wedding')    return ['Ifoto y\'Abubatse', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Birthday')   return ['Ifoto y\'Ubyukuwe', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Graduation') return ['Ifoto y\'Inzobere', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Funeral')    return ['Ifoto', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
+      if (type === 'Church')     return ['Ifoto y\'Itorero', 'Ubutumire', 'Ifoto y\'Aho', 'Ifoto Yindi'][index];
       return `Ifoto ${index + 1}`;
     }
-    if (type === 'Wedding') return ['Couple Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
-    if (type === 'Birthday') return ['Birthday Person', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Wedding')    return ['Couple Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Birthday')   return ['Birthday Person', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Graduation') return ['Graduate Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Funeral')    return ['Photo', 'Obituary Card', 'Venue Photo', 'Extra Photo'][index];
+    if (type === 'Church')     return ['Church Photo', 'Invitation Card', 'Venue Photo', 'Extra Photo'][index];
     return `Event Photo ${index + 1}`;
+  };
+
+  // ✅ Kinyarwanda labels for event types
+  const getTypeLabel = (type) => {
+    if (language !== 'Kinyarwanda') return type;
+    const map = {
+      Wedding: 'Ubukwe',
+      Birthday: 'Isabukuru',
+      Graduation: 'Impamyabushobozi',
+      Funeral: 'Umuryango',
+      Church: 'Itorero',
+      Introduction: 'Gukwa',
+      Other: 'Ibindi',
+    };
+    return map[type] || type;
   };
 
   const handleCreate = async () => {
@@ -172,7 +197,7 @@ export default function CreateEventScreen({ navigation }) {
         owner_phone: ownerPhone, owner_payment_method: ownerPaymentMethod,
         cover_image: photoUrls[0], photo2_url: photoUrls[1],
         photo3_url: photoUrls[2], photo4_url: photoUrls[3],
-        is_private: isPrivate, // ✅ send privacy setting
+        is_private: isPrivate,
       });
 
       if (result.success) {
@@ -212,27 +237,34 @@ export default function CreateEventScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* Event Type */}
+        {/* ✅ Event Type — scrollable horizontal chips */}
         <Text style={[styles.label, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type'}
         </Text>
-        <View style={styles.typeRow}>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typeScroll}>
           {eventTypes.map((type) => (
             <TouchableOpacity
               key={type.id}
-              style={[styles.typeCard, { borderColor: BORDER, backgroundColor: CARD }, selectedType === type.id && styles.typeCardActive]}
+              style={[
+                styles.typeChip,
+                { borderColor: BORDER, backgroundColor: CARD },
+                selectedType === type.id && styles.typeChipActive,
+              ]}
               onPress={() => setSelectedType(type.id)}
               activeOpacity={0.8}
             >
-              <Ionicons name={type.icon} size={28} color={selectedType === type.id ? WINE : SUB} />
-              <Text style={[styles.typeLabel, { color: SUB }, selectedType === type.id && styles.typeLabelActive]}>
-                {language === 'Kinyarwanda'
-                  ? { Wedding: 'Ubukwe', Birthday: 'Isabukuru', Introduction: 'Gukwa', Other: 'Ibindi' }[type.type]
-                  : type.label}
+              <Text style={styles.typeEmoji}>{type.emoji}</Text>
+              <Text style={[
+                styles.typeChipLabel,
+                { color: SUB },
+                selectedType === type.id && styles.typeChipLabelActive,
+              ]}>
+                {getTypeLabel(type.type)}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Event Title */}
         <Text style={[styles.label, { color: TEXT }]}>
@@ -240,7 +272,14 @@ export default function CreateEventScreen({ navigation }) {
         </Text>
         <TextInput
           style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
-          placeholder="John & Mary Wedding"
+          placeholder={
+            eventTypes.find(t => t.id === selectedType)?.type === 'Wedding' ? 'John & Mary Wedding' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Birthday' ? 'Mary\'s 30th Birthday' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Graduation' ? 'John\'s Graduation Party' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Funeral' ? 'In Memory of...' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Church' ? 'Church Building Fund' :
+            'Event Title'
+          }
           placeholderTextColor="#BBBBBB"
           value={title}
           onChangeText={setTitle}
@@ -301,14 +340,13 @@ export default function CreateEventScreen({ navigation }) {
           textAlignVertical="top"
         />
 
-        {/* ✅ PRIVACY TOGGLE */}
+        {/* PRIVACY TOGGLE */}
         <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
           <Ionicons name="shield-outline" size={18} color={WINE} />
           <Text style={styles.sectionDividerText}>Event Privacy</Text>
         </View>
 
         <View style={[styles.privacyCard, { backgroundColor: CARD, borderColor: BORDER }]}>
-          {/* Public Option */}
           <TouchableOpacity
             style={[styles.privacyOption, !isPrivate && styles.privacyOptionActive, { borderColor: !isPrivate ? GREEN : BORDER }]}
             onPress={() => setIsPrivate(false)}
@@ -326,7 +364,6 @@ export default function CreateEventScreen({ navigation }) {
 
           <View style={[styles.privacyDivider, { backgroundColor: BORDER }]} />
 
-          {/* Private Option */}
           <TouchableOpacity
             style={[styles.privacyOption, isPrivate && styles.privacyOptionActiveWine, { borderColor: isPrivate ? WINE : BORDER }]}
             onPress={() => setIsPrivate(true)}
@@ -343,7 +380,6 @@ export default function CreateEventScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Privacy info banner */}
         <View style={[styles.privacyBanner, { backgroundColor: isPrivate ? (darkMode ? '#1A0A0E' : WINE_LIGHT) : (darkMode ? '#0A1A0E' : '#E8F5E9') }]}>
           <Ionicons name={isPrivate ? 'lock-closed' : 'globe'} size={16} color={isPrivate ? WINE : GREEN} />
           <Text style={[styles.privacyBannerText, { color: isPrivate ? WINE : GREEN }]}>
@@ -412,7 +448,6 @@ export default function CreateEventScreen({ navigation }) {
           📸 {language === 'Kinyarwanda' ? 'Ongeraho amafoto kugeza 4!' : 'Add up to 4 photos to make your event stand out!'}
         </Text>
 
-        {/* 2x2 Photo Grid */}
         <View style={styles.photoGrid}>
           {photos.map((photo, index) => (
             <TouchableOpacity
@@ -486,11 +521,15 @@ const styles = StyleSheet.create({
   labelSub: { fontSize: 12, marginBottom: 10 },
   optional: { fontSize: 13, fontWeight: '400', color: GRAY },
   required: { color: WINE },
-  typeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 8 },
-  typeCard: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, gap: 6 },
-  typeCardActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  typeLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  typeLabelActive: { color: WINE },
+
+  // ✅ New horizontal scrollable type chips
+  typeScroll: { gap: 10, paddingRight: 20, marginBottom: 24 },
+  typeChip: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1.5, gap: 4, minWidth: 80 },
+  typeChipActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
+  typeEmoji: { fontSize: 24 },
+  typeChipLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  typeChipLabelActive: { color: WINE },
+
   input: { borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, fontSize: 15, marginBottom: 20 },
   dateRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 54, paddingHorizontal: 16, marginBottom: 20 },
   dateText: { flex: 1, fontSize: 15, fontWeight: '500' },
@@ -499,8 +538,6 @@ const styles = StyleSheet.create({
   textarea: { borderWidth: 1.5, borderRadius: 14, height: 100, paddingHorizontal: 16, paddingTop: 14, fontSize: 15, marginBottom: 24 },
   sectionDivider: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 20, borderLeftWidth: 3, borderLeftColor: WINE },
   sectionDividerText: { fontSize: 15, fontWeight: '700', color: WINE },
-
-  // ✅ Privacy styles
   privacyCard: { borderWidth: 1, borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
   privacyOption: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   privacyOptionActive: { backgroundColor: '#F0FFF4' },
@@ -512,7 +549,6 @@ const styles = StyleSheet.create({
   privacyDivider: { height: 1, marginHorizontal: 14 },
   privacyBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 24 },
   privacyBannerText: { fontSize: 13, fontWeight: '600', flex: 1 },
-
   paymentMethodRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   paymentMethodCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 14, padding: 12 },
   paymentMethodCardActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
