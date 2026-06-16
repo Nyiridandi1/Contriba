@@ -23,15 +23,15 @@ const GREEN      = '#1A9E4A';
 const SUPABASE_URL      = 'https://etswwbmrfqeokmobvhwy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
 
-// ✅ Updated event types with all categories
+// ✅ No emojis — using Ionicons only
 const eventTypes = [
-  { id: '1', label: 'Wedding',      emoji: '💍', icon: 'heart-circle-outline',  type: 'Wedding'      },
-  { id: '2', label: 'Birthday',     emoji: '🎂', icon: 'gift-outline',          type: 'Birthday'     },
-  { id: '3', label: 'Graduation',   emoji: '🎓', icon: 'school-outline',        type: 'Graduation'   },
-  { id: '4', label: 'Funeral',      emoji: '🕊️', icon: 'flower-outline',        type: 'Funeral'      },
-  { id: '5', label: 'Church',       emoji: '⛪', icon: 'sunny-outline',         type: 'Church'       },
-  { id: '6', label: 'Introduction', emoji: '💑', icon: 'people-outline',        type: 'Introduction' },
-  { id: '7', label: 'Other',        emoji: '🎉', icon: 'heart-outline',         type: 'Other'        },
+  { id: '1', label: 'Wedding',      icon: 'heart-circle-outline',  type: 'Wedding'      },
+  { id: '2', label: 'Birthday',     icon: 'gift-outline',          type: 'Birthday'     },
+  { id: '3', label: 'Graduation',   icon: 'school-outline',        type: 'Graduation'   },
+  { id: '4', label: 'Funeral',      icon: 'flower-outline',        type: 'Funeral'      },
+  { id: '5', label: 'Church',       icon: 'sunny-outline',         type: 'Church'       },
+  { id: '6', label: 'Introduction', icon: 'people-outline',        type: 'Introduction' },
+  { id: '7', label: 'Other',        icon: 'apps-outline',          type: 'Other'        },
 ];
 
 const paymentMethods = [
@@ -156,7 +156,6 @@ export default function CreateEventScreen({ navigation }) {
     return `Event Photo ${index + 1}`;
   };
 
-  // ✅ Kinyarwanda labels for event types
   const getTypeLabel = (type) => {
     if (language !== 'Kinyarwanda') return type;
     const map = {
@@ -202,7 +201,7 @@ export default function CreateEventScreen({ navigation }) {
 
       if (result.success) {
         Alert.alert(
-          language === 'Kinyarwanda' ? 'Ikirori Gishyizweho! 🎉' : 'Event Created! 🎉',
+          language === 'Kinyarwanda' ? 'Ikirori Gishyizweho' : 'Event Created',
           language === 'Kinyarwanda' ? `Ikirori "${title}" gishyizweho!` : `Your event "${title}" has been created successfully!`,
           [
             { text: language === 'Kinyarwanda' ? 'Reba Ikirori' : 'View Event', onPress: () => navigation.navigate('EventPage', { event: result.event }) },
@@ -237,7 +236,7 @@ export default function CreateEventScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* ✅ Event Type — scrollable horizontal chips */}
+        {/* ✅ Event Type chips — Ionicons only, no emojis */}
         <Text style={[styles.label, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Ubwoko bw\'Ikirori' : 'Event Type'}
         </Text>
@@ -254,7 +253,16 @@ export default function CreateEventScreen({ navigation }) {
               onPress={() => setSelectedType(type.id)}
               activeOpacity={0.8}
             >
-              <Text style={styles.typeEmoji}>{type.emoji}</Text>
+              <View style={[
+                styles.typeIconBox,
+                { backgroundColor: selectedType === type.id ? WINE : (darkMode ? '#2A2A2A' : '#F5F5F5') }
+              ]}>
+                <Ionicons
+                  name={type.icon}
+                  size={20}
+                  color={selectedType === type.id ? WHITE : SUB}
+                />
+              </View>
               <Text style={[
                 styles.typeChipLabel,
                 { color: SUB },
@@ -273,11 +281,12 @@ export default function CreateEventScreen({ navigation }) {
         <TextInput
           style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
           placeholder={
-            eventTypes.find(t => t.id === selectedType)?.type === 'Wedding' ? 'John & Mary Wedding' :
-            eventTypes.find(t => t.id === selectedType)?.type === 'Birthday' ? 'Mary\'s 30th Birthday' :
-            eventTypes.find(t => t.id === selectedType)?.type === 'Graduation' ? 'John\'s Graduation Party' :
-            eventTypes.find(t => t.id === selectedType)?.type === 'Funeral' ? 'In Memory of...' :
-            eventTypes.find(t => t.id === selectedType)?.type === 'Church' ? 'Church Building Fund' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Wedding'      ? 'John & Mary Wedding' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Birthday'     ? "Mary's 30th Birthday" :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Graduation'   ? "John's Graduation Party" :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Funeral'      ? 'In Memory of...' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Church'       ? 'Church Building Fund' :
+            eventTypes.find(t => t.id === selectedType)?.type === 'Introduction' ? 'Introduction Ceremony' :
             'Event Title'
           }
           placeholderTextColor="#BBBBBB"
@@ -289,7 +298,11 @@ export default function CreateEventScreen({ navigation }) {
         <Text style={[styles.label, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Itariki y\'Ikirori' : 'Event Date'}
         </Text>
-        <TouchableOpacity style={[styles.dateRow, { borderColor: BORDER, backgroundColor: CARD }]} onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.dateRow, { borderColor: BORDER, backgroundColor: CARD }]}
+          onPress={() => setShowDatePicker(true)}
+          activeOpacity={0.8}
+        >
           <Text style={[styles.dateText, { color: TEXT }]}>{formatDateDisplay(date)}</Text>
           <Ionicons name="calendar-outline" size={22} color={WINE} />
         </TouchableOpacity>
@@ -299,7 +312,8 @@ export default function CreateEventScreen({ navigation }) {
 
         {/* Location */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+          {language === 'Kinyarwanda' ? 'Aho Bizabera' : 'Location'}{' '}
+          <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
         </Text>
         <TextInput
           style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
@@ -311,7 +325,8 @@ export default function CreateEventScreen({ navigation }) {
 
         {/* Goal Amount */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+          {language === 'Kinyarwanda' ? 'Intego y\'Amafaranga' : 'Goal Amount'}{' '}
+          <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
         </Text>
         <View style={[styles.dateRow, { borderColor: BORDER, backgroundColor: CARD }]}>
           <Text style={[styles.currency, { color: SUB }]}>RWF</Text>
@@ -327,11 +342,14 @@ export default function CreateEventScreen({ navigation }) {
 
         {/* Short Message */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Ubutumwa Bugufi' : 'Short Message'} <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
+          {language === 'Kinyarwanda' ? 'Ubutumwa Bugufi' : 'Short Message'}{' '}
+          <Text style={styles.optional}>{language === 'Kinyarwanda' ? '(si ngombwa)' : '(optional)'}</Text>
         </Text>
         <TextInput
           style={[styles.textarea, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
-          placeholder={language === 'Kinyarwanda' ? 'Twubaka no gukunda...' : 'We are getting married and would love you to be part of our special day.'}
+          placeholder={language === 'Kinyarwanda'
+            ? 'Twubaka no gukunda...'
+            : 'We are getting married and would love you to be part of our special day.'}
           placeholderTextColor="#BBBBBB"
           value={message}
           onChangeText={setMessage}
@@ -343,10 +361,13 @@ export default function CreateEventScreen({ navigation }) {
         {/* PRIVACY TOGGLE */}
         <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
           <Ionicons name="shield-outline" size={18} color={WINE} />
-          <Text style={styles.sectionDividerText}>Event Privacy</Text>
+          <Text style={styles.sectionDividerText}>
+            {language === 'Kinyarwanda' ? 'Ibanga ry\'Ikirori' : 'Event Privacy'}
+          </Text>
         </View>
 
         <View style={[styles.privacyCard, { backgroundColor: CARD, borderColor: BORDER }]}>
+          {/* Public */}
           <TouchableOpacity
             style={[styles.privacyOption, !isPrivate && styles.privacyOptionActive, { borderColor: !isPrivate ? GREEN : BORDER }]}
             onPress={() => setIsPrivate(false)}
@@ -356,14 +377,21 @@ export default function CreateEventScreen({ navigation }) {
               <Ionicons name="globe-outline" size={24} color={!isPrivate ? GREEN : SUB} />
             </View>
             <View style={styles.privacyInfo}>
-              <Text style={[styles.privacyTitle, { color: TEXT }]}>🌍 Public</Text>
-              <Text style={[styles.privacySub, { color: SUB }]}>Everyone on Contriba can see this event</Text>
+              <Text style={[styles.privacyTitle, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Rusange' : 'Public'}
+              </Text>
+              <Text style={[styles.privacySub, { color: SUB }]}>
+                {language === 'Kinyarwanda'
+                  ? 'Bose kuri Contriba barashobora kureba'
+                  : 'Everyone on Contriba can see this event'}
+              </Text>
             </View>
             {!isPrivate && <Ionicons name="checkmark-circle" size={22} color={GREEN} />}
           </TouchableOpacity>
 
           <View style={[styles.privacyDivider, { backgroundColor: BORDER }]} />
 
+          {/* Private */}
           <TouchableOpacity
             style={[styles.privacyOption, isPrivate && styles.privacyOptionActiveWine, { borderColor: isPrivate ? WINE : BORDER }]}
             onPress={() => setIsPrivate(true)}
@@ -373,19 +401,30 @@ export default function CreateEventScreen({ navigation }) {
               <Ionicons name="lock-closed-outline" size={24} color={isPrivate ? WINE : SUB} />
             </View>
             <View style={styles.privacyInfo}>
-              <Text style={[styles.privacyTitle, { color: TEXT }]}>🔒 Private</Text>
-              <Text style={[styles.privacySub, { color: SUB }]}>Only people with the link can view</Text>
+              <Text style={[styles.privacyTitle, { color: TEXT }]}>
+                {language === 'Kinyarwanda' ? 'Ibanga' : 'Private'}
+              </Text>
+              <Text style={[styles.privacySub, { color: SUB }]}>
+                {language === 'Kinyarwanda'
+                  ? 'Abafite umuyoboro gusa barashobora kureba'
+                  : 'Only people with the link can view'}
+              </Text>
             </View>
             {isPrivate && <Ionicons name="checkmark-circle" size={22} color={WINE} />}
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.privacyBanner, { backgroundColor: isPrivate ? (darkMode ? '#1A0A0E' : WINE_LIGHT) : (darkMode ? '#0A1A0E' : '#E8F5E9') }]}>
+        {/* Privacy Banner */}
+        <View style={[styles.privacyBanner, {
+          backgroundColor: isPrivate
+            ? (darkMode ? '#1A0A0E' : WINE_LIGHT)
+            : (darkMode ? '#0A1A0E' : '#E8F5E9')
+        }]}>
           <Ionicons name={isPrivate ? 'lock-closed' : 'globe'} size={16} color={isPrivate ? WINE : GREEN} />
           <Text style={[styles.privacyBannerText, { color: isPrivate ? WINE : GREEN }]}>
             {isPrivate
-              ? '🔒 Private event — Share the link to invite people'
-              : '🌍 Public event — Visible to everyone on Contriba'}
+              ? (language === 'Kinyarwanda' ? 'Ikirori cy\'ibanga — Sangira umuyoboro' : 'Private event — Share the link to invite people')
+              : (language === 'Kinyarwanda' ? 'Ikirori rusange — Bose barashobora kureba' : 'Public event — Visible to everyone on Contriba')}
           </Text>
         </View>
 
@@ -398,10 +437,13 @@ export default function CreateEventScreen({ navigation }) {
         </View>
 
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Numero ya Telefoni Yawe' : 'Your Phone Number'} <Text style={styles.required}>*</Text>
+          {language === 'Kinyarwanda' ? 'Numero ya Telefoni Yawe' : 'Your Phone Number'}{' '}
+          <Text style={styles.required}>*</Text>
         </Text>
         <Text style={[styles.labelSub, { color: SUB }]}>
-          {language === 'Kinyarwanda' ? 'Inkunga zoherezwa kuri iyi numero' : 'Contributions will be sent directly to this number'}
+          {language === 'Kinyarwanda'
+            ? 'Inkunga zoherezwa kuri iyi numero'
+            : 'Contributions will be sent directly to this number'}
         </Text>
         <TextInput
           style={[styles.input, { borderColor: BORDER, backgroundColor: CARD, color: TEXT }]}
@@ -413,20 +455,29 @@ export default function CreateEventScreen({ navigation }) {
         />
 
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Uburyo bw\'Kwishyura' : 'Payment Method'} <Text style={styles.required}>*</Text>
+          {language === 'Kinyarwanda' ? 'Uburyo bw\'Kwishyura' : 'Payment Method'}{' '}
+          <Text style={styles.required}>*</Text>
         </Text>
         <View style={styles.paymentMethodRow}>
           {paymentMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
-              style={[styles.paymentMethodCard, { borderColor: BORDER, backgroundColor: CARD }, ownerPaymentMethod === method.id && styles.paymentMethodCardActive]}
+              style={[
+                styles.paymentMethodCard,
+                { borderColor: BORDER, backgroundColor: CARD },
+                ownerPaymentMethod === method.id && styles.paymentMethodCardActive,
+              ]}
               onPress={() => setOwnerPaymentMethod(method.id)}
               activeOpacity={0.8}
             >
               <View style={[styles.paymentMethodIcon, { backgroundColor: method.color + '20' }]}>
                 <Ionicons name={method.icon} size={24} color={method.color} />
               </View>
-              <Text style={[styles.paymentMethodLabel, { color: SUB }, ownerPaymentMethod === method.id && styles.paymentMethodLabelActive]}>
+              <Text style={[
+                styles.paymentMethodLabel,
+                { color: SUB },
+                ownerPaymentMethod === method.id && styles.paymentMethodLabelActive,
+              ]}>
                 {method.label}
               </Text>
               {ownerPaymentMethod === method.id && (
@@ -444,9 +495,15 @@ export default function CreateEventScreen({ navigation }) {
           </Text>
         </View>
 
-        <Text style={[styles.photosHint, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
-          📸 {language === 'Kinyarwanda' ? 'Ongeraho amafoto kugeza 4!' : 'Add up to 4 photos to make your event stand out!'}
-        </Text>
+        {/* ✅ Photos hint — no emoji */}
+        <View style={[styles.photosHintBox, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+          <Ionicons name="camera-outline" size={16} color={WINE} />
+          <Text style={styles.photosHintText}>
+            {language === 'Kinyarwanda'
+              ? 'Ongeraho amafoto kugeza 4 kugira ngo ikirori cyawe gishimise!'
+              : 'Add up to 4 photos to make your event stand out!'}
+          </Text>
+        </View>
 
         <View style={styles.photoGrid}>
           {photos.map((photo, index) => (
@@ -501,9 +558,12 @@ export default function CreateEventScreen({ navigation }) {
               </Text>
             </View>
           ) : (
-            <Text style={styles.createBtnText}>
-              {language === 'Kinyarwanda' ? 'Shiraho Ikirori 🎉' : 'Create Event 🎉'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="add-circle-outline" size={22} color={WHITE} />
+              <Text style={styles.createBtnText}>
+                {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create Event'}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -522,11 +582,11 @@ const styles = StyleSheet.create({
   optional: { fontSize: 13, fontWeight: '400', color: GRAY },
   required: { color: WINE },
 
-  // ✅ New horizontal scrollable type chips
+  // ✅ Type chips with icon boxes
   typeScroll: { gap: 10, paddingRight: 20, marginBottom: 24 },
-  typeChip: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1.5, gap: 4, minWidth: 80 },
+  typeChip: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, gap: 6, minWidth: 80 },
   typeChipActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
-  typeEmoji: { fontSize: 24 },
+  typeIconBox: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   typeChipLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
   typeChipLabelActive: { color: WINE },
 
@@ -555,7 +615,11 @@ const styles = StyleSheet.create({
   paymentMethodIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   paymentMethodLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
   paymentMethodLabelActive: { color: WINE },
-  photosHint: { fontSize: 13, color: WINE, fontWeight: '600', marginBottom: 16, padding: 10, borderRadius: 10 },
+
+  // ✅ Photos hint with icon
+  photosHintBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 10, marginBottom: 16 },
+  photosHintText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
+
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   photoBox: { width: (width - 50) / 2, height: (width - 50) / 2, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderStyle: 'dashed', position: 'relative' },
   photoPreview: { width: '100%', height: '100%' },
