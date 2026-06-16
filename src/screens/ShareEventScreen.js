@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { formatEventDate } from '../utils/formatDate'; // ✅ Import
+import { formatEventDate } from '../utils/formatDate';
 
 const WINE  = '#E60012';
 const WHITE = '#FFFFFF';
@@ -14,7 +14,7 @@ const GREEN = '#1A9E4A';
 
 export default function ShareEventScreen({ navigation, route }) {
   const { darkMode, language, colors } = useTheme();
-  const { BG, CARD, TEXT, SUB, BORDER, DIV } = colors;
+  const { BG, CARD, TEXT, SUB, BORDER } = colors;
 
   const event = route?.params?.event;
   const [copied, setCopied] = useState(false);
@@ -37,13 +37,13 @@ export default function ShareEventScreen({ navigation, route }) {
 
   const shareLink = getShareLink();
 
-  // ✅ Use formatEventDate in share message
+  // ✅ Share message — no emojis, clean professional text
   const getShareMessage = () => {
     const formattedDate = formatEventDate(event?.date) || '';
     if (language === 'Kinyarwanda') {
-      return `🎉 Watumiwe kuri ${event?.title || 'ikirori cyacu'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Itariki: ${formattedDate}\n📍 Aho: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Tanga inkunga kandi uzabe umunyakirori w\'umunsi wacu:\n${shareLink}`;
+      return `Watumiwe kuri ${event?.title || 'ikirori cyacu'}!\n\n${event?.description ? event.description + '\n\n' : ''}Itariki: ${formattedDate}\nAho: ${event?.location || 'Kigali, Rwanda'}\n\nTanga inkunga kandi uzabe umunyakirori w'umunsi wacu:\n${shareLink}`;
     }
-    return `🎉 You're invited to ${event?.title || 'our special event'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Date: ${formattedDate}\n📍 Location: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Contribute a gift and be part of our special day:\n${shareLink}`;
+    return `You're invited to ${event?.title || 'our special event'}!\n\n${event?.description ? event.description + '\n\n' : ''}Date: ${formattedDate}\nLocation: ${event?.location || 'Kigali, Rwanda'}\n\nContribute a gift and be part of our special day:\n${shareLink}`;
   };
 
   const handleCopyLink = () => {
@@ -77,7 +77,7 @@ export default function ShareEventScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* ✅ EVENT CARD with fixed date */}
+        {/* EVENT CARD */}
         <View style={[styles.eventCard, { backgroundColor: CARD, borderColor: BORDER, borderWidth: 1 }]}>
           {event?.cover_image ? (
             <Image source={{ uri: event.cover_image }} style={styles.eventImage} resizeMode="cover" />
@@ -88,7 +88,6 @@ export default function ShareEventScreen({ navigation, route }) {
             <Text style={[styles.eventTitle, { color: TEXT }]}>{event?.title || 'My Event'}</Text>
             <View style={styles.eventMeta}>
               <Ionicons name="calendar-outline" size={13} color={SUB} />
-              {/* ✅ Fixed date format */}
               <Text style={[styles.eventMetaText, { color: SUB }]}>
                 {formatEventDate(event?.date)}
               </Text>
@@ -108,11 +107,14 @@ export default function ShareEventScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* SHARE BANNER */}
+        {/* ✅ SHARE BANNER — no emojis */}
         <View style={[styles.shareBanner, { backgroundColor: darkMode ? '#1A0A0E' : '#FFF5F7', borderColor: darkMode ? '#3A1A20' : '#FFD6E0' }]}>
+          <View style={[styles.shareBannerIcon, { backgroundColor: WINE }]}>
+            <Ionicons name="share-social-outline" size={22} color={WHITE} />
+          </View>
           <View style={styles.shareBannerLeft}>
             <Text style={[styles.shareBannerTitle, { color: TEXT }]}>
-              {language === 'Kinyarwanda' ? 'Sangira ikirori cyawe 🎉' : 'Share your event 🎉'}
+              {language === 'Kinyarwanda' ? 'Sangira ikirori cyawe' : 'Share your event'}
             </Text>
             <Text style={[styles.shareBannerSub, { color: SUB }]}>
               {language === 'Kinyarwanda'
@@ -120,7 +122,6 @@ export default function ShareEventScreen({ navigation, route }) {
                 : 'Invite friends and family to contribute and be part of your special day!'}
             </Text>
           </View>
-          <Ionicons name="share-social" size={40} color={WINE} style={{ opacity: 0.2 }} />
         </View>
 
         {/* EVENT LINK */}
@@ -153,7 +154,7 @@ export default function ShareEventScreen({ navigation, route }) {
           <Ionicons name={copied ? 'checkmark-circle' : 'copy-outline'} size={20} color={WHITE} />
           <Text style={styles.copyBtnText}>
             {copied
-              ? (language === 'Kinyarwanda' ? 'Wakopwe! ✓' : 'Link Copied! ✓')
+              ? (language === 'Kinyarwanda' ? 'Wakopwe' : 'Link Copied')
               : (language === 'Kinyarwanda' ? 'Kopa Umuyoboro' : 'Copy Link')}
           </Text>
         </TouchableOpacity>
@@ -181,7 +182,7 @@ export default function ShareEventScreen({ navigation, route }) {
           ))}
         </View>
 
-        {/* SHARE MESSAGE PREVIEW */}
+        {/* MESSAGE PREVIEW */}
         <Text style={[styles.sectionTitle, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Incamake y\'Ubutumwa' : 'Message Preview'}
         </Text>
@@ -192,7 +193,7 @@ export default function ShareEventScreen({ navigation, route }) {
             onPress={() => {
               Clipboard.setString(getShareMessage());
               Alert.alert(
-                language === 'Kinyarwanda' ? 'Wakopwe!' : 'Copied!',
+                language === 'Kinyarwanda' ? 'Wakopwe' : 'Copied',
                 language === 'Kinyarwanda' ? 'Ubutumwa bwakopwe' : 'Message copied to clipboard'
               );
             }}
@@ -204,7 +205,7 @@ export default function ShareEventScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* BOTTOM QUOTE */}
+        {/* ✅ BOTTOM QUOTE — no emojis */}
         <View style={styles.quoteSection}>
           <Ionicons name="heart" size={36} color={WINE} style={{ opacity: 0.3 }} />
           <View>
@@ -215,7 +216,7 @@ export default function ShareEventScreen({ navigation, route }) {
               {language === 'Kinyarwanda' ? 'ni ko urukundo rukura.' : 'the more love you receive.'}
             </Text>
             <Text style={styles.quoteThanks}>
-              {language === 'Kinyarwanda' ? 'Urakoze! ❤️' : 'Thank you! ❤️'}
+              {language === 'Kinyarwanda' ? 'Urakoze' : 'Thank you'}
             </Text>
           </View>
         </View>
@@ -238,10 +239,14 @@ const styles = StyleSheet.create({
   eventTitle: { fontSize: 16, fontWeight: '800', marginBottom: 6 },
   eventMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
   eventMetaText: { fontSize: 12, marginLeft: 4 },
+
+  // ✅ Share banner with icon instead of emoji
   shareBanner: { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20, borderWidth: 1, gap: 12 },
+  shareBannerIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   shareBannerLeft: { flex: 1 },
   shareBannerTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
   shareBannerSub: { fontSize: 12, lineHeight: 18 },
+
   sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
   linkBox: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, borderWidth: 1 },
   linkText: { flex: 1, fontSize: 13 },
