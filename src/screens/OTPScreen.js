@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  StatusBar, SafeAreaView, Dimensions, Alert, ActivityIndicator,
+  StatusBar, SafeAreaView, Dimensions, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,7 +52,6 @@ export default function OTPScreen({ navigation, route }) {
   const handleVerify = async (otpCode) => {
     setLoading(true);
     try {
-      // Call backend directly with name and email
       const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,15 +67,12 @@ export default function OTPScreen({ navigation, route }) {
 
       if (result.success) {
         await saveToken(result.token);
-
-        // Save user with name
         const userData = {
           ...result.user,
           name: result.user.name || userName,
           email: result.user.email || userEmail,
         };
         await AsyncStorage.setItem('user', JSON.stringify(userData));
-
         navigation.replace('Home');
       } else {
         Alert.alert('Invalid OTP', result.message || 'Please try again');
@@ -137,13 +133,28 @@ export default function OTPScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+      <StatusBar barStyle="light-content" backgroundColor={WINE} />
+
+      {/* ✅ WINE RED LOGO BANNER */}
+      <View style={styles.logoBanner}>
+        <TouchableOpacity style={styles.backBtnWhite} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={WHITE} />
+        </TouchableOpacity>
+        <View style={styles.logoCenter}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.logoTitle}>Contriba</Text>
+            <Text style={styles.logoSub}>Contribute Easily. Smart & Secure.</Text>
+          </View>
+        </View>
+        <View style={{ width: 36 }} />
+      </View>
 
       <View style={styles.content}>
-
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color={BLACK} />
-        </TouchableOpacity>
 
         <Text style={styles.title}>Verify your number</Text>
         <Text style={styles.subtitle}>
@@ -155,6 +166,7 @@ export default function OTPScreen({ navigation, route }) {
           <Text style={styles.welcomeText}>Welcome, {userName}! 👋</Text>
         )}
 
+        {/* OTP Boxes */}
         <View style={styles.otpRow}>
           {code.map((digit, i) => (
             <View
@@ -191,6 +203,7 @@ export default function OTPScreen({ navigation, route }) {
 
       </View>
 
+      {/* Keypad */}
       <View style={styles.keypad}>
         {KEYS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.keyRow}>
@@ -219,9 +232,17 @@ const BOX_SIZE = (width - 48 - 40) / 6;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
-  backBtn: { marginBottom: 32 },
-  title: { fontSize: 30, fontWeight: '800', color: BLACK, marginBottom: 12 },
+
+  // ✅ Logo Banner
+  logoBanner: { backgroundColor: WINE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+  backBtnWhite: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  logoCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoImg: { width: 40, height: 40, borderRadius: 10 },
+  logoTitle: { fontSize: 17, fontWeight: '800', color: WHITE },
+  logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+
+  content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
+  title: { fontSize: 28, fontWeight: '800', color: BLACK, marginBottom: 12 },
   subtitle: { fontSize: 15, color: GRAY, lineHeight: 24, marginBottom: 12 },
   phoneText: { color: BLACK, fontWeight: '700' },
   welcomeText: { fontSize: 16, fontWeight: '700', color: WINE, marginBottom: 24 },
