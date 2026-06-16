@@ -422,26 +422,21 @@ export default function EventPageScreen({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* ✅ CREATOR CARD */}
+                {/* ✅ CREATOR CARD — fixed, always English */}
                 {event?.creator && (
                   <View style={[styles.creatorCard, { backgroundColor: CARD, borderColor: BORDER }]}>
                     <View style={styles.creatorHeader}>
                       <Ionicons name="person-circle-outline" size={20} color={WINE} />
-                      <Text style={[styles.creatorHeaderTitle, { color: TEXT }]}>
-                        {language === 'Kinyarwanda' ? 'Uwateranye Ikirori' : 'Event Organizer'}
-                      </Text>
+                      <Text style={[styles.creatorHeaderTitle, { color: TEXT }]}>Event Organizer</Text>
                       <View style={styles.verifiedBadge}>
                         <Ionicons name="shield-checkmark" size={12} color={WHITE} />
-                        <Text style={styles.verifiedText}>
-                          {language === 'Kinyarwanda' ? 'Yemejwe' : 'Verified'}
-                        </Text>
+                        <Text style={styles.verifiedText}>Verified</Text>
                       </View>
                     </View>
 
-                    <View style={styles.creatorDivider} />
+                    <View style={[styles.creatorDivider, { backgroundColor: BORDER }]} />
 
                     <View style={styles.creatorBody}>
-                      {/* Avatar */}
                       {event.creator.avatar_url ? (
                         <Image source={{ uri: event.creator.avatar_url }} style={styles.creatorAvatar} />
                       ) : (
@@ -451,46 +446,41 @@ export default function EventPageScreen({ navigation, route }) {
                           </Text>
                         </View>
                       )}
-
-                      {/* Info */}
                       <View style={styles.creatorInfo}>
+                        {/* ✅ Fixed: proper parentheses */}
                         <Text style={[styles.creatorName, { color: TEXT }]}>
-                          {event.creator.name || language === 'Kinyarwanda' ? 'Ntazwi' : 'Unknown'}
+                          {event.creator.name || 'Unknown'}
                         </Text>
                         <Text style={[styles.creatorRole, { color: SUB }]}>
-                          🎗️ {language === 'Kinyarwanda' ? 'Umuteranye w\'Ikirori' : 'Event Organizer'}
+                          🎗️ Event Organizer
                         </Text>
                       </View>
                     </View>
 
-                    <View style={[styles.creatorDivider, { marginTop: 12 }]} />
+                    <View style={[styles.creatorDivider, { marginTop: 12, backgroundColor: BORDER }]} />
 
-                    {/* Contact details */}
                     <View style={styles.creatorContacts}>
                       <View style={styles.creatorContactRow}>
                         <View style={[styles.creatorContactIcon, { backgroundColor: '#E8F5E9' }]}>
                           <Ionicons name="call-outline" size={16} color={GREEN} />
                         </View>
                         <View>
-                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>
-                            {language === 'Kinyarwanda' ? 'Telefoni' : 'Phone Number'}
-                          </Text>
+                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>Phone Number</Text>
+                          {/* ✅ Fixed: proper parentheses */}
                           <Text style={[styles.creatorContactValue, { color: TEXT }]}>
-                            {event.creator.phone || event.owner_phone || language === 'Kinyarwanda' ? 'Ntabwo bwashyizweho' : 'Not provided'}
+                            {event.creator.phone || event.owner_phone || 'Not provided'}
                           </Text>
                         </View>
                       </View>
 
-                      <View style={[styles.creatorDivider, { marginVertical: 8 }]} />
+                      <View style={[styles.creatorDivider, { marginVertical: 8, backgroundColor: BORDER }]} />
 
                       <View style={styles.creatorContactRow}>
                         <View style={[styles.creatorContactIcon, { backgroundColor: '#E3F2FD' }]}>
                           <Ionicons name="location-outline" size={16} color="#1877F2" />
                         </View>
                         <View>
-                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>
-                            {language === 'Kinyarwanda' ? 'Aho Batuye' : 'Location'}
-                          </Text>
+                          <Text style={[styles.creatorContactLabel, { color: SUB }]}>Location</Text>
                           <Text style={[styles.creatorContactValue, { color: TEXT }]}>
                             {event.location || 'Kigali, Rwanda'}
                           </Text>
@@ -756,14 +746,12 @@ const styles = StyleSheet.create({
   detailDivider: { height: 1, marginVertical: 4 },
   detailLabel: { fontSize: 12, marginBottom: 2 },
   detailValue: { fontSize: 15, fontWeight: '700' },
-
-  // ✅ Creator Card Styles
   creatorCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
   creatorHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   creatorHeaderTitle: { fontSize: 15, fontWeight: '800', flex: 1 },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: GREEN, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
   verifiedText: { fontSize: 10, fontWeight: '700', color: WHITE },
-  creatorDivider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 4 },
+  creatorDivider: { height: 1, marginVertical: 4 },
   creatorBody: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   creatorAvatar: { width: 56, height: 56, borderRadius: 28 },
   creatorAvatarPlaceholder: { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
@@ -776,7 +764,6 @@ const styles = StyleSheet.create({
   creatorContactIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
   creatorContactLabel: { fontSize: 11, marginBottom: 2 },
   creatorContactValue: { fontSize: 14, fontWeight: '600' },
-
   contributorsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8, marginBottom: 16 },
   avatarStack: { flexDirection: 'row' },
   avatarCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: WHITE },
