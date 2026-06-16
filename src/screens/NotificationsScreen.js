@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar, ActivityIndicator, Switch,
+  ScrollView, StatusBar, ActivityIndicator, Switch, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +45,7 @@ export default function NotificationsScreen({ navigation }) {
   const [loading, setLoading]             = useState(true);
   const [unreadCount, setUnreadCount]     = useState(0);
   const [pushEnabled, setPushEnabled]     = useState(false);
-  const [navigating, setNavigating]       = useState(false); // ✅ loading state when fetching event
+  const [navigating, setNavigating]       = useState(false);
 
   const FILTERS = [
     { key: 'All',           label: language === 'Kinyarwanda' ? 'Byose'    : 'All'           },
@@ -94,7 +94,6 @@ export default function NotificationsScreen({ navigation }) {
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  // ✅ Fetch full event then navigate to EventPage with comments
   const handleNotifPress = async (item) => {
     await handleMarkRead(item.id);
 
@@ -106,7 +105,6 @@ export default function NotificationsScreen({ navigation }) {
     if (item.event_id) {
       try {
         setNavigating(true);
-        // ✅ Fetch full event object from backend
         const response = await fetch(`${BASE_URL}/api/events/${item.event_id}`);
         const result = await response.json();
         if (result.success && result.event) {
@@ -135,14 +133,35 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]} edges={['top', 'bottom']}>
-      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={CARD} />
+      <StatusBar barStyle="light-content" backgroundColor={WINE} />
 
-      {/* HEADER */}
-      <View style={[styles.header, { backgroundColor: CARD, borderBottomColor: BORDER }]}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: darkMode ? '#2A2A2A' : '#F5F5F5' }]} onPress={() => navigation.goBack()}>
+      {/* ✅ WINE RED LOGO HEADER */}
+      <View style={styles.logoHeader}>
+        <View style={styles.logoHeaderLeft}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.logoTitle}>Contriba</Text>
+            <Text style={styles.logoSub}>Contribute Easily. Smart & Secure.</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.refreshBtn} onPress={loadNotifications}>
+          <Ionicons name="refresh-outline" size={22} color={WHITE} />
+        </TouchableOpacity>
+      </View>
+
+      {/* TITLE BAR */}
+      <View style={[styles.titleBar, { backgroundColor: CARD, borderBottomColor: BORDER }]}>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: darkMode ? '#2A2A2A' : '#F5F5F5' }]}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={22} color={TEXT} />
         </TouchableOpacity>
-        <View>
+        <View style={styles.titleCenter}>
           <Text style={[styles.headerTitle, { color: TEXT }]}>
             {language === 'Kinyarwanda' ? 'Impinduka' : 'Notifications'}
           </Text>
@@ -152,15 +171,17 @@ export default function NotificationsScreen({ navigation }) {
             </Text>
           )}
         </View>
-        <TouchableOpacity style={styles.headerBtn} onPress={loadNotifications}>
-          <Ionicons name="refresh-outline" size={22} color={TEXT} />
-        </TouchableOpacity>
+        <View style={{ width: 36 }} />
       </View>
 
       {/* FILTER TABS */}
       <View style={[styles.filterRow, { backgroundColor: CARD, borderBottomColor: BORDER }]}>
         {FILTERS.map((filter) => (
-          <TouchableOpacity key={filter.key} style={styles.filterTab} onPress={() => setActiveFilter(filter.key)}>
+          <TouchableOpacity
+            key={filter.key}
+            style={styles.filterTab}
+            onPress={() => setActiveFilter(filter.key)}
+          >
             <Text style={[styles.filterText, { color: SUB }, activeFilter === filter.key && styles.filterTextActive]}>
               {filter.label}
             </Text>
@@ -169,7 +190,7 @@ export default function NotificationsScreen({ navigation }) {
         ))}
       </View>
 
-      {/* ✅ Show loading overlay when navigating */}
+      {/* NAVIGATING OVERLAY */}
       {navigating && (
         <View style={styles.navigatingOverlay}>
           <ActivityIndicator color={WINE} size="large" />
@@ -222,7 +243,9 @@ export default function NotificationsScreen({ navigation }) {
                       <Ionicons name="chevron-forward" size={16} color={SUB} />
                     </View>
                   </TouchableOpacity>
-                  {index < filteredNotifications.length - 1 && <View style={[styles.rowDivider, { backgroundColor: DIV }]} />}
+                  {index < filteredNotifications.length - 1 && (
+                    <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
+                  )}
                 </View>
               );
             })}
@@ -265,11 +288,22 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+
+  // ✅ Logo Header
+  logoHeader: { backgroundColor: WINE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+  logoHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoImg: { width: 40, height: 40, borderRadius: 10 },
+  logoTitle: { fontSize: 17, fontWeight: '800', color: WHITE },
+  logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+  refreshBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+
+  // Title Bar
+  titleBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  titleCenter: { alignItems: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   unreadCount: { fontSize: 11, color: WINE, fontWeight: '600', textAlign: 'center' },
-  headerBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+
   filterRow: { flexDirection: 'row', borderBottomWidth: 1 },
   filterTab: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' },
   filterText: { fontSize: 13, fontWeight: '600' },
