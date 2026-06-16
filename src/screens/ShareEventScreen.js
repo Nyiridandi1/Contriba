@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { formatEventDate } from '../utils/formatDate'; // ✅ Import
 
 const WINE  = '#E60012';
 const WHITE = '#FFFFFF';
@@ -36,11 +37,13 @@ export default function ShareEventScreen({ navigation, route }) {
 
   const shareLink = getShareLink();
 
+  // ✅ Use formatEventDate in share message
   const getShareMessage = () => {
+    const formattedDate = formatEventDate(event?.date) || '';
     if (language === 'Kinyarwanda') {
-      return `🎉 Watumiwe kuri ${event?.title || 'ikirori cyacu'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Itariki: ${event?.date || ''}\n📍 Aho: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Tanga inkunga kandi uzabe umunyakirori w\'umunsi wacu:\n${shareLink}`;
+      return `🎉 Watumiwe kuri ${event?.title || 'ikirori cyacu'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Itariki: ${formattedDate}\n📍 Aho: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Tanga inkunga kandi uzabe umunyakirori w\'umunsi wacu:\n${shareLink}`;
     }
-    return `🎉 You're invited to ${event?.title || 'our special event'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Date: ${event?.date || ''}\n📍 Location: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Contribute a gift and be part of our special day:\n${shareLink}`;
+    return `🎉 You're invited to ${event?.title || 'our special event'}!\n\n${event?.description ? event.description + '\n\n' : ''}📅 Date: ${formattedDate}\n📍 Location: ${event?.location || 'Kigali, Rwanda'}\n\n💝 Contribute a gift and be part of our special day:\n${shareLink}`;
   };
 
   const handleCopyLink = () => {
@@ -74,14 +77,21 @@ export default function ShareEventScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* EVENT CARD */}
+        {/* ✅ EVENT CARD with fixed date */}
         <View style={[styles.eventCard, { backgroundColor: CARD, borderColor: BORDER, borderWidth: 1 }]}>
-          <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+          {event?.cover_image ? (
+            <Image source={{ uri: event.cover_image }} style={styles.eventImage} resizeMode="cover" />
+          ) : (
+            <Image source={require('../../assets/couple.png')} style={styles.eventImage} resizeMode="cover" />
+          )}
           <View style={styles.eventInfo}>
             <Text style={[styles.eventTitle, { color: TEXT }]}>{event?.title || 'My Event'}</Text>
             <View style={styles.eventMeta}>
               <Ionicons name="calendar-outline" size={13} color={SUB} />
-              <Text style={[styles.eventMetaText, { color: SUB }]}>{event?.date || ''}</Text>
+              {/* ✅ Fixed date format */}
+              <Text style={[styles.eventMetaText, { color: SUB }]}>
+                {formatEventDate(event?.date)}
+              </Text>
             </View>
             <View style={styles.eventMeta}>
               <Ionicons name="location-outline" size={13} color={SUB} />

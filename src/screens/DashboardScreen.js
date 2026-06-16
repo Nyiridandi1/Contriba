@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDashboard, getToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
+import { formatEventDate } from '../utils/formatDate'; // ✅ Import
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
@@ -17,10 +18,7 @@ const WHITE      = '#FFFFFF';
 const BASE_URL   = 'https://contriba-backend-production.up.railway.app';
 
 const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-};
+
 const formatTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -34,10 +32,12 @@ const formatTime = (dateStr) => {
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 };
+
 const getInitials = (name) => {
   if (!name || name === 'Anonymous') return '?';
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
+
 const getEventImage = (event) => {
   if (event?.cover_image) return { uri: event.cover_image };
   return require('../../assets/couple.png');
@@ -275,11 +275,16 @@ export default function DashboardScreen({ navigation }) {
                   <Image source={getEventImage(event)} style={styles.eventImage} resizeMode="cover" />
                   <View style={styles.eventInfo}>
                     <Text style={[styles.eventTitle, { color: TEXT }]}>{event.title}</Text>
-                    <Text style={[styles.eventType, { color: SUB }]}>{event.type} • {formatDate(event.date)}</Text>
+                    {/* ✅ Fixed date format */}
+                    <Text style={[styles.eventType, { color: SUB }]}>
+                      {event.type} • {formatEventDate(event.date)}
+                    </Text>
                     <View style={[styles.progressBar, { backgroundColor: BORDER }]}>
                       <View style={[styles.progressFill, { width: `${pct}%` }]} />
                     </View>
-                    <Text style={[styles.progressText, { color: SUB }]}>{formatAmount(event.total_raised)} raised • {pct}%</Text>
+                    <Text style={[styles.progressText, { color: SUB }]}>
+                      {formatAmount(event.total_raised)} raised • {pct}%
+                    </Text>
                   </View>
                   <View style={styles.eventActions}>
                     <TouchableOpacity style={styles.editBtn} onPress={() => handleEdit(event)}>
@@ -345,7 +350,9 @@ export default function DashboardScreen({ navigation }) {
               <View style={[styles.bigProgressBar, { backgroundColor: BORDER }]}>
                 <View style={[styles.bigProgressFill, { width: `${percent}%` }]} />
               </View>
-              <Text style={[styles.bigProgressText, { color: SUB }]}>{percent}% {language === 'Kinyarwanda' ? 'by\'intego bigezweho' : 'of goal reached'}</Text>
+              <Text style={[styles.bigProgressText, { color: SUB }]}>
+                {percent}% {language === 'Kinyarwanda' ? 'by\'intego bigezweho' : 'of goal reached'}
+              </Text>
             </View>
 
             {/* CONTRIBUTIONS LIST */}
@@ -381,8 +388,12 @@ export default function DashboardScreen({ navigation }) {
                         </Text>
                       </View>
                       <View style={styles.contribInfo}>
-                        <Text style={[styles.contribName, { color: TEXT }]}>{item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}</Text>
-                        <Text style={[styles.contribPhone, { color: SUB }]}>{item.is_anonymous ? '' : item.contributor_phone}</Text>
+                        <Text style={[styles.contribName, { color: TEXT }]}>
+                          {item.is_anonymous ? 'Anonymous 🙈' : item.contributor_name}
+                        </Text>
+                        <Text style={[styles.contribPhone, { color: SUB }]}>
+                          {item.is_anonymous ? '' : item.contributor_phone}
+                        </Text>
                         {item.message ? <Text style={[styles.contribMessage, { color: SUB }]}>"{item.message}"</Text> : null}
                         <Text style={[styles.contribTime, { color: SUB }]}>{formatTime(item.created_at)}</Text>
                       </View>
@@ -416,7 +427,11 @@ export default function DashboardScreen({ navigation }) {
             { icon: 'wallet-outline', bg: '#EDE7F6', color: '#7C3AED', label: language === 'Kinyarwanda' ? 'Amafaranga' : 'Wallet', screen: 'Wallet' },
             { icon: 'share-social-outline', bg: '#FFF3E0', color: '#F59E0B', label: language === 'Kinyarwanda' ? 'Sangira' : 'Share', screen: 'ShareEvent' },
           ].map((action, i) => (
-            <TouchableOpacity key={i} style={[styles.quickCard, { backgroundColor: CARD, borderColor: BORDER }]} onPress={() => action.screen && navigation.navigate(action.screen, action.screen === 'LiveFeed' || action.screen === 'ShareEvent' ? { event: selectedEvent } : undefined)}>
+            <TouchableOpacity
+              key={i}
+              style={[styles.quickCard, { backgroundColor: CARD, borderColor: BORDER }]}
+              onPress={() => action.screen && navigation.navigate(action.screen, action.screen === 'LiveFeed' || action.screen === 'ShareEvent' ? { event: selectedEvent } : undefined)}
+            >
               <View style={[styles.quickIcon, { backgroundColor: action.bg }]}>
                 <Ionicons name={action.icon} size={24} color={action.color} />
               </View>
@@ -475,7 +490,11 @@ export default function DashboardScreen({ navigation }) {
               <Text style={[styles.modalLabel, { color: TEXT }]}>Payment Method</Text>
               <View style={styles.paymentRow}>
                 {['mtn', 'airtel'].map((method) => (
-                  <TouchableOpacity key={method} style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]} onPress={() => setEditPaymentMethod(method)}>
+                  <TouchableOpacity
+                    key={method}
+                    style={[styles.paymentOption, { borderColor: BORDER }, editPaymentMethod === method && styles.paymentOptionActive]}
+                    onPress={() => setEditPaymentMethod(method)}
+                  >
                     <Text style={[styles.paymentOptionText, { color: SUB }, editPaymentMethod === method && { color: WINE }]}>
                       {method === 'mtn' ? '📱 MTN MoMo' : '📱 Airtel Money'}
                     </Text>
