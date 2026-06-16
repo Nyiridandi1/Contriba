@@ -107,22 +107,23 @@ export default function RegisterScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color={TEXT} />
         </TouchableOpacity>
 
-        {/* ✅ Updated logo */}
+        {/* Logo */}
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
-        {/* Title */}
+        {/* ✅ Title — no emoji */}
         <Text style={[styles.title, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Fungura Konti 🎉' : 'Create Account 🎉'}
+          {language === 'Kinyarwanda' ? 'Fungura Konti' : 'Create Account'}
         </Text>
         <Text style={[styles.subtitle, { color: SUB }]}>
           {language === 'Kinyarwanda'
             ? 'Injira muri Contriba ugatange inkunga\nku birori ukunda!'
-            : "Join Contriba and start contributing\nto events you love!"}
+            : 'Join Contriba and start contributing\nto events you love!'}
         </Text>
 
         {/* Full Name */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Amazina Yose' : 'Full Name'} <Text style={styles.required}>*</Text>
+          {language === 'Kinyarwanda' ? 'Amazina Yose' : 'Full Name'}{' '}
+          <Text style={styles.required}>*</Text>
         </Text>
         <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
           <Ionicons name="person-outline" size={20} color={SUB} style={styles.inputIcon} />
@@ -137,7 +138,8 @@ export default function RegisterScreen({ navigation }) {
 
         {/* Phone Number */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone Number'} <Text style={styles.required}>*</Text>
+          {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone Number'}{' '}
+          <Text style={styles.required}>*</Text>
         </Text>
         <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
           <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
@@ -246,9 +248,11 @@ export default function RegisterScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Terms */}
+        {/* ✅ Terms — shield icon instead of emoji */}
         <View style={styles.termsRow}>
-          <Text style={styles.shieldIcon}>🛡️</Text>
+          <View style={styles.shieldIconBox}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={WINE} />
+          </View>
           <Text style={[styles.termsText, { color: SUB }]}>
             {language === 'Kinyarwanda' ? 'Ukomeza, wemeye ' : 'By continuing, you agree to our '}
             <Text style={styles.termsLink}>
@@ -268,7 +272,7 @@ export default function RegisterScreen({ navigation }) {
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={styles.bottomLink}>
-              {language === 'Kinyarwanda' ? '  Injira →' : '  Login →'}
+              {language === 'Kinyarwanda' ? '  Injira' : '  Login'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -282,7 +286,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
-  logo: { width: 100, height: 100, marginBottom: 16, borderRadius: 22 }, // ✅ Updated
+  logo: { width: 100, height: 100, marginBottom: 16, borderRadius: 22 },
   title: { fontSize: 30, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
@@ -306,8 +310,10 @@ const styles = StyleSheet.create({
   socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 14, height: 56, marginBottom: 12, gap: 14 },
   socialIcon: { width: 32, height: 32 },
   socialBtnText: { fontSize: 15, fontWeight: '600' },
+
+  // ✅ Shield icon instead of emoji
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
-  shieldIcon: { fontSize: 18 },
+  shieldIconBox: { marginTop: 2 },
   termsText: { flex: 1, fontSize: 13, lineHeight: 20 },
   termsLink: { color: WINE, fontWeight: '600' },
   bottomRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
