@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar, ActivityIndicator,
+  ScrollView, StatusBar, ActivityIndicator, Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 import { getNotifications, markNotificationRead } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE = '#E60012';
+const WINE  = '#E60012';
 const WHITE = '#FFFFFF';
+const GREEN = '#1A9E4A';
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
 const getNotifStyle = (type) => {
   switch (type) {
-    case 'contribution': return { icon: 'heart',         iconBg: '#FFE4E9', iconColor: WINE       };
-    case 'wallet':       return { icon: 'wallet',        iconBg: '#E8F5E9', iconColor: '#1A9E4A'  };
-    case 'event':        return { icon: 'calendar',      iconBg: '#E3F2FD', iconColor: '#1976D2'  };
-    default:             return { icon: 'notifications', iconBg: '#EDE7F6', iconColor: '#7C3AED'  };
+    case 'contribution': return { icon: 'heart',         iconBg: '#FFE4E9', iconColor: WINE      };
+    case 'wallet':       return { icon: 'wallet',        iconBg: '#E8F5E9', iconColor: '#1A9E4A' };
+    case 'event':        return { icon: 'calendar',      iconBg: '#E3F2FD', iconColor: '#1976D2' };
+    case 'comment':      return { icon: 'chatbubble',    iconBg: '#EDE7F6', iconColor: '#7C3AED' };
+    case 'goal_reached': return { icon: 'trophy',        iconBg: '#FFF3E0', iconColor: '#F59E0B' };
+    default:             return { icon: 'notifications', iconBg: '#EDE7F6', iconColor: '#7C3AED' };
   }
 };
 
@@ -39,17 +44,25 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading]             = useState(true);
   const [unreadCount, setUnreadCount]     = useState(0);
+  const [pushEnabled, setPushEnabled]     = useState(false);
+  const [navigating, setNavigating]       = useState(false); // ✅ loading state when fetching event
 
   const FILTERS = [
-    { key: 'All',           label: language === 'Kinyarwanda' ? 'Byose'      : 'All'           },
-    { key: 'Contributions', label: language === 'Kinyarwanda' ? 'Inkunga'    : 'Contributions' },
-    { key: 'Events',        label: language === 'Kinyarwanda' ? 'Ibirori'    : 'Events'        },
-    { key: 'System',        label: language === 'Kinyarwanda' ? 'Sisitemu'   : 'System'        },
+    { key: 'All',           label: language === 'Kinyarwanda' ? 'Byose'    : 'All'           },
+    { key: 'Contributions', label: language === 'Kinyarwanda' ? 'Inkunga'  : 'Contributions' },
+    { key: 'Events',        label: language === 'Kinyarwanda' ? 'Ibirori'  : 'Events'        },
+    { key: 'System',        label: language === 'Kinyarwanda' ? 'Sisitemu' : 'System'        },
   ];
 
   useEffect(() => {
     loadNotifications();
+    checkPushPermission();
   }, []);
+
+  const checkPushPermission = async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    setPushEnabled(status === 'granted');
+  };
 
   const loadNotifications = async () => {
     try {
@@ -66,16 +79,56 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  const handleTogglePush = async (value) => {
+    if (value) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      setPushEnabled(status === 'granted');
+    } else {
+      setPushEnabled(false);
+    }
+  };
+
   const handleMarkRead = async (id) => {
     await markNotificationRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
+  // ✅ Fetch full event then navigate to EventPage with comments
+  const handleNotifPress = async (item) => {
+    await handleMarkRead(item.id);
+
+    if (item.type === 'wallet') {
+      navigation.navigate('Wallet');
+      return;
+    }
+
+    if (item.event_id) {
+      try {
+        setNavigating(true);
+        // ✅ Fetch full event object from backend
+        const response = await fetch(`${BASE_URL}/api/events/${item.event_id}`);
+        const result = await response.json();
+        if (result.success && result.event) {
+          navigation.navigate('EventPage', { event: result.event });
+        } else {
+          navigation.navigate('Dashboard');
+        }
+      } catch (error) {
+        console.error('Navigate error:', error);
+        navigation.navigate('Dashboard');
+      } finally {
+        setNavigating(false);
+      }
+    } else {
+      navigation.navigate('Dashboard');
+    }
+  };
+
   const filteredNotifications = notifications.filter((n) => {
     if (activeFilter === 'All') return true;
-    if (activeFilter === 'Contributions') return n.type === 'contribution';
-    if (activeFilter === 'Events') return n.type === 'event';
+    if (activeFilter === 'Contributions') return n.type === 'contribution' || n.type === 'goal_reached';
+    if (activeFilter === 'Events') return n.type === 'event' || n.type === 'comment';
     if (activeFilter === 'System') return n.type === 'system' || n.type === 'wallet';
     return true;
   });
@@ -116,6 +169,16 @@ export default function NotificationsScreen({ navigation }) {
         ))}
       </View>
 
+      {/* ✅ Show loading overlay when navigating */}
+      {navigating && (
+        <View style={styles.navigatingOverlay}>
+          <ActivityIndicator color={WINE} size="large" />
+          <Text style={[styles.navigatingText, { color: TEXT }]}>
+            {language === 'Kinyarwanda' ? 'Gutegereza...' : 'Opening event...'}
+          </Text>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {loading ? (
@@ -141,7 +204,8 @@ export default function NotificationsScreen({ navigation }) {
                   <TouchableOpacity
                     style={[styles.notifRow, !item.is_read && { backgroundColor: darkMode ? '#1A0A0E' : '#FFF5F7' }]}
                     activeOpacity={0.7}
-                    onPress={() => handleMarkRead(item.id)}
+                    onPress={() => handleNotifPress(item)}
+                    disabled={navigating}
                   >
                     <View style={[styles.notifIcon, { backgroundColor: style.iconBg }]}>
                       <Ionicons name={style.icon} size={20} color={style.iconColor} />
@@ -165,31 +229,32 @@ export default function NotificationsScreen({ navigation }) {
           </View>
         )}
 
-        {/* STAY UPDATED BANNER */}
+        {/* Push Notifications Toggle */}
         <View style={[styles.stayUpdatedCard, { backgroundColor: darkMode ? '#1A1A1A' : '#F5F5F5' }]}>
           <View style={styles.stayUpdatedLeft}>
             <Text style={[styles.stayUpdatedTitle, { color: TEXT }]}>
-              {language === 'Kinyarwanda' ? 'Komeza Gutumanahana' : 'Stay Updated'}
+              {language === 'Kinyarwanda' ? 'Komeza Gutumanahana' : 'Push Notifications'}
             </Text>
             <Text style={[styles.stayUpdatedSub, { color: SUB }]}>
-              {language === 'Kinyarwanda'
-                ? 'Fungura impinduka kugirango utakaze amakuru.'
-                : 'Enable push notifications to never miss important updates.'}
+              {pushEnabled
+                ? (language === 'Kinyarwanda' ? 'Impinduka zifunguye ✅' : 'Notifications enabled ✅')
+                : (language === 'Kinyarwanda' ? 'Fungura kugirango utakaze amakuru' : 'Enable to never miss updates')}
             </Text>
           </View>
           <View style={styles.bellWrapper}>
-            <Ionicons name="notifications" size={36} color={WINE} />
-            {unreadCount > 0 && (
+            <Ionicons name={pushEnabled ? 'notifications' : 'notifications-off'} size={32} color={pushEnabled ? GREEN : SUB} />
+            {unreadCount > 0 && pushEnabled && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount}</Text>
               </View>
             )}
           </View>
-          <TouchableOpacity style={styles.enableBtn}>
-            <Text style={styles.enableBtnText}>
-              {language === 'Kinyarwanda' ? 'Fungura' : 'Enable'}
-            </Text>
-          </TouchableOpacity>
+          <Switch
+            value={pushEnabled}
+            onValueChange={handleTogglePush}
+            trackColor={{ false: '#CCCCCC', true: GREEN }}
+            thumbColor={WHITE}
+          />
         </View>
 
         <View style={{ height: 20 }} />
@@ -225,13 +290,13 @@ const styles = StyleSheet.create({
   notifRight: { alignItems: 'flex-end', gap: 4, marginLeft: 8 },
   notifTime: { fontSize: 11 },
   rowDivider: { height: 1, marginHorizontal: 14 },
-  stayUpdatedCard: { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  stayUpdatedCard: { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   stayUpdatedLeft: { flex: 1 },
   stayUpdatedTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
   stayUpdatedSub: { fontSize: 12, lineHeight: 18 },
   bellWrapper: { position: 'relative', padding: 4 },
   bellBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: WINE, borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   bellBadgeText: { fontSize: 10, color: WHITE, fontWeight: '700' },
-  enableBtn: { backgroundColor: WINE, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
-  enableBtnText: { fontSize: 13, fontWeight: '700', color: WHITE },
+  navigatingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 999, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  navigatingText: { fontSize: 15, fontWeight: '600' },
 });
