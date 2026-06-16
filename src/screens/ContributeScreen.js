@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initiateContribution } from '../api';
-import { formatEventDate } from '../utils/formatDate'; // ✅ Import
+import { formatEventDate } from '../utils/formatDate';
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
@@ -56,7 +56,7 @@ export default function ContributeScreen({ navigation, route }) {
       if (userData.phone) setSenderPhone(userData.phone);
     } else {
       Alert.alert(
-        '🔒 Login Required',
+        'Login Required',
         'You need to login or create an account to contribute to this event.',
         [
           { text: 'Login', onPress: () => navigation.replace('Login') },
@@ -145,7 +145,7 @@ export default function ContributeScreen({ navigation, route }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* ✅ Event card with real cover image + fixed date */}
+        {/* Event card */}
         <View style={styles.eventCard}>
           {event?.cover_image ? (
             <Image source={{ uri: event.cover_image }} style={styles.eventImage} resizeMode="cover" />
@@ -157,15 +157,17 @@ export default function ContributeScreen({ navigation, route }) {
             <Text style={styles.eventType}>{event?.type || ''}</Text>
             <View style={styles.eventDateRow}>
               <Ionicons name="calendar-outline" size={14} color={WINE} />
-              {/* ✅ Fixed date format */}
               <Text style={styles.eventDate}>{formatEventDate(event?.date)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Payment Flow Card */}
+        {/* ✅ Payment Flow Card — no emoji */}
         <View style={styles.flowCard}>
-          <Text style={styles.flowTitle}>💸 Payment Flow</Text>
+          <View style={styles.flowTitleRow}>
+            <Ionicons name="swap-vertical-outline" size={18} color={BLACK} />
+            <Text style={styles.flowTitle}>Payment Flow</Text>
+          </View>
           <View style={styles.flowRow}>
             <View style={styles.flowIcon}>
               <Ionicons name="person-outline" size={18} color={WINE} />
@@ -197,7 +199,7 @@ export default function ContributeScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Anonymous Toggle */}
+        {/* ✅ Anonymous Toggle — no emoji */}
         <View style={styles.anonymousCard}>
           <View style={styles.anonymousLeft}>
             <View style={styles.anonymousIconBox}>
@@ -205,14 +207,19 @@ export default function ContributeScreen({ navigation, route }) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.anonymousTitle}>
-                {isAnonymous ? 'Contributing Anonymously 🙈' : 'Contribute Publicly'}
+                {isAnonymous ? 'Contributing Anonymously' : 'Contribute Publicly'}
               </Text>
               <Text style={styles.anonymousSub}>
                 {isAnonymous ? 'Your name will be hidden from public' : 'Your name will be visible to others'}
               </Text>
             </View>
           </View>
-          <Switch value={isAnonymous} onValueChange={setIsAnonymous} trackColor={{ false: BORDER, true: WINE }} thumbColor={WHITE} />
+          <Switch
+            value={isAnonymous}
+            onValueChange={setIsAnonymous}
+            trackColor={{ false: BORDER, true: WINE }}
+            thumbColor={WHITE}
+          />
         </View>
 
         {/* Your Name */}
@@ -230,7 +237,9 @@ export default function ContributeScreen({ navigation, route }) {
         )}
 
         {/* Sender Phone */}
-        <Text style={styles.label}>Your Phone Number <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>
+          Your Phone Number <Text style={styles.required}>*</Text>
+        </Text>
         <Text style={styles.labelSub}>Money will be deducted from this number</Text>
         <TextInput
           style={styles.input}
@@ -286,10 +295,12 @@ export default function ContributeScreen({ navigation, route }) {
         )}
 
         {/* Message */}
-        <Text style={styles.label}>Message <Text style={styles.optional}>(optional)</Text></Text>
+        <Text style={styles.label}>
+          Message <Text style={styles.optional}>(optional)</Text>
+        </Text>
         <TextInput
           style={styles.textarea}
-          placeholder="Write a message to the couple..."
+          placeholder="Write a message to the event owner..."
           placeholderTextColor="#BBBBBB"
           value={message}
           onChangeText={setMessage}
@@ -320,7 +331,7 @@ export default function ContributeScreen({ navigation, route }) {
         <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* Bottom */}
+      {/* ✅ Bottom — no emoji */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.continueBtn, loading && { opacity: 0.7 }]}
@@ -331,9 +342,15 @@ export default function ContributeScreen({ navigation, route }) {
           {loading ? (
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
-            <Text style={styles.continueBtnText}>
-              {isAnonymous ? '🙈 Contribute Anonymously' : 'Continue'} → RWF {getCleanAmount().toLocaleString()}
-            </Text>
+            <View style={styles.continueBtnInner}>
+              {isAnonymous && (
+                <Ionicons name="eye-off-outline" size={18} color={WHITE} />
+              )}
+              <Text style={styles.continueBtnText}>
+                {isAnonymous ? 'Contribute Anonymously' : 'Continue'}
+                {' '}&rarr; RWF {getCleanAmount().toLocaleString()}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
         <View style={styles.secureRow}>
@@ -361,7 +378,8 @@ const styles = StyleSheet.create({
   eventDateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   eventDate: { fontSize: 13, color: WINE, fontWeight: '600' },
   flowCard: { backgroundColor: '#F8F8F8', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: BORDER },
-  flowTitle: { fontSize: 14, fontWeight: '700', color: BLACK, marginBottom: 12 },
+  flowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  flowTitle: { fontSize: 14, fontWeight: '700', color: BLACK },
   flowRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   flowIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
   flowInfo: { flex: 1 },
@@ -404,6 +422,7 @@ const styles = StyleSheet.create({
   radioActive: { backgroundColor: WINE, borderColor: WINE },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 30, paddingTop: 12, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: BORDER, gap: 10 },
   continueBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
+  continueBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   continueBtnText: { color: WHITE, fontSize: 15, fontWeight: '700' },
   secureRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   secureText: { fontSize: 13, color: GRAY },
