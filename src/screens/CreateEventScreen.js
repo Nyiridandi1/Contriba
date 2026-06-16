@@ -18,6 +18,7 @@ const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const GRAY       = '#888888';
+const GREEN      = '#1A9E4A';
 
 const SUPABASE_URL      = 'https://etswwbmrfqeokmobvhwy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c3d3Ym1yZnFlb2ttb2J2aHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzA0ODUsImV4cCI6MjA5Njg0NjQ4NX0.Y5okjJ1uXhWi0Sr6xVjKRf8eGgutDlWxTERc3ObVbIs';
@@ -76,6 +77,7 @@ export default function CreateEventScreen({ navigation }) {
   const [photos, setPhotos]                         = useState([null, null, null, null]);
   const [loading, setLoading]                       = useState(false);
   const [uploadProgress, setUploadProgress]         = useState('');
+  const [isPrivate, setIsPrivate]                   = useState(false); // ✅ Privacy toggle
 
   const formatDateDisplay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const formatDateAPI = (d) => {
@@ -91,35 +93,39 @@ export default function CreateEventScreen({ navigation }) {
   };
 
   const handlePickPhoto = async (index) => {
-    Alert.alert(language === 'Kinyarwanda' ? 'Ongeraho Ifoto' : 'Add Photo', language === 'Kinyarwanda' ? 'Hitamo uburyo' : 'Choose an option', [
-      {
-        text: language === 'Kinyarwanda' ? 'Hitamo muri Galeri' : 'Choose from Library',
-        onPress: async () => {
-          const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
-          if (!result.canceled) {
-            const newPhotos = [...photos];
-            newPhotos[index] = result.assets[0].uri;
-            setPhotos(newPhotos);
-          }
+    Alert.alert(
+      language === 'Kinyarwanda' ? 'Ongeraho Ifoto' : 'Add Photo',
+      language === 'Kinyarwanda' ? 'Hitamo uburyo' : 'Choose an option',
+      [
+        {
+          text: language === 'Kinyarwanda' ? 'Hitamo muri Galeri' : 'Choose from Library',
+          onPress: async () => {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+            if (!result.canceled) {
+              const newPhotos = [...photos];
+              newPhotos[index] = result.assets[0].uri;
+              setPhotos(newPhotos);
+            }
+          },
         },
-      },
-      {
-        text: language === 'Kinyarwanda' ? 'Fota' : 'Take Photo',
-        onPress: async () => {
-          const permission = await ImagePicker.requestCameraPermissionsAsync();
-          if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
-          if (!result.canceled) {
-            const newPhotos = [...photos];
-            newPhotos[index] = result.assets[0].uri;
-            setPhotos(newPhotos);
-          }
+        {
+          text: language === 'Kinyarwanda' ? 'Fota' : 'Take Photo',
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
+            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+            if (!result.canceled) {
+              const newPhotos = [...photos];
+              newPhotos[index] = result.assets[0].uri;
+              setPhotos(newPhotos);
+            }
+          },
         },
-      },
-      { text: language === 'Kinyarwanda' ? 'Hagarika' : 'Cancel', style: 'cancel' },
-    ]);
+        { text: language === 'Kinyarwanda' ? 'Hagarika' : 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const removePhoto = (index) => {
@@ -166,6 +172,7 @@ export default function CreateEventScreen({ navigation }) {
         owner_phone: ownerPhone, owner_payment_method: ownerPaymentMethod,
         cover_image: photoUrls[0], photo2_url: photoUrls[1],
         photo3_url: photoUrls[2], photo4_url: photoUrls[3],
+        is_private: isPrivate, // ✅ send privacy setting
       });
 
       if (result.success) {
@@ -293,6 +300,58 @@ export default function CreateEventScreen({ navigation }) {
           numberOfLines={4}
           textAlignVertical="top"
         />
+
+        {/* ✅ PRIVACY TOGGLE */}
+        <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+          <Ionicons name="shield-outline" size={18} color={WINE} />
+          <Text style={styles.sectionDividerText}>Event Privacy</Text>
+        </View>
+
+        <View style={[styles.privacyCard, { backgroundColor: CARD, borderColor: BORDER }]}>
+          {/* Public Option */}
+          <TouchableOpacity
+            style={[styles.privacyOption, !isPrivate && styles.privacyOptionActive, { borderColor: !isPrivate ? GREEN : BORDER }]}
+            onPress={() => setIsPrivate(false)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.privacyIconBox, { backgroundColor: !isPrivate ? '#E8F5E9' : (darkMode ? '#2A2A2A' : '#F5F5F5') }]}>
+              <Ionicons name="globe-outline" size={24} color={!isPrivate ? GREEN : SUB} />
+            </View>
+            <View style={styles.privacyInfo}>
+              <Text style={[styles.privacyTitle, { color: TEXT }]}>🌍 Public</Text>
+              <Text style={[styles.privacySub, { color: SUB }]}>Everyone on Contriba can see this event</Text>
+            </View>
+            {!isPrivate && <Ionicons name="checkmark-circle" size={22} color={GREEN} />}
+          </TouchableOpacity>
+
+          <View style={[styles.privacyDivider, { backgroundColor: BORDER }]} />
+
+          {/* Private Option */}
+          <TouchableOpacity
+            style={[styles.privacyOption, isPrivate && styles.privacyOptionActiveWine, { borderColor: isPrivate ? WINE : BORDER }]}
+            onPress={() => setIsPrivate(true)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.privacyIconBox, { backgroundColor: isPrivate ? '#FFE4E9' : (darkMode ? '#2A2A2A' : '#F5F5F5') }]}>
+              <Ionicons name="lock-closed-outline" size={24} color={isPrivate ? WINE : SUB} />
+            </View>
+            <View style={styles.privacyInfo}>
+              <Text style={[styles.privacyTitle, { color: TEXT }]}>🔒 Private</Text>
+              <Text style={[styles.privacySub, { color: SUB }]}>Only people with the link can view</Text>
+            </View>
+            {isPrivate && <Ionicons name="checkmark-circle" size={22} color={WINE} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* Privacy info banner */}
+        <View style={[styles.privacyBanner, { backgroundColor: isPrivate ? (darkMode ? '#1A0A0E' : WINE_LIGHT) : (darkMode ? '#0A1A0E' : '#E8F5E9') }]}>
+          <Ionicons name={isPrivate ? 'lock-closed' : 'globe'} size={16} color={isPrivate ? WINE : GREEN} />
+          <Text style={[styles.privacyBannerText, { color: isPrivate ? WINE : GREEN }]}>
+            {isPrivate
+              ? '🔒 Private event — Share the link to invite people'
+              : '🌍 Public event — Visible to everyone on Contriba'}
+          </Text>
+        </View>
 
         {/* Receive Payments */}
         <View style={[styles.sectionDivider, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
@@ -440,6 +499,20 @@ const styles = StyleSheet.create({
   textarea: { borderWidth: 1.5, borderRadius: 14, height: 100, paddingHorizontal: 16, paddingTop: 14, fontSize: 15, marginBottom: 24 },
   sectionDivider: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 20, borderLeftWidth: 3, borderLeftColor: WINE },
   sectionDividerText: { fontSize: 15, fontWeight: '700', color: WINE },
+
+  // ✅ Privacy styles
+  privacyCard: { borderWidth: 1, borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  privacyOption: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  privacyOptionActive: { backgroundColor: '#F0FFF4' },
+  privacyOptionActiveWine: { backgroundColor: WINE_LIGHT },
+  privacyIconBox: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  privacyInfo: { flex: 1 },
+  privacyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  privacySub: { fontSize: 12, lineHeight: 18 },
+  privacyDivider: { height: 1, marginHorizontal: 14 },
+  privacyBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 24 },
+  privacyBannerText: { fontSize: 13, fontWeight: '600', flex: 1 },
+
   paymentMethodRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   paymentMethodCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 14, padding: 12 },
   paymentMethodCardActive: { borderColor: WINE, backgroundColor: WINE_LIGHT },
