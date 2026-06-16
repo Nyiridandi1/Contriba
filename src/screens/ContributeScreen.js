@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initiateContribution } from '../api';
+import { formatEventDate } from '../utils/formatDate'; // ✅ Import
 
 const WINE       = '#E60012';
 const WINE_LIGHT = '#FDF0F3';
@@ -144,7 +145,7 @@ export default function ContributeScreen({ navigation, route }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        {/* ✅ Event card with real cover image */}
+        {/* ✅ Event card with real cover image + fixed date */}
         <View style={styles.eventCard}>
           {event?.cover_image ? (
             <Image source={{ uri: event.cover_image }} style={styles.eventImage} resizeMode="cover" />
@@ -156,7 +157,8 @@ export default function ContributeScreen({ navigation, route }) {
             <Text style={styles.eventType}>{event?.type || ''}</Text>
             <View style={styles.eventDateRow}>
               <Ionicons name="calendar-outline" size={14} color={WINE} />
-              <Text style={styles.eventDate}>{event?.date || ''}</Text>
+              {/* ✅ Fixed date format */}
+              <Text style={styles.eventDate}>{formatEventDate(event?.date)}</Text>
             </View>
           </View>
         </View>
