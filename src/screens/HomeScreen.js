@@ -23,7 +23,6 @@ const BORDER     = '#F0F0F0';
 const CARD_WIDTH  = width * 0.52;
 const CARD_HEIGHT = CARD_WIDTH * 1.5;
 
-// ✅ Categories — no emojis, use icons instead
 const CATEGORIES = [
   { key: 'All',          label: 'All',          icon: 'grid-outline'         },
   { key: 'Wedding',      label: 'Wedding',       icon: 'heart-outline'        },
@@ -75,7 +74,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // ✅ Filter by search + category
   const filteredEvents = events.filter((e) => {
     const matchCategory = activeCategory === 'All' || e.type === activeCategory;
     if (!searchQuery.trim()) return matchCategory;
@@ -232,6 +230,37 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  // ✅ Beautiful Empty State Component
+  const EmptyState = () => (
+    <View style={styles.emptyStateBox}>
+      <Image
+        source={require('../../assets/empty-events.png')}
+        style={styles.emptyStateImage}
+        resizeMode="contain"
+      />
+      <Text style={[styles.emptyStateTitle, { color: TEXT }]}>
+        {activeCategory === 'All'
+          ? (language === 'Kinyarwanda' ? 'Nta birori nawe' : 'No Events Yet')
+          : (language === 'Kinyarwanda' ? `Nta birori bya ${activeCategory}` : `No ${activeCategory} Events Yet`)}
+      </Text>
+      <Text style={[styles.emptyStateSub, { color: SUB }]}>
+        {language === 'Kinyarwanda'
+          ? 'Banza gushiraho ikirori cyawe\nugatange inkunga n\'umuryango!'
+          : 'Create your first event and start\nreceiving contributions from friends\nand family!'}
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyStateBtn}
+        onPress={() => navigation.navigate('CreateEvent')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add-circle-outline" size={20} color={WHITE} />
+        <Text style={styles.emptyStateBtnText}>
+          {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create Event'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
       <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={BG} />
@@ -241,7 +270,6 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            {/* ✅ No emoji in greeting */}
             <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
               {getGreeting()}, {getUserName()}
             </Text>
@@ -288,7 +316,7 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* ✅ CATEGORY CHIPS — icons instead of emojis */}
+        {/* CATEGORY CHIPS */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -334,15 +362,7 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             {filteredEvents.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Ionicons name="search-outline" size={48} color={GRAY} />
-                <Text style={[styles.emptyText, { color: TEXT }]}>
-                  {language === 'Kinyarwanda' ? 'Nta bisubizo' : 'No results found'}
-                </Text>
-                <Text style={[styles.emptySubText, { color: SUB }]}>
-                  {language === 'Kinyarwanda' ? `Nta kirori kihuye na "${searchQuery}"` : `No events match "${searchQuery}"`}
-                </Text>
-              </View>
+              <EmptyState />
             ) : (
               filteredEvents.map((item) => (
                 <SearchCard key={item.id} item={item} />
@@ -411,7 +431,7 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* All Events filtered by category */}
+            {/* All Events */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
                 {activeCategory === 'All'
@@ -430,19 +450,8 @@ export default function HomeScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
             ) : filteredEvents.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Ionicons
-                  name={CATEGORIES.find(c => c.key === activeCategory)?.icon || 'calendar-outline'}
-                  size={48}
-                  color={GRAY}
-                />
-                <Text style={[styles.emptyText, { color: TEXT }]}>
-                  {language === 'Kinyarwanda' ? 'Nta birori' : `No ${activeCategory} events yet`}
-                </Text>
-                <Text style={[styles.emptySubText, { color: SUB }]}>
-                  {language === 'Kinyarwanda' ? 'Shiraho ikirori cya mbere!' : 'Be the first to create one!'}
-                </Text>
-              </View>
+              // ✅ Beautiful empty state with illustration
+              <EmptyState />
             ) : (
               <FlatList
                 data={filteredEvents}
@@ -589,9 +598,15 @@ const styles = StyleSheet.create({
   portraitPercent: { fontSize: 10, color: WINE, fontWeight: '700' },
   portraitBtn: { backgroundColor: WINE, borderRadius: 20, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   portraitBtnText: { color: WHITE, fontSize: 11, fontWeight: '700' },
-  emptyBox: { alignItems: 'center', paddingVertical: 40, marginBottom: 24 },
-  emptyText: { fontSize: 18, fontWeight: '700', marginTop: 12 },
-  emptySubText: { fontSize: 14, marginTop: 4 },
+
+  // ✅ Beautiful Empty State
+  emptyStateBox: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20, marginBottom: 24 },
+  emptyStateImage: { width: width * 0.75, height: width * 0.65, marginBottom: 20 },
+  emptyStateTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
+  emptyStateSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  emptyStateBtn: { backgroundColor: WINE, borderRadius: 14, height: 52, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  emptyStateBtnText: { color: WHITE, fontSize: 16, fontWeight: '700' },
+
   quickActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   quickAction: { alignItems: 'center', gap: 8, flex: 1 },
   quickActionIcon: { width: 72, height: 72, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
