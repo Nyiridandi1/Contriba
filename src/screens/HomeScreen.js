@@ -13,25 +13,26 @@ import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
-const WINE       = '#E60012';
-const WINE_LIGHT = '#FDF0F3';
-const WHITE      = '#FFFFFF';
-const BLACK      = '#1A1A1A';
-const GRAY       = '#888888';
-const BORDER     = '#F0F0F0';
+const WINE        = '#E60012';
+const WINE_LIGHT  = '#FDF0F3';
+const WHITE       = '#FFFFFF';
+const BLACK       = '#1A1A1A';
+const GRAY        = '#888888';
+// ✅ Renamed to avoid conflict with colors.BORDER
+const BORDER_COLOR = '#F0F0F0';
 
 const CARD_WIDTH  = width * 0.52;
 const CARD_HEIGHT = CARD_WIDTH * 1.5;
 
 const CATEGORIES = [
-  { key: 'All',          label: 'All',          icon: 'grid-outline'         },
-  { key: 'Wedding',      label: 'Wedding',       icon: 'heart-outline'        },
-  { key: 'Birthday',     label: 'Birthday',      icon: 'gift-outline'         },
-  { key: 'Graduation',   label: 'Graduation',    icon: 'school-outline'       },
-  { key: 'Funeral',      label: 'Funeral',       icon: 'flower-outline'       },
-  { key: 'Church',       label: 'Church',        icon: 'sunny-outline'        },
-  { key: 'Introduction', label: 'Introduction',  icon: 'people-outline'       },
-  { key: 'Other',        label: 'Other',         icon: 'ellipsis-horizontal'  },
+  { key: 'All',          label: 'All',          icon: 'grid-outline'        },
+  { key: 'Wedding',      label: 'Wedding',       icon: 'heart-outline'       },
+  { key: 'Birthday',     label: 'Birthday',      icon: 'gift-outline'        },
+  { key: 'Graduation',   label: 'Graduation',    icon: 'school-outline'      },
+  { key: 'Funeral',      label: 'Funeral',       icon: 'flower-outline'      },
+  { key: 'Church',       label: 'Church',        icon: 'sunny-outline'       },
+  { key: 'Introduction', label: 'Introduction',  icon: 'people-outline'      },
+  { key: 'Other',        label: 'Other',         icon: 'ellipsis-horizontal' },
 ];
 
 export default function HomeScreen({ navigation }) {
@@ -57,8 +58,6 @@ export default function HomeScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-
-      // ✅ Check if user is logged in
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
       if (token && userData) {
@@ -68,12 +67,8 @@ export default function HomeScreen({ navigation }) {
         setIsLoggedIn(false);
         setUser(null);
       }
-
-      // ✅ Load events — works for everyone no login needed!
       const eventsResult = await getEvents();
       if (eventsResult.success) setEvents(eventsResult.events || []);
-
-      // ✅ Load dashboard only if logged in
       if (token) {
         const dashboardResult = await getDashboard();
         if (dashboardResult.success) {
@@ -88,7 +83,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // ✅ Handle Create Event — ask login if not logged in
   const handleCreateEvent = async () => {
     const token = await AsyncStorage.getItem('token');
     if (token) {
@@ -290,7 +284,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* ✅ Header — Login button for non-logged-in users */}
+        {/* ✅ Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
@@ -306,7 +300,7 @@ export default function HomeScreen({ navigation }) {
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
 
-            {/* ✅ Show Login button if not logged in, avatar if logged in */}
+            {/* ✅ Login button or Avatar */}
             {isLoggedIn ? (
               <TouchableOpacity
                 style={[styles.avatarContainer, { borderColor: WINE }]}
@@ -412,7 +406,7 @@ export default function HomeScreen({ navigation }) {
           </>
         ) : (
           <>
-            {/* ✅ Stats — only show if logged in */}
+            {/* ✅ Stats — only if logged in */}
             {isLoggedIn && dashboard && (
               <View style={styles.statsRow}>
                 <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
@@ -436,7 +430,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
 
-            {/* ✅ Create Event Banner — shows for everyone */}
+            {/* ✅ Create Event Button */}
             <TouchableOpacity
               style={styles.createBtn}
               activeOpacity={0.85}
@@ -448,7 +442,7 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
 
-            {/* ✅ My Events — only show if logged in */}
+            {/* ✅ My Events — only if logged in */}
             {isLoggedIn && myEvents.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
@@ -476,7 +470,7 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* All Events — visible to everyone! */}
+            {/* All Events — everyone! */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
                 {activeCategory === 'All'
@@ -513,7 +507,7 @@ export default function HomeScreen({ navigation }) {
               />
             )}
 
-            {/* ✅ Quick Actions — only show if logged in */}
+            {/* ✅ Quick Actions — only if logged in */}
             {isLoggedIn && (
               <>
                 <View style={styles.sectionHeader}>
@@ -552,7 +546,7 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* ✅ NOT logged in — show Join banner */}
+            {/* ✅ Join Banner — only if NOT logged in */}
             {!isLoggedIn && (
               <View style={[styles.joinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
                 <Ionicons name="person-add-outline" size={28} color={WINE} />
@@ -584,7 +578,7 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* Bottom Tab Bar */}
-      <View style={[styles.tabBar, { backgroundColor: CARD, borderTopColor: darkMode ? '#2A2A2A' : BORDER }]}>
+      <View style={[styles.tabBar, { backgroundColor: CARD, borderTopColor: darkMode ? '#2A2A2A' : BORDER_COLOR }]}>
         <TouchableOpacity style={styles.tabItem}>
           <Ionicons name="home" size={24} color={WINE} />
           <Text style={styles.tabLabelActive}>{language === 'Kinyarwanda' ? 'Ahabanza' : 'Home'}</Text>
@@ -621,7 +615,7 @@ const styles = StyleSheet.create({
   profileAvatar: { width: 40, height: 40, borderRadius: 20 },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
 
-  // ✅ Login button in header
+  // ✅ Login button
   loginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   loginBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
 
@@ -685,7 +679,7 @@ const styles = StyleSheet.create({
   emptyStateBtn: { backgroundColor: WINE, borderRadius: 14, height: 52, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   emptyStateBtnText: { color: WHITE, fontSize: 16, fontWeight: '700' },
 
-  // ✅ Join Banner for non-logged-in users
+  // ✅ Join Banner
   joinBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, marginBottom: 20 },
   joinTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
   joinSub: { fontSize: 12, lineHeight: 18 },

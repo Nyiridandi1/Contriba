@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -53,13 +52,6 @@
         {
           "photosPermission": "Allow Contriba to access your photos to set event cover photos.",
           "cameraPermission": "Allow Contriba to access your camera to take event cover photos."
-        }
-      ],
-      "expo-web-browser",
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.2587634943-vr1d200lsoe8prm76h9pouk0aus2se36"
         }
       ]
     ],

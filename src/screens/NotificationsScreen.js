@@ -59,9 +59,10 @@ export default function NotificationsScreen({ navigation }) {
     checkPushPermission();
   }, []);
 
+  // ✅ Fixed — no destructuring of 'status'
   const checkPushPermission = async () => {
-    const { status } = await Notifications.getPermissionsAsync();
-    setPushEnabled(status === 'granted');
+    const permResult = await Notifications.getPermissionsAsync();
+    setPushEnabled(permResult.status === 'granted');
   };
 
   const loadNotifications = async () => {
@@ -79,10 +80,11 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  // ✅ Fixed — no destructuring of 'status'
   const handleTogglePush = async (value) => {
     if (value) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setPushEnabled(status === 'granted');
+      const permResult = await Notifications.requestPermissionsAsync();
+      setPushEnabled(permResult.status === 'granted');
     } else {
       setPushEnabled(false);
     }
@@ -96,12 +98,10 @@ export default function NotificationsScreen({ navigation }) {
 
   const handleNotifPress = async (item) => {
     await handleMarkRead(item.id);
-
     if (item.type === 'wallet') {
       navigation.navigate('Wallet');
       return;
     }
-
     if (item.event_id) {
       try {
         setNavigating(true);
@@ -135,14 +135,10 @@ export default function NotificationsScreen({ navigation }) {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={WINE} />
 
-      {/* ✅ WINE RED LOGO HEADER */}
+      {/* WINE RED LOGO HEADER */}
       <View style={styles.logoHeader}>
         <View style={styles.logoHeaderLeft}>
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.logoImg}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/icon.png')} style={styles.logoImg} resizeMode="contain" />
           <View>
             <Text style={styles.logoTitle}>Contriba</Text>
             <Text style={styles.logoSub}>Contribute Easily. Smart & Secure.</Text>
@@ -219,7 +215,7 @@ export default function NotificationsScreen({ navigation }) {
         ) : (
           <View style={[styles.groupCard, { backgroundColor: CARD, borderColor: BORDER }]}>
             {filteredNotifications.map((item, index) => {
-              const style = getNotifStyle(item.type);
+              const notifStyle = getNotifStyle(item.type);
               return (
                 <View key={item.id}>
                   <TouchableOpacity
@@ -228,8 +224,8 @@ export default function NotificationsScreen({ navigation }) {
                     onPress={() => handleNotifPress(item)}
                     disabled={navigating}
                   >
-                    <View style={[styles.notifIcon, { backgroundColor: style.iconBg }]}>
-                      <Ionicons name={style.icon} size={20} color={style.iconColor} />
+                    <View style={[styles.notifIcon, { backgroundColor: notifStyle.iconBg }]}>
+                      <Ionicons name={notifStyle.icon} size={20} color={notifStyle.iconColor} />
                     </View>
                     <View style={styles.notifContent}>
                       <View style={styles.notifTitleRow}>
@@ -288,22 +284,17 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-
-  // ✅ Logo Header
   logoHeader: { backgroundColor: WINE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   logoHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoImg: { width: 40, height: 40, borderRadius: 10 },
   logoTitle: { fontSize: 17, fontWeight: '800', color: WHITE },
   logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
   refreshBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-
-  // Title Bar
   titleBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   titleCenter: { alignItems: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   unreadCount: { fontSize: 11, color: WINE, fontWeight: '600', textAlign: 'center' },
-
   filterRow: { flexDirection: 'row', borderBottomWidth: 1 },
   filterTab: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' },
   filterText: { fontSize: 13, fontWeight: '600' },
