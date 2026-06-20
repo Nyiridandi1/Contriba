@@ -43,6 +43,7 @@ export default function HomeScreen({ navigation }) {
   const [dashboard, setDashboard]           = useState(null);
   const [loading, setLoading]               = useState(true);
   const [user, setUser]                     = useState(null);
+  const [isLoggedIn, setIsLoggedIn]         = useState(false);
   const [searchQuery, setSearchQuery]       = useState('');
   const [searchActive, setSearchActive]     = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
@@ -56,21 +57,44 @@ export default function HomeScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // ✅ Check if user is logged in
+      const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
-      if (userData) setUser(JSON.parse(userData));
-      const [eventsResult, dashboardResult] = await Promise.all([
-        getEvents(),
-        getDashboard(),
-      ]);
+      if (token && userData) {
+        setIsLoggedIn(true);
+        setUser(JSON.parse(userData));
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+
+      // ✅ Load events — works for everyone no login needed!
+      const eventsResult = await getEvents();
       if (eventsResult.success) setEvents(eventsResult.events || []);
-      if (dashboardResult.success) {
-        setDashboard(dashboardResult.dashboard);
-        setMyEvents(dashboardResult.dashboard.events || []);
+
+      // ✅ Load dashboard only if logged in
+      if (token) {
+        const dashboardResult = await getDashboard();
+        if (dashboardResult.success) {
+          setDashboard(dashboardResult.dashboard);
+          setMyEvents(dashboardResult.dashboard.events || []);
+        }
       }
     } catch (error) {
       console.error('Load data error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Handle Create Event — ask login if not logged in
+  const handleCreateEvent = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      navigation.navigate('CreateEvent');
+    } else {
+      navigation.navigate('Login');
     }
   };
 
@@ -101,8 +125,7 @@ export default function HomeScreen({ navigation }) {
 
   const getUserName = () => {
     if (user?.name) return user.name.split(' ')[0];
-    if (user?.phone) return user.phone;
-    return 'there';
+    return language === 'Kinyarwanda' ? 'Murakaza' : 'Welcome';
   };
 
   const formatAmount = (amount) => `RWF ${amount?.toLocaleString() || 0}`;
@@ -230,7 +253,7 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // ✅ Beautiful Empty State Component
+  // ✅ Beautiful Empty State
   const EmptyState = () => (
     <View style={styles.emptyStateBox}>
       <Image
@@ -250,7 +273,7 @@ export default function HomeScreen({ navigation }) {
       </Text>
       <TouchableOpacity
         style={styles.emptyStateBtn}
-        onPress={() => navigation.navigate('CreateEvent')}
+        onPress={handleCreateEvent}
         activeOpacity={0.85}
       >
         <Ionicons name="add-circle-outline" size={20} color={WHITE} />
@@ -267,7 +290,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Header */}
+        {/* ✅ Header — Login button for non-logged-in users */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
@@ -282,15 +305,33 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={26} color={TEXT} />
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.avatarContainer, { borderColor: WINE }]} onPress={() => navigation.navigate('Profile')}>
-              {user?.avatar_url ? (
-                <Image source={{ uri: user.avatar_url }} style={styles.profileAvatar} />
-              ) : (
-                <View style={[styles.profileAvatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
-                  <Text style={styles.profileAvatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+
+            {/* ✅ Show Login button if not logged in, avatar if logged in */}
+            {isLoggedIn ? (
+              <TouchableOpacity
+                style={[styles.avatarContainer, { borderColor: WINE }]}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                {user?.avatar_url ? (
+                  <Image source={{ uri: user.avatar_url }} style={styles.profileAvatar} />
+                ) : (
+                  <View style={[styles.profileAvatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={styles.profileAvatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="log-in-outline" size={16} color={WHITE} />
+                <Text style={styles.loginBtnText}>
+                  {language === 'Kinyarwanda' ? 'Injira' : 'Login'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -371,8 +412,8 @@ export default function HomeScreen({ navigation }) {
           </>
         ) : (
           <>
-            {/* Stats Row */}
-            {dashboard && (
+            {/* ✅ Stats — only show if logged in */}
+            {isLoggedIn && dashboard && (
               <View style={styles.statsRow}>
                 <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
                   <Text style={styles.statValue}>{dashboard.total_events || 0}</Text>
@@ -395,16 +436,20 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
 
-            {/* Create New Event */}
-            <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={() => navigation.navigate('CreateEvent')}>
+            {/* ✅ Create Event Banner — shows for everyone */}
+            <TouchableOpacity
+              style={styles.createBtn}
+              activeOpacity={0.85}
+              onPress={handleCreateEvent}
+            >
               <Ionicons name="add-circle-outline" size={22} color={WHITE} />
               <Text style={styles.createBtnText}>
                 {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
               </Text>
             </TouchableOpacity>
 
-            {/* My Events */}
-            {myEvents.length > 0 && (
+            {/* ✅ My Events — only show if logged in */}
+            {isLoggedIn && myEvents.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: TEXT }]}>
@@ -431,7 +476,7 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* All Events */}
+            {/* All Events — visible to everyone! */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
                 {activeCategory === 'All'
@@ -450,7 +495,6 @@ export default function HomeScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color={WINE} size="large" style={{ marginVertical: 20 }} />
             ) : filteredEvents.length === 0 ? (
-              // ✅ Beautiful empty state with illustration
               <EmptyState />
             ) : (
               <FlatList
@@ -469,41 +513,70 @@ export default function HomeScreen({ navigation }) {
               />
             )}
 
-            {/* Quick Actions */}
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: TEXT }]}>
-                {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
-              </Text>
-            </View>
+            {/* ✅ Quick Actions — only show if logged in */}
+            {isLoggedIn && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: TEXT }]}>
+                    {language === 'Kinyarwanda' ? 'Ibikorwa Byihuse' : 'Quick Actions'}
+                  </Text>
+                </View>
+                <View style={styles.quickActionsRow}>
+                  {[
+                    { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi'  : 'Contributors', screen: 'Dashboard'  },
+                    { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira'   : 'Share QR',     screen: 'ShareEvent' },
+                    { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga': 'My Wallet',    screen: 'Wallet'     },
+                    { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho'   : 'Dashboard',    screen: 'Dashboard'  },
+                  ].map((action, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.quickAction}
+                      activeOpacity={0.8}
+                      onPress={() => action.screen && navigation.navigate(action.screen)}
+                    >
+                      <View style={[
+                        styles.quickActionIcon,
+                        { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT },
+                        (action.label === 'Dashboard' || action.label === 'Ikibaho') && styles.dashboardIcon,
+                      ]}>
+                        <Ionicons
+                          name={action.icon}
+                          size={32}
+                          color={(action.label === 'Dashboard' || action.label === 'Ikibaho') ? WHITE : WINE}
+                        />
+                      </View>
+                      <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
-            <View style={styles.quickActionsRow}>
-              {[
-                { icon: 'people',       label: language === 'Kinyarwanda' ? 'Abakunzi'  : 'Contributors', screen: 'Dashboard'  },
-                { icon: 'qr-code',      label: language === 'Kinyarwanda' ? 'Sangira'   : 'Share QR',     screen: 'ShareEvent' },
-                { icon: 'wallet',       label: language === 'Kinyarwanda' ? 'Amafaranga': 'My Wallet',    screen: 'Wallet'     },
-                { icon: 'grid-outline', label: language === 'Kinyarwanda' ? 'Ikibaho'   : 'Dashboard',    screen: 'Dashboard'  },
-              ].map((action, index) => (
+            {/* ✅ NOT logged in — show Join banner */}
+            {!isLoggedIn && (
+              <View style={[styles.joinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+                <Ionicons name="person-add-outline" size={28} color={WINE} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.joinTitle, { color: TEXT }]}>
+                    {language === 'Kinyarwanda' ? 'Fungura Konti' : 'Create Your Own Event'}
+                  </Text>
+                  <Text style={[styles.joinSub, { color: SUB }]}>
+                    {language === 'Kinyarwanda'
+                      ? 'Injira kugirango ushireho ibirori byawe!'
+                      : 'Login or sign up to create events and receive contributions!'}
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  key={index}
-                  style={styles.quickAction}
-                  activeOpacity={0.8}
-                  onPress={() => action.screen && navigation.navigate(action.screen)}
+                  style={styles.joinBtn}
+                  onPress={() => navigation.navigate('Register')}
+                  activeOpacity={0.85}
                 >
-                  <View style={[
-                    styles.quickActionIcon,
-                    { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT },
-                    (action.label === 'Dashboard' || action.label === 'Ikibaho') && styles.dashboardIcon,
-                  ]}>
-                    <Ionicons
-                      name={action.icon}
-                      size={32}
-                      color={(action.label === 'Dashboard' || action.label === 'Ikibaho') ? WHITE : WINE}
-                    />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: TEXT }]}>{action.label}</Text>
+                  <Text style={styles.joinBtnText}>
+                    {language === 'Kinyarwanda' ? 'Injira' : 'Join'}
+                  </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            )}
           </>
         )}
 
@@ -547,6 +620,11 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   profileAvatar: { width: 40, height: 40, borderRadius: 20 },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
+
+  // ✅ Login button in header
+  loginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  loginBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
+
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14, height: 52, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 15 },
   categoryScroll: { gap: 8, paddingRight: 20 },
@@ -599,13 +677,20 @@ const styles = StyleSheet.create({
   portraitBtn: { backgroundColor: WINE, borderRadius: 20, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   portraitBtnText: { color: WHITE, fontSize: 11, fontWeight: '700' },
 
-  // ✅ Beautiful Empty State
+  // ✅ Empty State
   emptyStateBox: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20, marginBottom: 24 },
-  emptyStateImage: { width: width * 0.99, height: width * 0.90, marginBottom: 30, backgroundColor: 'transparent' },
+  emptyStateImage: { width: width * 0.85, height: width * 0.75, marginBottom: 20, backgroundColor: 'transparent' },
   emptyStateTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
   emptyStateSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   emptyStateBtn: { backgroundColor: WINE, borderRadius: 14, height: 52, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   emptyStateBtnText: { color: WHITE, fontSize: 16, fontWeight: '700' },
+
+  // ✅ Join Banner for non-logged-in users
+  joinBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, marginBottom: 20 },
+  joinTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  joinSub: { fontSize: 12, lineHeight: 18 },
+  joinBtn: { backgroundColor: WINE, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
+  joinBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
 
   quickActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   quickAction: { alignItems: 'center', gap: 8, flex: 1 },
