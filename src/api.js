@@ -24,11 +24,24 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
 };
 
 // ── AUTH ──
-export const sendOTP = (phone, email = null, name = null) =>
-  apiCall('/api/auth/send-otp', 'POST', { phone, email, name });
+// ✅ New PIN-based auth — no OTP/email needed!
+export const registerWithPin = (name, phone, pin) =>
+  apiCall('/api/auth/register', 'POST', { name, phone, pin });
 
-export const verifyOTP = (phone, otp, name = null, email = null) =>
-  apiCall('/api/auth/verify-otp', 'POST', { phone, otp, name, email });
+export const loginWithPin = (phone, pin) =>
+  apiCall('/api/auth/login', 'POST', { phone, pin });
+
+export const changePin = (old_pin, new_pin) =>
+  apiCall('/api/auth/change-pin', 'POST', { old_pin, new_pin });
+
+export const updateProfile = (name, email) =>
+  apiCall('/api/auth/update-profile', 'POST', { name, email });
+
+export const updateAvatar = (avatar_url) =>
+  apiCall('/api/auth/update-avatar', 'POST', { avatar_url });
+
+export const updatePushToken = (push_token) =>
+  apiCall('/api/auth/update-push-token', 'POST', { push_token });
 
 // ── EVENTS ──
 export const getEvents = () => apiCall('/api/events');
@@ -56,4 +69,7 @@ export const getDashboard = () => apiCall('/api/dashboard');
 // ── TOKEN ──
 export const saveToken = async (token) => await AsyncStorage.setItem('token', token);
 export const getToken = async () => await AsyncStorage.getItem('token');
-export const removeToken = async () => await AsyncStorage.removeItem('token');
+export const removeToken = async () => {
+  await AsyncStorage.removeItem('token');
+  await AsyncStorage.removeItem('user');
+};s

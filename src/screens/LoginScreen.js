@@ -11,7 +11,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session/providers/google';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveToken } from '../api';
+import { loginWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -33,13 +33,14 @@ export default function LoginScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
   const { BG, CARD, TEXT, SUB, BORDER } = colors;
 
-  const [countryCode, setCountryCode]     = useState('RW');
-  const [callingCode, setCallingCode]     = useState('250');
-  const [showPicker, setShowPicker]       = useState(false);
-  const [phone, setPhone]                 = useState('');
-  const [loading, setLoading]             = useState(false);
+  const [countryCode, setCountryCode] = useState('RW');
+  const [callingCode, setCallingCode] = useState('250');
+  const [showPicker, setShowPicker]   = useState(false);
+  const [phone, setPhone]             = useState('');
+  const [pin, setPin]                 = useState('');
+  const [showPin, setShowPin]         = useState(false);
+  const [loading, setLoading]         = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [otpInfo, setOtpInfo]             = useState(null);
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest({
     androidClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
@@ -107,25 +108,27 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleContinue = async () => {
-    if (phone.length < 8) return;
+  // ✅ New PIN login handler
+  const handleLogin = async () => {
+    if (phone.length < 8) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza numero ya telefoni' : 'Please enter your phone number');
+      return;
+    }
+    if (pin.length < 4) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza PIN yawe' : 'Please enter your PIN');
+      return;
+    }
+
     const fullPhone = `+${callingCode}${phone}`;
     setLoading(true);
-    setOtpInfo(null);
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone, is_login: true }),
-      });
-      const result = await response.json();
+      const result = await loginWithPin(fullPhone, pin);
       if (result.success) {
-        if (result.email_sent) {
-          setOtpInfo(`OTP sent to ${result.email_hint || 'your email'}`);
-        }
-        setTimeout(() => navigation.navigate('OTP', { phone: fullPhone }), 1500);
+        await saveToken(result.token);
+        await AsyncStorage.setItem('user', JSON.stringify(result.user));
+        navigation.replace('Home');
       } else {
-        Alert.alert('Error', result.message || 'Failed to send OTP');
+        Alert.alert('Error', result.message || 'Login failed');
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -133,6 +136,8 @@ export default function LoginScreen({ navigation }) {
       setLoading(false);
     }
   };
+
+  const isDisabled = phone.length < 8 || pin.length < 4 || loading;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
@@ -148,19 +153,20 @@ export default function LoginScreen({ navigation }) {
         {/* Logo */}
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
-        {/* ✅ No emojis in title */}
+        {/* Title */}
         <Text style={[styles.title, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Murakaza neza' : 'Welcome back'}
         </Text>
         <Text style={[styles.subtitle, { color: SUB }]}>
           {language === 'Kinyarwanda'
-            ? 'Injiza numero ya telefoni yawe'
-            : "Enter your phone number and we'll\nsend your OTP to your registered email."}
+            ? 'Injiza numero ya telefoni na PIN yawe'
+            : 'Enter your phone number and PIN to login'}
         </Text>
 
         {/* Phone Label */}
         <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone number'}
+          {language === 'Kinyarwanda' ? 'Numero ya Telefoni' : 'Phone Number'}{' '}
+          <Text style={styles.required}>*</Text>
         </Text>
 
         {/* Phone Input */}
@@ -194,29 +200,45 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        {/* OTP Info */}
-        {otpInfo && (
-          <View style={styles.otpInfoBox}>
-            <Ionicons name="mail-outline" size={16} color={WINE} />
-            <Text style={styles.otpInfoText}>{otpInfo}</Text>
-          </View>
-        )}
+        {/* PIN Label */}
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Injiza PIN yawe' : 'Enter your PIN'}{' '}
+          <Text style={styles.required}>*</Text>
+        </Text>
 
-        {/* Continue Button */}
+        {/* PIN Input */}
+        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: TEXT }]}
+            placeholder="● ● ● ●"
+            placeholderTextColor="#BBBBBB"
+            value={pin}
+            onChangeText={setPin}
+            keyboardType="numeric"
+            maxLength={6}
+            secureTextEntry={!showPin}
+          />
+          <TouchableOpacity onPress={() => setShowPin(!showPin)}>
+            <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Login Button */}
         <TouchableOpacity
-          style={[styles.continueBtn, (phone.length < 8 || loading) && styles.continueBtnDisabled]}
-          onPress={handleContinue}
-          disabled={loading || phone.length < 8}
+          style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]}
+          onPress={handleLogin}
+          disabled={isDisabled}
           activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <>
+              <Ionicons name="log-in-outline" size={20} color={WHITE} />
               <Text style={styles.continueBtnText}>
-                {language === 'Kinyarwanda' ? 'Komeza na Telefoni' : 'Continue with Phone'}
+                {language === 'Kinyarwanda' ? 'Injira' : 'Login'}
               </Text>
-              <Ionicons name="arrow-forward" size={20} color={WHITE} />
             </>
           )}
         </TouchableOpacity>
@@ -259,7 +281,7 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* ✅ Terms — shield icon instead of emoji */}
+        {/* Terms */}
         <View style={styles.termsRow}>
           <View style={styles.shieldIconBox}>
             <Ionicons name="shield-checkmark-outline" size={16} color={WINE} />
@@ -301,14 +323,16 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 16 },
+  required: { color: WINE },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20 },
   countryBox: { flexDirection: 'row', alignItems: 'center' },
   callingCode: { fontSize: 15, fontWeight: '600', marginLeft: 4 },
   dropArrow: { fontSize: 12 },
   phoneDivider: { width: 1, height: 28, marginHorizontal: 12 },
   phoneInput: { flex: 1, fontSize: 16 },
-  otpInfoBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: WINE_LIGHT, borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: WINE },
-  otpInfoText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20 },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15 },
   continueBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 20, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   continueBtnDisabled: { opacity: 0.45 },
   continueBtnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
@@ -318,8 +342,6 @@ const styles = StyleSheet.create({
   socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 14, height: 56, marginBottom: 12, gap: 14 },
   socialIcon: { width: 32, height: 32 },
   socialBtnText: { fontSize: 15, fontWeight: '600' },
-
-  // ✅ Shield icon box instead of emoji
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
   shieldIconBox: { marginTop: 2 },
   termsText: { flex: 1, fontSize: 13, lineHeight: 20 },

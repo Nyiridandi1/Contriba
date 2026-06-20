@@ -8,17 +8,13 @@ import {
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session/providers/google';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { sendOTP, saveToken } from '../api';
+import { registerWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const WINE  = '#E60012';
 const WHITE = '#FFFFFF';
-const BASE_URL = 'https://contriba-backend-production.up.railway.app';
+const WINE_LIGHT = '#FDF0F3';
 
 export default function RegisterScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
@@ -29,65 +25,40 @@ export default function RegisterScreen({ navigation }) {
   const [callingCode, setCallingCode] = useState('250');
   const [showPicker, setShowPicker]   = useState(false);
   const [phone, setPhone]             = useState('');
-  const [email, setEmail]             = useState('');
+  const [pin, setPin]                 = useState('');
+  const [confirmPin, setConfirmPin]   = useState('');
+  const [showPin, setShowPin]         = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [loading, setLoading]         = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [request, response, promptAsync] = AuthSession.useAuthRequest({
-    androidClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
-    iosClientId: '445164086766-vsf1eab46e5oonfsqmdjcg3nic2g7l63.apps.googleusercontent.com',
-    webClientId: '445164086766-tv733jo8ufmsk7u6q42k09ojfq790r4t.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-  });
-
-  React.useEffect(() => {
-    if (response?.type === 'success') {
-      handleGoogleResponse(response.authentication.accessToken);
+  const handleRegister = async () => {
+    if (!name) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza amazina yawe' : 'Please enter your full name');
+      return;
     }
-  }, [response]);
-
-  const handleGoogleResponse = async (accessToken) => {
-    setGoogleLoading(true);
-    try {
-      const userInfoResponse = await fetch(
-        'https://www.googleapis.com/userinfo/v2/me',
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const userInfo = await userInfoResponse.json();
-      const result = await fetch(`${BASE_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userInfo.email, name: userInfo.name,
-          photo: userInfo.picture, google_id: userInfo.id,
-        }),
-      });
-      const data = await result.json();
-      if (data.success) {
-        await saveToken(data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        navigation.replace('Home');
-      } else {
-        Alert.alert('Error', data.message || 'Google signup failed');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Google sign up failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
+    if (phone.length < 8) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza numero ya telefoni' : 'Please enter a valid phone number');
+      return;
     }
-  };
+    if (pin.length < 4) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'PIN igomba kuba imibare 4' : 'PIN must be at least 4 digits');
+      return;
+    }
+    if (pin !== confirmPin) {
+      Alert.alert('Error', language === 'Kinyarwanda' ? 'PIN ntizihura!' : 'PINs do not match!');
+      return;
+    }
 
-  const handleContinue = async () => {
-    if (!name) { Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza amazina yawe' : 'Please enter your full name'); return; }
-    if (phone.length < 8) { Alert.alert('Error', language === 'Kinyarwanda' ? 'Injiza numero ya telefoni' : 'Please enter a valid phone number'); return; }
     const fullPhone = `+${callingCode}${phone}`;
     setLoading(true);
     try {
-      const result = await sendOTP(fullPhone, email, name);
+      const result = await registerWithPin(name, fullPhone, pin);
       if (result.success) {
-        navigation.navigate('OTP', { phone: fullPhone, name, email });
+        await saveToken(result.token);
+        await AsyncStorage.setItem('user', JSON.stringify(result.user));
+        navigation.replace('Home');
       } else {
-        Alert.alert('Error', result.message || 'Failed to send OTP');
+        Alert.alert('Error', result.message || 'Failed to create account');
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -95,6 +66,8 @@ export default function RegisterScreen({ navigation }) {
       setLoading(false);
     }
   };
+
+  const isDisabled = !name || phone.length < 8 || pin.length < 4 || confirmPin.length < 4 || loading;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
@@ -110,14 +83,14 @@ export default function RegisterScreen({ navigation }) {
         {/* Logo */}
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
 
-        {/* ✅ Title — no emoji */}
+        {/* Title */}
         <Text style={[styles.title, { color: TEXT }]}>
           {language === 'Kinyarwanda' ? 'Fungura Konti' : 'Create Account'}
         </Text>
         <Text style={[styles.subtitle, { color: SUB }]}>
           {language === 'Kinyarwanda'
             ? 'Injira muri Contriba ugatange inkunga\nku birori ukunda!'
-            : 'Join Contriba and start contributing\nto events you love!'}
+            : 'Join Contriba and start creating\nevents today!'}
         </Text>
 
         {/* Full Name */}
@@ -171,84 +144,100 @@ export default function RegisterScreen({ navigation }) {
           />
         </View>
 
-        {/* Email */}
-        <Text style={[styles.label, { color: TEXT }]}>
-          {language === 'Kinyarwanda' ? 'Imeli' : 'Email'}{' '}
-          <Text style={styles.emailRequired}>
-            * {language === 'Kinyarwanda' ? 'OTP zoherezwa hano' : 'OTP will be sent here'}
+        {/* PIN Info Banner */}
+        <View style={[styles.pinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+          <Ionicons name="lock-closed-outline" size={16} color={WINE} />
+          <Text style={styles.pinBannerText}>
+            {language === 'Kinyarwanda'
+              ? 'Kora PIN yo kwinjira — nk\'iyi ya ATM!'
+              : 'Create a PIN to login — just like your ATM PIN!'}
           </Text>
-        </Text>
-        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <Ionicons name="mail-outline" size={20} color={SUB} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: TEXT }]}
-            placeholder="your@email.com"
-            placeholderTextColor="#BBBBBB"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
         </View>
 
-        {/* Continue button */}
+        {/* Create PIN */}
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Kora PIN (imibare 4)' : 'Create PIN (4 digits)'}{' '}
+          <Text style={styles.required}>*</Text>
+        </Text>
+        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: TEXT }]}
+            placeholder="● ● ● ●"
+            placeholderTextColor="#BBBBBB"
+            value={pin}
+            onChangeText={setPin}
+            keyboardType="numeric"
+            maxLength={6}
+            secureTextEntry={!showPin}
+          />
+          <TouchableOpacity onPress={() => setShowPin(!showPin)}>
+            <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Confirm PIN */}
+        <Text style={[styles.label, { color: TEXT }]}>
+          {language === 'Kinyarwanda' ? 'Emeza PIN' : 'Confirm PIN'}{' '}
+          <Text style={styles.required}>*</Text>
+        </Text>
+        <View style={[styles.inputRow, { borderColor: confirmPin && confirmPin !== pin ? '#FF3B30' : BORDER, backgroundColor: CARD }]}>
+          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: TEXT }]}
+            placeholder="● ● ● ●"
+            placeholderTextColor="#BBBBBB"
+            value={confirmPin}
+            onChangeText={setConfirmPin}
+            keyboardType="numeric"
+            maxLength={6}
+            secureTextEntry={!showConfirmPin}
+          />
+          <TouchableOpacity onPress={() => setShowConfirmPin(!showConfirmPin)}>
+            <Ionicons name={showConfirmPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+          </TouchableOpacity>
+        </View>
+
+        {/* PIN mismatch warning */}
+        {confirmPin.length > 0 && confirmPin !== pin && (
+          <View style={styles.errorRow}>
+            <Ionicons name="alert-circle-outline" size={14} color="#FF3B30" />
+            <Text style={styles.errorText}>
+              {language === 'Kinyarwanda' ? 'PIN ntizihura!' : 'PINs do not match!'}
+            </Text>
+          </View>
+        )}
+
+        {/* PIN match success */}
+        {confirmPin.length > 0 && confirmPin === pin && (
+          <View style={styles.successRow}>
+            <Ionicons name="checkmark-circle-outline" size={14} color="#1A9E4A" />
+            <Text style={styles.successText}>
+              {language === 'Kinyarwanda' ? 'PIN zihura!' : 'PINs match!'}
+            </Text>
+          </View>
+        )}
+
+        {/* Create Account Button */}
         <TouchableOpacity
-          style={[styles.continueBtn, (!name || phone.length < 8 || loading) && styles.continueBtnDisabled]}
-          onPress={handleContinue}
-          disabled={loading || !name || phone.length < 8}
+          style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]}
+          onPress={handleRegister}
+          disabled={isDisabled}
           activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <>
+              <Ionicons name="person-add-outline" size={20} color={WHITE} />
               <Text style={styles.continueBtnText}>
                 {language === 'Kinyarwanda' ? 'Fungura Konti' : 'Create Account'}
               </Text>
-              <Ionicons name="arrow-forward" size={20} color={WHITE} />
             </>
           )}
         </TouchableOpacity>
 
-        {/* OR divider */}
-        <View style={styles.orRow}>
-          <View style={[styles.orLine, { backgroundColor: BORDER }]} />
-          <Text style={[styles.orText, { color: SUB }]}>
-            {language === 'Kinyarwanda' ? 'cyangwa' : 'or sign up with'}
-          </Text>
-          <View style={[styles.orLine, { backgroundColor: BORDER }]} />
-        </View>
-
-        {/* Google button */}
-        <TouchableOpacity
-          style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]}
-          activeOpacity={0.8}
-          onPress={() => promptAsync()}
-          disabled={googleLoading || !request}
-        >
-          {googleLoading ? (
-            <ActivityIndicator color={TEXT} size="small" />
-          ) : (
-            <>
-              <Image source={require('../../assets/google.png')} style={styles.socialIcon} resizeMode="contain" />
-              <Text style={[styles.socialBtnText, { color: TEXT }]}>
-                {language === 'Kinyarwanda' ? 'Komeza na Google' : 'Continue with Google'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Apple button - iOS only */}
-        {Platform.OS === 'ios' && (
-          <TouchableOpacity style={[styles.socialBtn, { borderColor: BORDER, backgroundColor: CARD }]} activeOpacity={0.8}>
-            <Image source={require('../../assets/apple.png')} style={styles.socialIcon} resizeMode="contain" />
-            <Text style={[styles.socialBtnText, { color: TEXT }]}>
-              {language === 'Kinyarwanda' ? 'Komeza na Apple' : 'Continue with Apple'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* ✅ Terms — shield icon instead of emoji */}
+        {/* Terms */}
         <View style={styles.termsRow}>
           <View style={styles.shieldIconBox}>
             <Ionicons name="shield-checkmark-outline" size={16} color={WINE} />
@@ -291,7 +280,6 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   required: { color: WINE },
-  emailRequired: { fontSize: 12, fontWeight: '400', color: WINE },
   inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 15 },
@@ -301,17 +289,20 @@ const styles = StyleSheet.create({
   dropArrow: { fontSize: 12 },
   phoneDivider: { width: 1, height: 28, marginHorizontal: 12 },
   phoneInput: { flex: 1, fontSize: 16 },
+
+  // PIN Banner
+  pinBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 12, marginBottom: 20 },
+  pinBannerText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
+
+  // Error / Success
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -14, marginBottom: 14 },
+  errorText: { fontSize: 12, color: '#FF3B30', fontWeight: '600' },
+  successRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -14, marginBottom: 14 },
+  successText: { fontSize: 12, color: '#1A9E4A', fontWeight: '600' },
+
   continueBtn: { backgroundColor: WINE, borderRadius: 14, height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 20, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 7 },
   continueBtnDisabled: { opacity: 0.45 },
   continueBtnText: { color: WHITE, fontSize: 17, fontWeight: '700', letterSpacing: 0.4 },
-  orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
-  orLine: { flex: 1, height: 1 },
-  orText: { fontSize: 13 },
-  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 14, height: 56, marginBottom: 12, gap: 14 },
-  socialIcon: { width: 32, height: 32 },
-  socialBtnText: { fontSize: 15, fontWeight: '600' },
-
-  // ✅ Shield icon instead of emoji
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 6, marginBottom: 20 },
   shieldIconBox: { marginTop: 2 },
   termsText: { flex: 1, fontSize: 13, lineHeight: 20 },

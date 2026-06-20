@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
 
   // ✅ Beautiful Empty State
   emptyStateBox: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20, marginBottom: 24 },
-  emptyStateImage: { width: width * 0.75, height: width * 0.65, marginBottom: 20 },
+  emptyStateImage: { width: width * 0.99, height: width * 0.90, marginBottom: 30, backgroundColor: 'transparent' },
   emptyStateTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
   emptyStateSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   emptyStateBtn: { backgroundColor: WINE, borderRadius: 14, height: 52, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
