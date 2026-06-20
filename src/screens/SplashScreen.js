@@ -16,13 +16,12 @@ export default function SplashScreen({ navigation }) {
   const checkUser = async () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2500));
-      const token = await AsyncStorage.getItem('token');
       const seen = await AsyncStorage.getItem('onboarding_seen');
-      if (token) {
+      if (seen) {
+        // ✅ Always go Home — no login required!
         navigation.replace('Home');
-      } else if (seen) {
-        navigation.replace('Login');
       } else {
+        // ✅ First time — show onboarding
         navigation.replace('Onboarding');
       }
     } catch (error) {
