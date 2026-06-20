@@ -36,34 +36,27 @@ export default function ContributeScreen({ navigation, route }) {
   const [message, setMessage]         = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading]         = useState(false);
-  const [isLoggedIn, setIsLoggedIn]   = useState(false);
 
   const getCleanAmount = () => parseInt(amount.replace(/,/g, '')) || 0;
   const platformFee = Math.round(getCleanAmount() * 0.01);
   const ownerReceives = getCleanAmount() - platformFee;
 
+  // ✅ Auto-fill name and phone if user is logged in
+  // But NO login required — anyone can contribute!
   useEffect(() => {
-    checkLogin();
+    loadUserIfLoggedIn();
   }, []);
 
-  const checkLogin = async () => {
-    const token = await AsyncStorage.getItem('token');
-    const user = await AsyncStorage.getItem('user');
-    if (token && user) {
-      setIsLoggedIn(true);
-      const userData = JSON.parse(user);
-      if (userData.name) setName(userData.name);
-      if (userData.phone) setSenderPhone(userData.phone);
-    } else {
-      Alert.alert(
-        'Login Required',
-        'You need to login or create an account to contribute to this event.',
-        [
-          { text: 'Login', onPress: () => navigation.replace('Login') },
-          { text: 'Create Account', onPress: () => navigation.replace('Register') },
-          { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
-        ]
-      );
+  const loadUserIfLoggedIn = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user.name) setName(user.name);
+        if (user.phone) setSenderPhone(user.phone);
+      }
+    } catch (error) {
+      console.log('No user logged in — that is fine!');
     }
   };
 
@@ -118,18 +111,6 @@ export default function ContributeScreen({ navigation, route }) {
     }
   };
 
-  if (!isLoggedIn) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={WINE} size="large" />
-          <Text style={styles.loadingText}>Checking login...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} translucent={false} />
@@ -162,7 +143,7 @@ export default function ContributeScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* ✅ Payment Flow Card — no emoji */}
+        {/* Payment Flow Card */}
         <View style={styles.flowCard}>
           <View style={styles.flowTitleRow}>
             <Ionicons name="swap-vertical-outline" size={18} color={BLACK} />
@@ -199,7 +180,7 @@ export default function ContributeScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* ✅ Anonymous Toggle — no emoji */}
+        {/* Anonymous Toggle */}
         <View style={styles.anonymousCard}>
           <View style={styles.anonymousLeft}>
             <View style={styles.anonymousIconBox}>
@@ -222,10 +203,12 @@ export default function ContributeScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Your Name */}
+        {/* ✅ Your Name — no login needed! */}
         {!isAnonymous && (
           <>
-            <Text style={styles.label}>Your Name</Text>
+            <Text style={styles.label}>
+              Your Name <Text style={styles.optional}>(optional)</Text>
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your full name"
@@ -331,7 +314,7 @@ export default function ContributeScreen({ navigation, route }) {
         <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* ✅ Bottom — no emoji */}
+      {/* Bottom */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.continueBtn, loading && { opacity: 0.7 }]}
@@ -343,9 +326,7 @@ export default function ContributeScreen({ navigation, route }) {
             <ActivityIndicator color={WHITE} size="small" />
           ) : (
             <View style={styles.continueBtnInner}>
-              {isAnonymous && (
-                <Ionicons name="eye-off-outline" size={18} color={WHITE} />
-              )}
+              {isAnonymous && <Ionicons name="eye-off-outline" size={18} color={WHITE} />}
               <Text style={styles.continueBtnText}>
                 {isAnonymous ? 'Contribute Anonymously' : 'Continue'}
                 {' '}&rarr; RWF {getCleanAmount().toLocaleString()}
@@ -365,8 +346,6 @@ export default function ContributeScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: WHITE },
-  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: GRAY },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: WHITE },
   headerTitle: { fontSize: 18, fontWeight: '800', color: BLACK },
   scroll: { paddingHorizontal: 20, paddingTop: 20 },
