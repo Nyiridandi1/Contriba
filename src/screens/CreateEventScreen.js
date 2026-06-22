@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
-const WINE       = '#E60012';
+const WINE       = '#E50914';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const GRAY       = '#888888';

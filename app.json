@@ -8,8 +8,8 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#E60012"
+      "resizeMode": "native",
+      "backgroundColor": "#E50914"
     },
     "developmentClient": {
       "silentLaunch": false
@@ -29,7 +29,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#E50914"
       },
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",

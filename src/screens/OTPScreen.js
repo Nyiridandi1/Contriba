@@ -11,7 +11,7 @@ import { sendOTP, saveToken } from '../api';
 
 const { width } = Dimensions.get('window');
 
-const WINE  = '#E60012';
+const WINE  = '#E50914';
 const WHITE = '#FFFFFF';
 const BLACK = '#1A1A1A';
 const GRAY  = '#888888';

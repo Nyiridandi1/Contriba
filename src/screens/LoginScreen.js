@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E60012';
+const WINE       = '#E50914';
 const WHITE      = '#FFFFFF';
 const WINE_LIGHT = '#F9EEF1';
 

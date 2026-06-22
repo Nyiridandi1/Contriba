@@ -9,7 +9,7 @@ import * as Notifications from 'expo-notifications';
 import { getNotifications, markNotificationRead } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE  = '#E60012';
+const WINE  = '#E50914';
 const WHITE = '#FFFFFF';
 const GREEN = '#1A9E4A';
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';

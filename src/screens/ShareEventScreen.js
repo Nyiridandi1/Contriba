@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { formatEventDate } from '../utils/formatDate';
 
-const WINE  = '#E60012';
+const WINE  = '#E50914';
 const WHITE = '#FFFFFF';
 const GREEN = '#1A9E4A';
 
