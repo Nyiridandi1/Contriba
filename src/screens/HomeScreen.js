@@ -143,7 +143,84 @@ export default function HomeScreen({ navigation }) {
     return require('../../assets/couple.png');
   };
 
-  // ✅ Portrait Card — frosted glass bottom panel style
+  // ✅ HORIZONTAL CARD — My Events (ChatGPT style)
+  const HorizontalCard = ({ item, onPress, onContribute }) => {
+    const progress = getProgress(item);
+    return (
+      <TouchableOpacity
+        style={[styles.hCard, { backgroundColor: CARD, borderColor: BORDER_C }]}
+        activeOpacity={0.92}
+        onPress={onPress}
+      >
+        {/* LEFT — Photo */}
+        <View style={styles.hCardLeft}>
+          <ImageBackground source={getEventImage(item)} style={styles.hCardImage} resizeMode="cover">
+            {/* Type badge */}
+            <View style={styles.hCardTypeBadge}>
+              <Ionicons name="heart" size={10} color={WHITE} />
+              <Text style={styles.hCardTypeBadgeText}>{item.type || 'Event'}</Text>
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* RIGHT — Info */}
+        <View style={styles.hCardRight}>
+          {/* Title + bookmark */}
+          <View style={styles.hCardTitleRow}>
+            <Text style={[styles.hCardTitle, { color: TEXT }]} numberOfLines={2}>{item.title}</Text>
+            <TouchableOpacity style={[styles.hCardBookmark, { backgroundColor: WINE_LIGHT }]}>
+              <Ionicons name="bookmark-outline" size={14} color={WINE} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Date */}
+          <View style={styles.hCardMeta}>
+            <Ionicons name="calendar-outline" size={12} color={SUB} />
+            <Text style={[styles.hCardMetaText, { color: SUB }]}>{formatDate(item.date)}</Text>
+          </View>
+
+          {/* Location */}
+          {item.location && (
+            <View style={styles.hCardMeta}>
+              <Ionicons name="location-outline" size={12} color={SUB} />
+              <Text style={[styles.hCardMetaText, { color: SUB }]} numberOfLines={1}>{item.location}</Text>
+            </View>
+          )}
+
+          <View style={[styles.hCardDivider, { backgroundColor: BORDER_C }]} />
+
+          {/* Raised */}
+          <Text style={[styles.hCardRaisedLabel, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? 'Byakomejwe' : 'Raised so far'}
+          </Text>
+          <View style={styles.hCardAmountRow}>
+            <Text style={styles.hCardAmount}>{formatAmount(item.total_raised)}</Text>
+            <Text style={styles.hCardPercent}>{Math.round(progress * 100)}%</Text>
+          </View>
+
+          {/* Progress */}
+          <View style={[styles.hCardProgressTrack, { backgroundColor: darkMode ? '#2A2A2A' : '#FFE0E0' }]}>
+            <View style={[styles.hCardProgressFill, { width: `${progress * 100}%` }]} />
+          </View>
+
+          {/* Target */}
+          <Text style={[styles.hCardTarget, { color: SUB }]}>
+            {language === 'Kinyarwanda' ? 'Intego:' : 'Target:'} {item.goal_amount ? formatAmount(item.goal_amount) : 'TBA'}
+          </Text>
+
+          {/* Contribute button */}
+          <TouchableOpacity style={styles.hCardBtn} onPress={onContribute} activeOpacity={0.85}>
+            <Ionicons name="heart" size={14} color={WHITE} />
+            <Text style={styles.hCardBtnText}>
+              {language === 'Kinyarwanda' ? 'Tanga Ubu' : 'Contribute Now'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // ✅ PORTRAIT CARD — All Events (frosted glass style)
   const PortraitCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
@@ -265,7 +342,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* ── HEADER: Logo + contriba + slogan + bell + avatar ── */}
+        {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerLogo}>
             <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
@@ -371,7 +448,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
 
-            {/* ✅ CREATE BUTTON — updated style */}
+            {/* CREATE BUTTON */}
             <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={handleCreateEvent}>
               <View style={styles.createBtnLeft}>
                 <View style={styles.createBtnIcon}>
@@ -387,7 +464,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </TouchableOpacity>
 
-            {/* MY EVENTS */}
+            {/* ✅ MY EVENTS — Horizontal Cards */}
             {isLoggedIn && myEvents.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
@@ -395,24 +472,23 @@ export default function HomeScreen({ navigation }) {
                     <Text style={[styles.sectionTitle, { color: TEXT }]}>{language === 'Kinyarwanda' ? 'Ibirori Byanjye' : 'My Events'}</Text>
                     <View style={styles.sectionUnderline} />
                   </View>
-                  <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+                  <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                     <Text style={styles.seeAll}>{language === 'Kinyarwanda' ? 'Reba byose' : 'See all'}</Text>
+                    <Ionicons name="chevron-forward" size={14} color={WINE} />
                   </TouchableOpacity>
                 </View>
-                <FlatList
-                  data={myEvents}
-                  keyExtractor={(item) => item.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalList}
-                  renderItem={({ item }) => (
-                    <PortraitCard item={item} onPress={() => navigation.navigate('EventPage', { event: item })} onContribute={() => navigation.navigate('Contribute', { event: item })} />
-                  )}
-                />
+                {myEvents.slice(0, 3).map((item) => (
+                  <HorizontalCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => navigation.navigate('EventPage', { event: item })}
+                    onContribute={() => navigation.navigate('Contribute', { event: item })}
+                  />
+                ))}
               </>
             )}
 
-            {/* ALL EVENTS */}
+            {/* ✅ ALL EVENTS — Portrait Cards */}
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={[styles.sectionTitle, { color: TEXT }]}>
@@ -519,7 +595,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 32 : 16 },
 
-  // ── HEADER ──
+  // HEADER
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerLogo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoImg: { width: 38, height: 38, borderRadius: 10 },
@@ -534,7 +610,7 @@ const styles = StyleSheet.create({
   loginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   loginBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
 
-  // ── GREETING ──
+  // GREETING
   greetingBox: { marginBottom: 20 },
   greeting: { fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 2 },
   greetingSmall: { fontSize: 14, fontWeight: '400' },
@@ -575,7 +651,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 13, fontWeight: '900', color: WINE, marginBottom: 3 },
   statLabel: { fontSize: 10, textAlign: 'center', fontWeight: '500' },
 
-  // ✅ CREATE BUTTON — new style
+  // CREATE BUTTON
   createBtn: { backgroundColor: WINE, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, elevation: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14 },
   createBtnLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   createBtnIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
@@ -590,7 +666,30 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 14, color: WINE, fontWeight: '700' },
   horizontalList: { paddingRight: 20, paddingBottom: 8, marginBottom: 24 },
 
-  // PORTRAIT CARD
+  // ✅ HORIZONTAL CARD (My Events)
+  hCard: { borderRadius: 20, borderWidth: 1, marginBottom: 16, flexDirection: 'row', overflow: 'hidden', height: 210, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10 },
+  hCardLeft: { width: '38%' },
+  hCardImage: { width: '100%', height: '100%', justifyContent: 'flex-start' },
+  hCardTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4, margin: 8, alignSelf: 'flex-start' },
+  hCardTypeBadgeText: { color: WHITE, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+  hCardRight: { flex: 1, padding: 12 },
+  hCardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  hCardTitle: { fontSize: 14, fontWeight: '900', flex: 1, lineHeight: 19, marginRight: 6 },
+  hCardBookmark: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  hCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+  hCardMetaText: { fontSize: 11 },
+  hCardDivider: { height: 1, marginVertical: 6 },
+  hCardRaisedLabel: { fontSize: 10, marginBottom: 2 },
+  hCardAmountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  hCardAmount: { fontSize: 14, fontWeight: '900', color: WINE },
+  hCardPercent: { fontSize: 11, fontWeight: '800', color: WINE },
+  hCardProgressTrack: { height: 3, borderRadius: 2, marginBottom: 4 },
+  hCardProgressFill: { height: 3, backgroundColor: WINE, borderRadius: 2 },
+  hCardTarget: { fontSize: 10, marginBottom: 8 },
+  hCardBtn: { backgroundColor: WINE, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, elevation: 4, shadowColor: WINE, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.4, shadowRadius: 6 },
+  hCardBtnText: { color: WHITE, fontSize: 12, fontWeight: '800' },
+
+  // ✅ PORTRAIT CARD (All Events)
   portraitCard: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 22, marginRight: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 16 },
   portraitImage: { width: '100%', height: '100%', justifyContent: 'flex-end' },
   typeBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, maxWidth: '70%' },
