@@ -182,7 +182,6 @@ export default function EventPageScreen({ navigation, route }) {
       if (result.success) {
         setEvent({ ...event, title: editTitle, location: editLocation, description: editDescription, goal_amount: editGoalAmount ? parseInt(editGoalAmount) : 0, owner_phone: editOwnerPhone, owner_payment_method: editPaymentMethod });
         setEditModal(false);
-        // ✅ No emoji in alert
         Alert.alert('Success', 'Event updated successfully!');
       } else {
         Alert.alert('Error', result.message || 'Failed to update event');
@@ -208,7 +207,6 @@ export default function EventPageScreen({ navigation, route }) {
             });
             const result = await response.json();
             if (result.success) {
-              // ✅ No emoji in alert
               Alert.alert('Deleted', 'Event deleted successfully.', [
                 { text: 'OK', onPress: () => navigation.navigate('Home') },
               ]);
@@ -248,7 +246,7 @@ export default function EventPageScreen({ navigation, route }) {
                     ) : (
                       <Image source={require('../../assets/couple.png')} style={styles.heroImage} resizeMode="cover" />
                     )}
-                    <View style={styles.heroOverlay} />
+                    {/* ✅ No overlay — clear photo! */}
                   </TouchableOpacity>
                 )}
               />
@@ -458,7 +456,6 @@ export default function EventPageScreen({ navigation, route }) {
                         <Text style={[styles.creatorName, { color: TEXT }]}>
                           {event.creator.name || 'Unknown'}
                         </Text>
-                        {/* ✅ No emoji — use icon */}
                         <View style={styles.creatorRoleRow}>
                           <Ionicons name="ribbon-outline" size={13} color={SUB} />
                           <Text style={[styles.creatorRole, { color: SUB }]}>Event Organizer</Text>
@@ -499,7 +496,6 @@ export default function EventPageScreen({ navigation, route }) {
                   <View style={styles.avatarStack}>
                     {[0, 1, 2, 3].map((i) => (
                       <View key={i} style={[styles.avatarCircle, { marginLeft: i === 0 ? 0 : -12, backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
-                        {/* ✅ No emoji — use icon */}
                         <Ionicons name="person" size={16} color={WINE} />
                       </View>
                     ))}
@@ -537,7 +533,6 @@ export default function EventPageScreen({ navigation, route }) {
                         onChangeText={setCommenterName}
                         editable={!isAnonymous}
                       />
-                      {/* ✅ Anonymous button — no emoji */}
                       <TouchableOpacity
                         style={[styles.anonBtn, { borderColor: BORDER }, isAnonymous && styles.anonBtnActive]}
                         onPress={() => setIsAnonymous(!isAnonymous)}
@@ -591,7 +586,6 @@ export default function EventPageScreen({ navigation, route }) {
                   ) : (
                     comments.map((comment, index) => (
                       <View key={comment.id || index} style={styles.commentItem}>
-                        {/* ✅ No emoji in avatar */}
                         <View style={[styles.commentAvatar, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
                           {comment.is_anonymous ? (
                             <Ionicons name="eye-off-outline" size={16} color={WINE} />
@@ -623,7 +617,6 @@ export default function EventPageScreen({ navigation, route }) {
 
       {/* Bottom buttons */}
       <View style={[styles.bottomBar, { backgroundColor: CARD, borderTopColor: BORDER }]}>
-        {/* ✅ No emoji in contribute button */}
         <TouchableOpacity style={styles.contributeBtn} onPress={() => navigation.navigate('Contribute', { event })} activeOpacity={0.85}>
           <Ionicons name="heart" size={20} color={WHITE} />
           <Text style={styles.contributeBtnText}>
@@ -652,7 +645,6 @@ export default function EventPageScreen({ navigation, route }) {
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={[styles.modalBox, { backgroundColor: CARD }]}>
               <View style={styles.modalHeader}>
-                {/* ✅ No emoji in modal title */}
                 <Text style={[styles.modalTitle, { color: TEXT }]}>
                   {language === 'Kinyarwanda' ? 'Hindura Ikirori' : 'Edit Event'}
                 </Text>
@@ -712,7 +704,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   heroWrapper: { width, height: height * 0.48, position: 'relative' },
   heroImage: { width: '100%', height: '100%' },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+
+  // ✅ No overlay — clear photo!
+  heroOverlay: { display: 'none' },
+
   heroTop: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroTopRight: { flexDirection: 'row', gap: 10 },
   heroBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
@@ -722,11 +717,14 @@ const styles = StyleSheet.create({
   ownerBadge: { position: 'absolute', top: Platform.OS === 'android' ? 100 : 110, right: 20, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   ownerBadgeText: { fontSize: 11, fontWeight: '700', color: WHITE },
   heroInfo: { position: 'absolute', bottom: 40, left: 20, right: 20 },
-  heroName: { fontSize: 28, fontWeight: '800', color: WHITE, marginBottom: 6 },
+
+  // ✅ Bold text with shadow instead of overlay
+  heroName: { fontSize: 28, fontWeight: '800', color: WHITE, marginBottom: 6, textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' },
-  heroDate: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  heroDot: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  heroQuote: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontStyle: 'italic' },
+  heroDate: { fontSize: 13, color: WHITE, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  heroDot: { fontSize: 13, color: WHITE },
+  heroQuote: { fontSize: 13, color: WHITE, fontStyle: 'italic', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+
   tapHint: { position: 'absolute', bottom: 16, left: 0, right: 0, alignItems: 'center' },
   tapHintText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
   dotsContainer: { position: 'absolute', bottom: 8, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },

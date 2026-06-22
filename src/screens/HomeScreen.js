@@ -17,8 +17,6 @@ const WINE        = '#E60012';
 const WINE_LIGHT  = '#FDF0F3';
 const WHITE       = '#FFFFFF';
 const BLACK       = '#1A1A1A';
-const GRAY        = '#888888';
-// ✅ Renamed to avoid conflict with colors.BORDER
 const BORDER_COLOR = '#F0F0F0';
 
 const CARD_WIDTH  = width * 0.52;
@@ -146,26 +144,39 @@ export default function HomeScreen({ navigation }) {
     return require('../../assets/couple.png');
   };
 
-  // Portrait Event Card
+  // ✅ Portrait Event Card — fixed overlay and text
   const PortraitCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
       <TouchableOpacity style={styles.portraitCard} activeOpacity={0.9} onPress={onPress}>
         <Image source={getEventImage(item)} style={styles.portraitImage} resizeMode="cover" />
+
+        {/* ✅ Bottom overlay only — top of photo is clear! */}
         <View style={styles.portraitOverlay} />
+
+        {/* ✅ Type badge */}
         <View style={styles.typeBadge}>
-          <Text style={styles.typeBadgeText}>{item.type || 'Event'}</Text>
+          <Text style={styles.typeBadgeText} numberOfLines={1}>{item.type || 'Event'}</Text>
         </View>
+
         {item.is_private && (
           <View style={styles.privateBadge}>
             <Ionicons name="lock-closed" size={10} color={WHITE} />
           </View>
         )}
+
+        {/* ✅ Text content at bottom */}
         <View style={styles.portraitBottom}>
-          <Text style={styles.portraitName} numberOfLines={2}>{item.title}</Text>
+          <Text
+            style={styles.portraitName}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {item.title}
+          </Text>
           <View style={styles.portraitDateRow}>
             <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.portraitDate}>{formatDate(item.date)}</Text>
+            <Text style={styles.portraitDate} numberOfLines={1}>{formatDate(item.date)}</Text>
           </View>
           {item.location && (
             <View style={styles.portraitDateRow}>
@@ -177,7 +188,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.portraitProgressFill, { width: `${progress * 100}%` }]} />
           </View>
           <View style={styles.portraitAmountRow}>
-            <Text style={styles.portraitAmount}>{formatAmount(item.total_raised)}</Text>
+            <Text style={styles.portraitAmount} numberOfLines={1}>{formatAmount(item.total_raised)}</Text>
             <Text style={styles.portraitPercent}>{Math.round(progress * 100)}%</Text>
           </View>
           <TouchableOpacity style={styles.portraitBtn} onPress={onContribute} activeOpacity={0.85}>
@@ -284,7 +295,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* ✅ Header */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greeting, { color: TEXT }]} numberOfLines={1} adjustsFontSizeToFit>
@@ -299,8 +310,6 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="notifications-outline" size={26} color={TEXT} />
               {dashboard?.unread_notifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
-
-            {/* ✅ Login button or Avatar */}
             {isLoggedIn ? (
               <TouchableOpacity
                 style={[styles.avatarContainer, { borderColor: WINE }]}
@@ -406,7 +415,6 @@ export default function HomeScreen({ navigation }) {
           </>
         ) : (
           <>
-            {/* ✅ Stats — only if logged in */}
             {isLoggedIn && dashboard && (
               <View style={styles.statsRow}>
                 <View style={[styles.statCard, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}>
@@ -430,19 +438,13 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
 
-            {/* ✅ Create Event Button */}
-            <TouchableOpacity
-              style={styles.createBtn}
-              activeOpacity={0.85}
-              onPress={handleCreateEvent}
-            >
+            <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={handleCreateEvent}>
               <Ionicons name="add-circle-outline" size={22} color={WHITE} />
               <Text style={styles.createBtnText}>
                 {language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}
               </Text>
             </TouchableOpacity>
 
-            {/* ✅ My Events — only if logged in */}
             {isLoggedIn && myEvents.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
@@ -470,7 +472,6 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* All Events — everyone! */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: TEXT }]}>
                 {activeCategory === 'All'
@@ -507,7 +508,6 @@ export default function HomeScreen({ navigation }) {
               />
             )}
 
-            {/* ✅ Quick Actions — only if logged in */}
             {isLoggedIn && (
               <>
                 <View style={styles.sectionHeader}>
@@ -546,7 +546,6 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* ✅ Join Banner — only if NOT logged in */}
             {!isLoggedIn && (
               <View style={[styles.joinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
                 <Ionicons name="person-add-outline" size={28} color={WINE} />
@@ -614,11 +613,8 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   profileAvatar: { width: 40, height: 40, borderRadius: 20 },
   profileAvatarInitials: { fontSize: 14, fontWeight: '800', color: WHITE },
-
-  // ✅ Login button
   loginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   loginBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
-
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14, height: 52, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 15 },
   categoryScroll: { gap: 8, paddingRight: 20 },
@@ -653,22 +649,29 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '800' },
   seeAll: { fontSize: 14, color: WINE, fontWeight: '600' },
   horizontalList: { paddingRight: 20, paddingBottom: 8, marginBottom: 24 },
+
+  // ✅ Portrait Card
   portraitCard: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 20, marginRight: 14, overflow: 'hidden', backgroundColor: BLACK, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   portraitImage: { width: '100%', height: '100%', position: 'absolute' },
-  portraitOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20 },
-  typeBadge: { position: 'absolute', top: 12, left: 12, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  typeBadgeText: { color: WHITE, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  privateBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 4 },
-  portraitBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 },
-  portraitName: { fontSize: 14, fontWeight: '800', color: WHITE, marginBottom: 4, lineHeight: 18 },
-  portraitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  portraitDate: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
-  portraitProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, marginBottom: 4 },
+
+  // ✅ Overlay ONLY at bottom 62% — top 38% shows photo clearly!
+  portraitOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%', backgroundColor: 'rgba(24, 23, 23, 0.72)' },
+
+  typeBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, maxWidth: '70%' },
+  typeBadgeText: { color: WHITE, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  privateBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(51, 46, 46, 0.6)', borderRadius: 20, padding: 4 },
+
+  // ✅ Text content fixed inside card
+  portraitBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10 },
+  portraitName: { fontSize: 13, fontWeight: '800', color: WHITE, marginBottom: 4, lineHeight: 17, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  portraitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+  portraitDate: { fontSize: 10, color: 'rgba(255,255,255,0.85)', flex: 1 },
+  portraitProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, marginBottom: 4, marginTop: 2 },
   portraitProgressFill: { height: 3, backgroundColor: WINE, borderRadius: 2 },
-  portraitAmountRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  portraitAmount: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  portraitAmountRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  portraitAmount: { fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: '600', flex: 1 },
   portraitPercent: { fontSize: 10, color: WINE, fontWeight: '700' },
-  portraitBtn: { backgroundColor: WINE, borderRadius: 20, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  portraitBtn: { backgroundColor: WINE, borderRadius: 20, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   portraitBtnText: { color: WHITE, fontSize: 11, fontWeight: '700' },
 
   // ✅ Empty State
@@ -678,14 +681,11 @@ const styles = StyleSheet.create({
   emptyStateSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   emptyStateBtn: { backgroundColor: WINE, borderRadius: 14, height: 52, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   emptyStateBtnText: { color: WHITE, fontSize: 16, fontWeight: '700' },
-
-  // ✅ Join Banner
   joinBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, marginBottom: 20 },
   joinTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
   joinSub: { fontSize: 12, lineHeight: 18 },
   joinBtn: { backgroundColor: WINE, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   joinBtnText: { color: WHITE, fontSize: 13, fontWeight: '700' },
-
   quickActionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   quickAction: { alignItems: 'center', gap: 8, flex: 1 },
   quickActionIcon: { width: 72, height: 72, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },

@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider } from "./src/context/ThemeContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import GetStartedScreen from "./src/screens/GetStartedScreen";
@@ -22,8 +25,43 @@ import LiveFeedScreen from "./src/screens/LiveFeedScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
+const BASE_URL = 'https://contriba-backend-production.up.railway.app';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function App() {
+  useEffect(() => {
+    savePushTokenIfLoggedIn();
+  }, []);
+
+  const savePushTokenIfLoggedIn = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('token');
+      if (!authToken) return;
+      const permResult = await Notifications.requestPermissionsAsync();
+      if (permResult.status !== 'granted') return;
+      const pushToken = await Notifications.getExpoPushTokenAsync({
+        projectId: 'd6b09666-6978-45fd-8cc4-a6e71af3b5a1',
+      });
+      await fetch(`${BASE_URL}/api/auth/update-push-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ push_token: pushToken.data }),
+      });
+    } catch (error) {
+      console.log('Push token error:', error);
+    }
+  };
+
   return (
     <ThemeProvider>
       <NavigationContainer>
