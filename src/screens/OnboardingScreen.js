@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
-const WINE  = '#E50914';
+const WINE  = '#E8192C';
 const GOLD  = '#D6A23A';
 const WHITE = '#FFFFFF';
 const BLACK = '#1A1A1A';

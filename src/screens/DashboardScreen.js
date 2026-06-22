@@ -11,7 +11,7 @@ import { getDashboard, getToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { formatEventDate } from '../utils/formatDate';
 
-const WINE       = '#E50914';
+const WINE       = '#E8192C';
 const WINE_LIGHT = '#FDF0F3';
 const GREEN      = '#1A9E4A';
 const WHITE      = '#FFFFFF';

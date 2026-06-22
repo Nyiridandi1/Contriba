@@ -14,7 +14,7 @@ import { formatEventDate } from '../utils/formatDate';
 
 const { width, height } = Dimensions.get('window');
 
-const WINE       = '#E50914';
+const WINE       = '#E8192C';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';

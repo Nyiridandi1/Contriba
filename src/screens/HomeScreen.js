@@ -267,7 +267,6 @@ export default function HomeScreen({ navigation }) {
 
         {/* ── HEADER: Logo + contriba + slogan + bell + avatar ── */}
         <View style={styles.header}>
-          {/* LEFT: Logo + brand name + slogan */}
           <View style={styles.headerLogo}>
             <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
             <View>
@@ -277,7 +276,6 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
           </View>
-          {/* RIGHT: Bell + Avatar */}
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={[styles.bellBtn, { backgroundColor: darkMode ? '#1A1A1A' : WINE_LIGHT }]}
@@ -373,10 +371,20 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
 
-            {/* CREATE BUTTON */}
+            {/* ✅ CREATE BUTTON — updated style */}
             <TouchableOpacity style={styles.createBtn} activeOpacity={0.85} onPress={handleCreateEvent}>
-              <Ionicons name="add-circle" size={24} color={WHITE} />
-              <Text style={styles.createBtnText}>{language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}</Text>
+              <View style={styles.createBtnLeft}>
+                <View style={styles.createBtnIcon}>
+                  <Ionicons name="add" size={22} color={WINE} />
+                </View>
+                <View>
+                  <Text style={styles.createBtnText}>{language === 'Kinyarwanda' ? 'Shiraho Ikirori' : 'Create New Event'}</Text>
+                  <Text style={styles.createBtnSub}>{language === 'Kinyarwanda' ? 'Tangira gutunga inkunga' : 'Start collecting contributions'}</Text>
+                </View>
+              </View>
+              <View style={styles.createBtnArrow}>
+                <Ionicons name="arrow-forward" size={18} color={WINE} />
+              </View>
             </TouchableOpacity>
 
             {/* MY EVENTS */}
@@ -567,9 +575,13 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 13, fontWeight: '900', color: WINE, marginBottom: 3 },
   statLabel: { fontSize: 10, textAlign: 'center', fontWeight: '500' },
 
-  // CREATE BUTTON
-  createBtn: { backgroundColor: WINE, borderRadius: 16, height: 58, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 28, elevation: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14 },
-  createBtnText: { color: WHITE, fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
+  // ✅ CREATE BUTTON — new style
+  createBtn: { backgroundColor: WINE, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, elevation: 8, shadowColor: WINE, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14 },
+  createBtnLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  createBtnIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
+  createBtnText: { color: WHITE, fontSize: 16, fontWeight: '800' },
+  createBtnSub: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 },
+  createBtnArrow: { width: 38, height: 38, borderRadius: 19, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
 
   // SECTION
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { removeToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E50914';
+const WINE       = '#E8192C';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const GRAY       = '#888888';

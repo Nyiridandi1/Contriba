@@ -10,7 +10,7 @@ import { getWallet, removeToken, getToken } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE = '#E50914';
+const WINE = '#E8192C';
 const WHITE = '#FFFFFF';
 
 const SUPABASE_URL = 'https://etswwbmrfqeokmobvhwy.supabase.co';

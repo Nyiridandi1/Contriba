@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTransactions } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE  = '#E50914';
+const WINE  = '#E8192C';
 const GREEN = '#1A9E4A';
 const WHITE = '#FFFFFF';
 
