@@ -143,19 +143,18 @@ export default function HomeScreen({ navigation }) {
     return require('../../assets/couple.png');
   };
 
-  // ✅ HORIZONTAL CARD — My Events (ChatGPT style)
+  // ✅ HORIZONTAL CARD — My Events
   const HorizontalCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
       <TouchableOpacity
-        style={[styles.hCard, { backgroundColor: CARD, borderColor: BORDER_C }]}
+        style={styles.hCard}
         activeOpacity={0.92}
         onPress={onPress}
       >
         {/* LEFT — Photo */}
         <View style={styles.hCardLeft}>
           <ImageBackground source={getEventImage(item)} style={styles.hCardImage} resizeMode="cover">
-            {/* Type badge */}
             <View style={styles.hCardTypeBadge}>
               <Ionicons name="heart" size={10} color={WHITE} />
               <Text style={styles.hCardTypeBadgeText}>{item.type || 'Event'}</Text>
@@ -163,13 +162,12 @@ export default function HomeScreen({ navigation }) {
           </ImageBackground>
         </View>
 
-        {/* RIGHT — Red background with faded circles */}
-        <View style={styles.hCardRight}>
-          {/* Faded CO circles */}
-          <View style={styles.hCardCircle1} />
-          <View style={styles.hCardCircle2} />
-          <View style={styles.hCardCircle3} />
-          {/* Title + bookmark */}
+        {/* RIGHT — CO watermark background */}
+        <ImageBackground
+          source={require('../../assets/auth-bg.png')}
+          style={styles.hCardRight}
+          resizeMode="cover"
+        >
           <View style={styles.hCardTitleRow}>
             <Text style={styles.hCardTitle} numberOfLines={2}>{item.title}</Text>
             <TouchableOpacity style={styles.hCardBookmark}>
@@ -177,23 +175,20 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Date */}
           <View style={styles.hCardMeta}>
-            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.75)" />
+            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.85)" />
             <Text style={styles.hCardMetaText}>{formatDate(item.date)}</Text>
           </View>
 
-          {/* Location */}
           {item.location && (
             <View style={styles.hCardMeta}>
-              <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.75)" />
+              <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.85)" />
               <Text style={styles.hCardMetaText} numberOfLines={1}>{item.location}</Text>
             </View>
           )}
 
-          <View style={[styles.hCardDivider, { backgroundColor: BORDER_C }]} />
+          <View style={styles.hCardDivider} />
 
-          {/* Raised */}
           <Text style={styles.hCardRaisedLabel}>
             {language === 'Kinyarwanda' ? 'Byakomejwe' : 'Raised so far'}
           </Text>
@@ -202,28 +197,26 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.hCardPercent}>{Math.round(progress * 100)}%</Text>
           </View>
 
-          {/* Progress */}
-          <View style={[styles.hCardProgressTrack, { backgroundColor: darkMode ? '#2A2A2A' : '#FFE0E0' }]}>
+          <View style={styles.hCardProgressTrack}>
             <View style={[styles.hCardProgressFill, { width: `${progress * 100}%` }]} />
           </View>
 
-          {/* Target */}
           <Text style={styles.hCardTarget}>
             {language === 'Kinyarwanda' ? 'Intego:' : 'Target:'} {item.goal_amount ? formatAmount(item.goal_amount) : 'TBA'}
           </Text>
 
           <TouchableOpacity style={styles.hCardBtn} onPress={onContribute} activeOpacity={0.85}>
-              <Ionicons name="heart" size={14} color={WINE} />
-              <Text style={styles.hCardBtnText}>
-                {language === 'Kinyarwanda' ? 'Tanga Ubu' : 'Contribute Now'}
-              </Text>
-            </TouchableOpacity>
-        </View>
+            <Ionicons name="heart" size={14} color={WINE} />
+            <Text style={styles.hCardBtnText}>
+              {language === 'Kinyarwanda' ? 'Tanga Ubu' : 'Contribute Now'}
+            </Text>
+          </TouchableOpacity>
+        </ImageBackground>
       </TouchableOpacity>
     );
   };
 
-  // ✅ PORTRAIT CARD — All Events (frosted glass style)
+  // ✅ PORTRAIT CARD — All Events
   const PortraitCard = ({ item, onPress, onContribute }) => {
     const progress = getProgress(item);
     return (
@@ -467,7 +460,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </TouchableOpacity>
 
-            {/* ✅ MY EVENTS — Horizontal Cards */}
+            {/* MY EVENTS */}
             {isLoggedIn && myEvents.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
@@ -491,7 +484,7 @@ export default function HomeScreen({ navigation }) {
               </>
             )}
 
-            {/* ✅ ALL EVENTS — Portrait Cards */}
+            {/* ALL EVENTS */}
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={[styles.sectionTitle, { color: TEXT }]}>
@@ -659,7 +652,7 @@ const styles = StyleSheet.create({
   createBtnLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   createBtnIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
   createBtnText: { color: WHITE, fontSize: 16, fontWeight: '800' },
-  createBtnSub: { color: '#FFFFFF', fontSize: 11, marginTop: 2 },
+  createBtnSub: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 },
   createBtnArrow: { width: 38, height: 38, borderRadius: 19, backgroundColor: WHITE, justifyContent: 'center', alignItems: 'center' },
 
   // SECTION
@@ -669,33 +662,30 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 14, color: WINE, fontWeight: '700' },
   horizontalList: { paddingRight: 20, paddingBottom: 8, marginBottom: 24 },
 
-  // ✅ HORIZONTAL CARD (My Events)
+  // ✅ HORIZONTAL CARD — CO watermark background
   hCard: { borderRadius: 20, borderWidth: 0, marginBottom: 16, flexDirection: 'row', overflow: 'hidden', height: 210, elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
   hCardLeft: { width: '38%' },
   hCardImage: { width: '100%', height: '100%', justifyContent: 'flex-start' },
   hCardTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: WHITE, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4, margin: 8, alignSelf: 'flex-start' },
   hCardTypeBadgeText: { color: WINE, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
-  hCardRight: { flex: 1, padding: 12, backgroundColor: WINE, position: 'relative', overflow: 'hidden' },
-  hCardCircle1: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.15)', top: -50, right: -30 },
-  hCardCircle2: { position: 'absolute', width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.10)', bottom: -30, left: -20 },
-  hCardCircle3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)', top: 40, right: 30 },
+  hCardRight: { flex: 1, padding: 12, overflow: 'hidden' },
   hCardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
   hCardTitle: { fontSize: 14, fontWeight: '900', flex: 1, lineHeight: 19, marginRight: 6, color: WHITE },
   hCardBookmark: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
   hCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
-  hCardMetaText: { fontSize: 11, color: '#FFFFFF' },
+  hCardMetaText: { fontSize: 11, color: WHITE },
   hCardDivider: { height: 1, marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.2)' },
-  hCardRaisedLabel: { fontSize: 10, marginBottom: 2, color: '#FFFFFF' },
+  hCardRaisedLabel: { fontSize: 10, marginBottom: 2, color: WHITE },
   hCardAmountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   hCardAmount: { fontSize: 14, fontWeight: '900', color: WHITE },
   hCardPercent: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.9)' },
   hCardProgressTrack: { height: 3, borderRadius: 2, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   hCardProgressFill: { height: 3, backgroundColor: WHITE, borderRadius: 2 },
-  hCardTarget: { fontSize: 10, marginBottom: 8, color: '#FFFFFF' },
+  hCardTarget: { fontSize: 10, marginBottom: 8, color: WHITE },
   hCardBtn: { backgroundColor: WHITE, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   hCardBtnText: { color: WINE, fontSize: 12, fontWeight: '800' },
 
-  // ✅ PORTRAIT CARD (All Events)
+  // PORTRAIT CARD
   portraitCard: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 22, marginRight: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 16 },
   portraitImage: { width: '100%', height: '100%', justifyContent: 'flex-end' },
   typeBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, maxWidth: '70%' },
@@ -705,7 +695,7 @@ const styles = StyleSheet.create({
   glassPanelAccent: { width: 28, height: 2.5, backgroundColor: WINE, borderRadius: 2, marginBottom: 8 },
   portraitName: { fontSize: 14, fontWeight: '900', color: WHITE, marginBottom: 5, lineHeight: 18 },
   portraitMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
-  portraitMeta: { fontSize: 10, color: '#FFFFFF', flex: 1 },
+  portraitMeta: { fontSize: 10, color: 'rgba(255,255,255,0.75)', flex: 1 },
   progressTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 8, marginBottom: 5 },
   progressFill: { height: 3, backgroundColor: WINE, borderRadius: 2 },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
