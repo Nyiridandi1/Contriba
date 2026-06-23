@@ -394,20 +394,7 @@ export default function EventPageScreen({ navigation, route }) {
                   <Ionicons name="chevron-forward" size={20} color={WINE} />
                 </TouchableOpacity>
 
-                {/* Contribute card */}
-                <View style={[styles.contributeCard, { backgroundColor: darkMode ? '#2A0A0F' : WINE_LIGHT }]}>
-                  <View style={[styles.contributeIconBox, { backgroundColor: CARD }]}>
-                    <Ionicons name="heart" size={24} color={WINE} />
-                  </View>
-                  <View style={styles.contributeText}>
-                    <Text style={[styles.contributeTitle, { color: TEXT }]}>
-                      {language === 'Kinyarwanda' ? 'Tanga inkunga ku ibyishimo byacu' : 'Contribute to our happiness'}
-                    </Text>
-                    <Text style={[styles.contributeSubtitle, { color: SUB }]}>
-                      {language === 'Kinyarwanda' ? 'Urukundo rwawe ruradukomeza.' : 'Your love and support mean the world to us.'}
-                    </Text>
-                  </View>
-                </View>
+
 
                 {/* Event details */}
                 <View style={[styles.detailsCard, { borderColor: BORDER, backgroundColor: CARD }]}>
@@ -710,8 +697,8 @@ export default function EventPageScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  heroWrapper: { width, height: height * 0.48, position: 'relative' },
-  heroImage: { width: '100%', height: '100%' },
+  heroWrapper: { width: width - 32, height: height * 0.48, position: 'relative', borderRadius: 28, overflow: 'hidden', marginHorizontal: 16, marginTop: 12, alignSelf: 'center' },
+  heroImage: { width: '100%', height: '100%', borderRadius: 28 },
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '%', backgroundColor: 'rgba(0,0,0,0.5)' },
   heroTop: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroTopRight: { flexDirection: 'row', gap: 10 },
@@ -760,9 +747,9 @@ const styles = StyleSheet.create({
   contributeText: { flex: 1 },
   contributeTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
   contributeSubtitle: { fontSize: 13, lineHeight: 20 },
-  detailsCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
+  detailsCard: { borderWidth: 1, borderRadius: 20, padding: 18, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6 },
-  detailIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  detailIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: WINE_LIGHT, justifyContent: 'center', alignItems: 'center' },
   detailDivider: { height: 1, marginVertical: 4 },
   detailLabel: { fontSize: 12, marginBottom: 2 },
   detailValue: { fontSize: 15, fontWeight: '700' },
