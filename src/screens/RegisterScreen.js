@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   StatusBar, SafeAreaView, Image, ActivityIndicator, Alert,
-  ScrollView, Modal, FlatList,
+  ScrollView, Modal, FlatList, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E8192C';
+const WINE       = '#E50914';
 const WHITE      = '#FFFFFF';
 const WINE_LIGHT = '#FDF0F3';
 
@@ -42,18 +42,18 @@ const COUNTRIES = [
 
 export default function RegisterScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
-  const { BG, CARD, TEXT, SUB, BORDER } = colors;
+  const { CARD, TEXT, SUB, BORDER } = colors;
 
-  const [name, setName]                     = useState('');
+  const [name, setName]                       = useState('');
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
-  const [showPicker, setShowPicker]         = useState(false);
-  const [searchQuery, setSearchQuery]       = useState('');
-  const [phone, setPhone]                   = useState('');
-  const [pin, setPin]                       = useState('');
-  const [confirmPin, setConfirmPin]         = useState('');
-  const [showPin, setShowPin]               = useState(false);
-  const [showConfirmPin, setShowConfirmPin] = useState(false);
-  const [loading, setLoading]               = useState(false);
+  const [showPicker, setShowPicker]           = useState(false);
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [phone, setPhone]                     = useState('');
+  const [pin, setPin]                         = useState('');
+  const [confirmPin, setConfirmPin]           = useState('');
+  const [showPin, setShowPin]                 = useState(false);
+  const [showConfirmPin, setShowConfirmPin]   = useState(false);
+  const [loading, setLoading]                 = useState(false);
 
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,7 +65,6 @@ export default function RegisterScreen({ navigation }) {
     if (phone.length < 8) { Alert.alert('Error', 'Please enter a valid phone number'); return; }
     if (pin.length < 4) { Alert.alert('Error', 'PIN must be at least 4 digits'); return; }
     if (pin !== confirmPin) { Alert.alert('Error', 'PINs do not match!'); return; }
-
     const fullPhone = `+${selectedCountry.callingCode}${phone}`;
     setLoading(true);
     try {
@@ -87,179 +86,130 @@ export default function RegisterScreen({ navigation }) {
   const isDisabled = !name || phone.length < 8 || pin.length < 4 || confirmPin.length < 4 || loading;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
-      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={BG} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={WINE} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={TEXT} />
-        </TouchableOpacity>
-
-        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
-
-        <Text style={[styles.title, { color: TEXT }]}>Create Account</Text>
-        <Text style={[styles.subtitle, { color: SUB }]}>
-          Join Contriba and start creating events today!
-        </Text>
-
-        {/* Full Name */}
-        <Text style={[styles.label, { color: TEXT }]}>Full Name <Text style={styles.required}>*</Text></Text>
-        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <Ionicons name="person-outline" size={20} color={SUB} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: TEXT }]}
-            placeholder="Enter your full name"
-            placeholderTextColor="#BBBBBB"
-            value={name}
-            onChangeText={setName}
-          />
-        </View>
-
-        {/* Phone */}
-        <Text style={[styles.label, { color: TEXT }]}>Phone Number <Text style={styles.required}>*</Text></Text>
-        <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
-            <Text style={styles.flag}>{selectedCountry.flag}</Text>
-            <Text style={[styles.callingCode, { color: TEXT }]}>+{selectedCountry.callingCode}</Text>
-            <Ionicons name="chevron-down" size={14} color={SUB} />
+        {/* RED TOP */}
+        <View style={styles.topSection}>
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
+          <View style={styles.circle3} />
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={WHITE} />
           </TouchableOpacity>
-          <View style={[styles.phoneDivider, { backgroundColor: BORDER }]} />
-          <TextInput
-            style={[styles.phoneInput, { color: TEXT }]}
-            placeholder="781 234 567"
-            placeholderTextColor="#BBBBBB"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            maxLength={12}
-          />
-        </View>
-
-        {/* PIN Banner */}
-        <View style={[styles.pinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
-          <Ionicons name="lock-closed-outline" size={16} color={WINE} />
-          <Text style={styles.pinBannerText}>Create a PIN to login — just like your ATM PIN!</Text>
-        </View>
-
-        {/* Create PIN */}
-        <Text style={[styles.label, { color: TEXT }]}>Create PIN (4 digits) <Text style={styles.required}>*</Text></Text>
-        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: TEXT }]}
-            placeholder="● ● ● ●"
-            placeholderTextColor="#BBBBBB"
-            value={pin}
-            onChangeText={setPin}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry={!showPin}
-          />
-          <TouchableOpacity onPress={() => setShowPin(!showPin)}>
-            <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Confirm PIN */}
-        <Text style={[styles.label, { color: TEXT }]}>Confirm PIN <Text style={styles.required}>*</Text></Text>
-        <View style={[styles.inputRow, { borderColor: confirmPin && confirmPin !== pin ? '#FF3B30' : BORDER, backgroundColor: CARD }]}>
-          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: TEXT }]}
-            placeholder="● ● ● ●"
-            placeholderTextColor="#BBBBBB"
-            value={confirmPin}
-            onChangeText={setConfirmPin}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry={!showConfirmPin}
-          />
-          <TouchableOpacity onPress={() => setShowConfirmPin(!showConfirmPin)}>
-            <Ionicons name={showConfirmPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
-          </TouchableOpacity>
-        </View>
-
-        {confirmPin.length > 0 && confirmPin !== pin && (
-          <View style={styles.errorRow}>
-            <Ionicons name="alert-circle-outline" size={14} color="#FF3B30" />
-            <Text style={styles.errorText}>PINs do not match!</Text>
+          <View style={styles.logoWrap}>
+            <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
           </View>
-        )}
+          <Text style={styles.title}>{'Create Account'}</Text>
+          <Text style={styles.subtitle}>{'Join Contriba and start creating events today!'}</Text>
+        </View>
 
-        {confirmPin.length > 0 && confirmPin === pin && (
-          <View style={styles.successRow}>
-            <Ionicons name="checkmark-circle-outline" size={14} color="#1A9E4A" />
-            <Text style={styles.successText}>PINs match!</Text>
+        {/* WHITE FORM */}
+        <View style={styles.formSection}>
+
+          <Text style={[styles.label, { color: TEXT }]}>{'Full Name '}<Text style={styles.required}>{'*'}</Text></Text>
+          <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+            <Ionicons name="person-outline" size={20} color={SUB} style={styles.inputIcon} />
+            <TextInput style={[styles.input, { color: TEXT }]} placeholder="Enter your full name" placeholderTextColor="#BBBBBB" value={name} onChangeText={setName} />
           </View>
-        )}
 
-        <TouchableOpacity
-          style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]}
-          onPress={handleRegister}
-          disabled={isDisabled}
-          activeOpacity={0.85}
-        >
-          {loading ? (
-            <ActivityIndicator color={WHITE} size="small" />
-          ) : (
-            <>
-              <Ionicons name="person-add-outline" size={20} color={WHITE} />
-              <Text style={styles.continueBtnText}>Create Account</Text>
-            </>
+          <Text style={[styles.label, { color: TEXT }]}>{'Phone Number '}<Text style={styles.required}>{'*'}</Text></Text>
+          <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+            <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
+              <Text style={styles.flag}>{selectedCountry.flag}</Text>
+              <Text style={[styles.callingCode, { color: TEXT }]}>{'+' + selectedCountry.callingCode}</Text>
+              <Ionicons name="chevron-down" size={14} color={SUB} />
+            </TouchableOpacity>
+            <View style={[styles.phoneDivider, { backgroundColor: BORDER }]} />
+            <TextInput style={[styles.phoneInput, { color: TEXT }]} placeholder="781 234 567" placeholderTextColor="#BBBBBB" keyboardType="phone-pad" value={phone} onChangeText={setPhone} maxLength={12} />
+          </View>
+
+          <View style={[styles.pinBanner, { backgroundColor: darkMode ? '#1A0A0E' : WINE_LIGHT }]}>
+            <Ionicons name="lock-closed-outline" size={16} color={WINE} />
+            <Text style={styles.pinBannerText}>{'Create a PIN to login — just like your ATM PIN!'}</Text>
+          </View>
+
+          <Text style={[styles.label, { color: TEXT }]}>{'Create PIN (4 digits) '}<Text style={styles.required}>{'*'}</Text></Text>
+          <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+            <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+            <TextInput style={[styles.input, { color: TEXT }]} placeholder="● ● ● ●" placeholderTextColor="#BBBBBB" value={pin} onChangeText={setPin} keyboardType="numeric" maxLength={6} secureTextEntry={!showPin} />
+            <TouchableOpacity onPress={() => setShowPin(!showPin)}>
+              <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.label, { color: TEXT }]}>{'Confirm PIN '}<Text style={styles.required}>{'*'}</Text></Text>
+          <View style={[styles.inputRow, { borderColor: confirmPin && confirmPin !== pin ? '#FF3B30' : BORDER, backgroundColor: CARD }]}>
+            <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+            <TextInput style={[styles.input, { color: TEXT }]} placeholder="● ● ● ●" placeholderTextColor="#BBBBBB" value={confirmPin} onChangeText={setConfirmPin} keyboardType="numeric" maxLength={6} secureTextEntry={!showConfirmPin} />
+            <TouchableOpacity onPress={() => setShowConfirmPin(!showConfirmPin)}>
+              <Ionicons name={showConfirmPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+            </TouchableOpacity>
+          </View>
+
+          {confirmPin.length > 0 && confirmPin !== pin && (
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle-outline" size={14} color="#FF3B30" />
+              <Text style={styles.errorText}>{'PINs do not match!'}</Text>
+            </View>
           )}
-        </TouchableOpacity>
 
-        <View style={styles.bottomRow}>
-          <Text style={[styles.bottomText, { color: TEXT }]}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.bottomLink}>  Login</Text>
+          {confirmPin.length > 0 && confirmPin === pin && (
+            <View style={styles.successRow}>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#1A9E4A" />
+              <Text style={styles.successText}>{'PINs match!'}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]} onPress={handleRegister} disabled={isDisabled} activeOpacity={0.85}>
+            {loading ? <ActivityIndicator color={WHITE} size="small" /> : (
+              <>
+                <Ionicons name="person-add-outline" size={20} color={WHITE} />
+                <Text style={styles.continueBtnText}>{'Create Account'}</Text>
+              </>
+            )}
           </TouchableOpacity>
+
+          <View style={styles.bottomRow}>
+            <Text style={[styles.bottomText, { color: TEXT }]}>{'Already have an account?'}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.bottomLink}>{'  Login'}</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
+
 
       </ScrollView>
+
 
       <Modal visible={showPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: CARD }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: TEXT }]}>Select Country</Text>
+              <Text style={[styles.modalTitle, { color: TEXT }]}>{'Select Country'}</Text>
               <TouchableOpacity onPress={() => { setShowPicker(false); setSearchQuery(''); }}>
                 <Ionicons name="close" size={24} color={TEXT} />
               </TouchableOpacity>
             </View>
             <View style={[styles.searchBox, { borderColor: BORDER, backgroundColor: darkMode ? '#2A2A2A' : '#F5F5F5' }]}>
               <Ionicons name="search-outline" size={18} color={SUB} />
-              <TextInput
-                style={[styles.searchInput, { color: TEXT }]}
-                placeholder="Search country..."
-                placeholderTextColor="#BBBBBB"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+              <TextInput style={[styles.searchInput, { color: TEXT }]} placeholder="Search country..." placeholderTextColor="#BBBBBB" value={searchQuery} onChangeText={setSearchQuery} />
             </View>
             <FlatList
               data={filteredCountries}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.countryItem,
-                    { borderBottomColor: BORDER },
-                    selectedCountry.code === item.code && { backgroundColor: WINE_LIGHT }
-                  ]}
-                  onPress={() => {
-                    setSelectedCountry(item);
-                    setShowPicker(false);
-                    setSearchQuery('');
-                  }}
+                  style={[styles.countryItem, { borderBottomColor: BORDER }, selectedCountry.code === item.code && { backgroundColor: WINE_LIGHT }]}
+                  onPress={() => { setSelectedCountry(item); setShowPicker(false); setSearchQuery(''); }}
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={[styles.countryName, { color: TEXT }]}>{item.name}</Text>
-                  <Text style={[styles.countryCode, { color: SUB }]}>+{item.callingCode}</Text>
-                  {selectedCountry.code === item.code && (
-                    <Ionicons name="checkmark-circle" size={20} color={WINE} />
-                  )}
+                  <Text style={[styles.countryCode, { color: SUB }]}>{'+' + item.callingCode}</Text>
+                  {selectedCountry.code === item.code && <Ionicons name="checkmark-circle" size={20} color={WINE} />}
                 </TouchableOpacity>
               )}
             />
@@ -272,12 +222,18 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
-  backBtn: { marginBottom: 16 },
-  logo: { width: 100, height: 100, marginBottom: 16, borderRadius: 22 },
-  title: { fontSize: 30, fontWeight: '800', marginBottom: 8 },
-  subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
+  container: { flex: 1, backgroundColor: WINE },
+  content: { flexGrow: 1 },
+  topSection: { backgroundColor: WINE, paddingHorizontal: 24, paddingTop: Platform.OS === 'android' ? 40 : 16, paddingBottom: 40, position: 'relative', overflow: 'hidden', alignItems: 'center' },
+  circle1: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.08)', top: -60, right: -60 },
+  circle2: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -40, left: -40 },
+  circle3: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', top: 60, right: 40 },
+  backBtn: { alignSelf: 'flex-start', marginBottom: 20, padding: 4 },
+  logoWrap: { width: 80, height: 80, borderRadius: 20, overflow: 'hidden', marginBottom: 14, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  logo: { width: 80, height: 80 },
+  title: { fontSize: 26, fontWeight: '900', color: WHITE, marginBottom: 6, textAlign: 'center' },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 20 },
+  formSection: { backgroundColor: WHITE, borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginBottom: 20, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   required: { color: WINE },
   inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20 },

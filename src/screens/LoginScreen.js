@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E8192C';
+const WINE       = '#E50914';
 const WHITE      = '#FFFFFF';
 const WINE_LIGHT = '#F9EEF1';
 
@@ -40,7 +40,7 @@ const COUNTRIES = [
 
 export default function LoginScreen({ navigation }) {
   const { darkMode, language, colors } = useTheme();
-  const { BG, CARD, TEXT, SUB, BORDER } = colors;
+  const { CARD, TEXT, SUB, BORDER } = colors;
 
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showPicker, setShowPicker]           = useState(false);
@@ -56,14 +56,8 @@ export default function LoginScreen({ navigation }) {
   );
 
   const handleLogin = async () => {
-    if (phone.length < 8) {
-      Alert.alert('Error', 'Please enter your phone number');
-      return;
-    }
-    if (pin.length < 4) {
-      Alert.alert('Error', 'Please enter your PIN');
-      return;
-    }
+    if (phone.length < 8) { Alert.alert('Error', 'Please enter your phone number'); return; }
+    if (pin.length < 4) { Alert.alert('Error', 'Please enter your PIN'); return; }
     const fullPhone = `+${selectedCountry.callingCode}${phone}`;
     setLoading(true);
     try {
@@ -85,92 +79,106 @@ export default function LoginScreen({ navigation }) {
   const isDisabled = phone.length < 8 || pin.length < 4 || loading;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: BG }]}>
-      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={BG} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={WINE} />
+
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={TEXT} />
-        </TouchableOpacity>
-
-        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
-
-        <Text style={[styles.title, { color: TEXT }]}>Welcome back</Text>
-        <Text style={[styles.subtitle, { color: SUB }]}>
-          Enter your phone number and PIN to login
-        </Text>
-
-        <Text style={[styles.label, { color: TEXT }]}>
-          Phone Number <Text style={styles.required}>*</Text>
-        </Text>
-        <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
-            <Text style={styles.flag}>{selectedCountry.flag}</Text>
-            <Text style={[styles.callingCode, { color: TEXT }]}>+{selectedCountry.callingCode}</Text>
-            <Ionicons name="chevron-down" size={14} color={SUB} />
-          </TouchableOpacity>
-          <View style={[styles.phoneDivider, { backgroundColor: BORDER }]} />
-          <TextInput
-            style={[styles.phoneInput, { color: TEXT }]}
-            placeholder="781 234 567"
-            placeholderTextColor="#BBBBBB"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            maxLength={12}
-          />
-        </View>
-
-        <Text style={[styles.label, { color: TEXT }]}>
-          PIN <Text style={styles.required}>*</Text>
-        </Text>
-        <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
-          <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: TEXT }]}
-            placeholder="● ● ● ●"
-            placeholderTextColor="#BBBBBB"
-            value={pin}
-            onChangeText={setPin}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry={!showPin}
-          />
-          <TouchableOpacity onPress={() => setShowPin(!showPin)}>
-            <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]}
-          onPress={handleLogin}
-          disabled={isDisabled}
-          activeOpacity={0.85}
-        >
-          {loading ? (
-            <ActivityIndicator color={WHITE} size="small" />
+        {/* RED TOP */}
+        <View style={styles.topSection}>
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
+          <View style={styles.circle3} />
+          {navigation.canGoBack() ? (
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={WHITE} />
+            </TouchableOpacity>
           ) : (
-            <>
-              <Ionicons name="log-in-outline" size={20} color={WHITE} />
-              <Text style={styles.continueBtnText}>Login</Text>
-            </>
+            <View style={styles.backBtn} />
           )}
-        </TouchableOpacity>
-
-        <View style={styles.bottomRow}>
-          <Text style={[styles.bottomText, { color: TEXT }]}>Don't have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.bottomLink}>  Sign Up</Text>
-          </TouchableOpacity>
+          <View style={styles.logoWrap}>
+            <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
+          </View>
+          <Text style={styles.title}>{'Welcome back'}</Text>
+          <Text style={styles.subtitle}>{'Enter your phone number and PIN to login'}</Text>
         </View>
+
+        {/* WHITE FORM */}
+        <View style={styles.formSection}>
+          <Text style={[styles.label, { color: TEXT }]}>
+            {'Phone Number '}<Text style={styles.required}>{'*'}</Text>
+          </Text>
+          <View style={[styles.phoneRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+            <TouchableOpacity style={styles.countryBox} onPress={() => setShowPicker(true)}>
+              <Text style={styles.flag}>{selectedCountry.flag}</Text>
+              <Text style={[styles.callingCode, { color: TEXT }]}>{'+' + selectedCountry.callingCode}</Text>
+              <Ionicons name="chevron-down" size={14} color={SUB} />
+            </TouchableOpacity>
+            <View style={[styles.phoneDivider, { backgroundColor: BORDER }]} />
+            <TextInput
+              style={[styles.phoneInput, { color: TEXT }]}
+              placeholder="781 234 567"
+              placeholderTextColor="#BBBBBB"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              maxLength={12}
+            />
+          </View>
+
+          <Text style={[styles.label, { color: TEXT }]}>
+            {'PIN '}<Text style={styles.required}>{'*'}</Text>
+          </Text>
+          <View style={[styles.inputRow, { borderColor: BORDER, backgroundColor: CARD }]}>
+            <Ionicons name="keypad-outline" size={20} color={SUB} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { color: TEXT }]}
+              placeholder="● ● ● ●"
+              placeholderTextColor="#BBBBBB"
+              value={pin}
+              onChangeText={setPin}
+              keyboardType="numeric"
+              maxLength={6}
+              secureTextEntry={!showPin}
+            />
+            <TouchableOpacity onPress={() => setShowPin(!showPin)}>
+              <Ionicons name={showPin ? 'eye-outline' : 'eye-off-outline'} size={20} color={SUB} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.continueBtn, isDisabled && styles.continueBtnDisabled]}
+            onPress={handleLogin}
+            disabled={isDisabled}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color={WHITE} size="small" />
+            ) : (
+              <>
+                <Ionicons name="log-in-outline" size={20} color={WHITE} />
+                <Text style={styles.continueBtnText}>{'Login'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.bottomRow}>
+            <Text style={[styles.bottomText, { color: TEXT }]}>{"Don't have an account?"}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.bottomLink}>{'  Sign Up'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
 
       </ScrollView>
+
 
       <Modal visible={showPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: CARD }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: TEXT }]}>Select Country</Text>
+              <Text style={[styles.modalTitle, { color: TEXT }]}>{'Select Country'}</Text>
               <TouchableOpacity onPress={() => { setShowPicker(false); setSearchQuery(''); }}>
                 <Ionicons name="close" size={24} color={TEXT} />
               </TouchableOpacity>
@@ -195,7 +203,7 @@ export default function LoginScreen({ navigation }) {
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={[styles.countryName, { color: TEXT }]}>{item.name}</Text>
-                  <Text style={[styles.countryCode, { color: SUB }]}>+{item.callingCode}</Text>
+                  <Text style={[styles.countryCode, { color: SUB }]}>{'+' + item.callingCode}</Text>
                   {selectedCountry.code === item.code && (
                     <Ionicons name="checkmark-circle" size={20} color={WINE} />
                   )}
@@ -211,12 +219,18 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
-  backBtn: { marginBottom: 16 },
-  logo: { width: 120, height: 120, marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', marginBottom: 8 },
-  subtitle: { fontSize: 15, lineHeight: 24, marginBottom: 28 },
+  container: { flex: 1, backgroundColor: WINE },
+  content: { flexGrow: 1 },
+  topSection: { backgroundColor: WINE, paddingHorizontal: 24, paddingTop: Platform.OS === 'android' ? 40 : 16, paddingBottom: 40, position: 'relative', overflow: 'hidden', alignItems: 'center' },
+  circle1: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.08)', top: -60, right: -60 },
+  circle2: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -40, left: -40 },
+  circle3: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', top: 60, right: 40 },
+  backBtn: { alignSelf: 'flex-start', marginBottom: 20, padding: 4 },
+  logoWrap: { width: 90, height: 90, borderRadius: 22, overflow: 'hidden', marginBottom: 16, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  logo: { width: 90, height: 90 },
+  title: { fontSize: 28, fontWeight: '900', color: WHITE, marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 22 },
+  formSection: { backgroundColor: WHITE, borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginBottom: 20, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24, flex: 1 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   required: { color: WINE },
   phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, height: 58, paddingHorizontal: 14, marginBottom: 20 },
