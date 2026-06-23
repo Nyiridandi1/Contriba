@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  StatusBar, SafeAreaView, Image, ActivityIndicator, Alert,
+  StatusBar, SafeAreaView, Image, ImageBackground, ActivityIndicator, Alert,
   ScrollView, Modal, FlatList, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWithPin, saveToken } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E50914';
+const WINE       = '#CC0000';
 const WHITE      = '#FFFFFF';
 const WINE_LIGHT = '#FDF0F3';
 
@@ -92,19 +92,16 @@ export default function RegisterScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* RED TOP */}
-        <View style={styles.topSection}>
-          <View style={styles.circle1} />
-          <View style={styles.circle2} />
-          <View style={styles.circle3} />
+        <ImageBackground source={require("../../assets/auth-bg.png")} style={styles.topSection} resizeMode="cover">
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={WHITE} />
           </TouchableOpacity>
           <View style={styles.logoWrap}>
-            <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/co-logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
           <Text style={styles.title}>{'Create Account'}</Text>
           <Text style={styles.subtitle}>{'Join Contriba and start creating events today!'}</Text>
-        </View>
+        </ImageBackground>
 
         {/* WHITE FORM */}
         <View style={styles.formSection}>

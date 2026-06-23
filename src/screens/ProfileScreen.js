@@ -10,7 +10,7 @@ import { getWallet, removeToken, getToken } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE = '#E8192C';
+const WINE = '#CC0000';
 const WHITE = '#FFFFFF';
 
 const SUPABASE_URL = 'https://etswwbmrfqeokmobvhwy.supabase.co';
@@ -135,7 +135,7 @@ export default function ProfileScreen({ navigation }) {
         onPress: async () => {
           await removeToken();
           await AsyncStorage.removeItem('user');
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
         },
       },
     ]);

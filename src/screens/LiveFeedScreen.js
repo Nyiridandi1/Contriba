@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getEvent } from '../api';
 import { useTheme } from '../context/ThemeContext';
 
-const WINE       = '#E8192C';
+const WINE       = '#CC0000';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const GREEN      = '#1A9E4A';
@@ -34,7 +34,7 @@ const getInitials = (name) => {
 };
 
 const getAvatarColor = (name) => {
-  const colors = ['#E8192C', '#1A9E4A', '#1976D2', '#F59E0B', '#7C3AED', '#E91E63'];
+  const colors = ['#CC0000', '#1A9E4A', '#1976D2', '#F59E0B', '#7C3AED', '#E91E63'];
   if (!name || name === 'Anonymous') return '#888888';
   const index = name.charCodeAt(0) % colors.length;
   return colors[index];

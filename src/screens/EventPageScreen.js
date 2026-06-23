@@ -14,7 +14,7 @@ import { formatEventDate } from '../utils/formatDate';
 
 const { width, height } = Dimensions.get('window');
 
-const WINE       = '#E8192C';
+const WINE       = '#CC0000';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';
@@ -697,7 +697,7 @@ export default function EventPageScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  heroWrapper: { width: width - 32, height: height * 0.48, position: 'relative', borderRadius: 28, overflow: 'hidden', marginHorizontal: 16, marginTop: 12, alignSelf: 'center' },
+  heroWrapper: { width, height: height * 0.48, position: 'relative', borderRadius: 28, overflow: 'hidden', marginHorizontal: 16, marginTop: 12 },
   heroImage: { width: '100%', height: '100%', borderRadius: 28 },
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '%', backgroundColor: 'rgba(0,0,0,0.5)' },
   heroTop: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 48, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initiateContribution } from '../api';
 import { formatEventDate } from '../utils/formatDate';
 
-const WINE       = '#E8192C';
+const WINE       = '#CC0000';
 const WINE_LIGHT = '#FDF0F3';
 const WHITE      = '#FFFFFF';
 const BLACK      = '#1A1A1A';
