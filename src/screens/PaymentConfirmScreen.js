@@ -12,6 +12,7 @@ const LIGHT_GREY = '#F5F5F5';
 const MID_GREY = '#CCCCCC';
 const DARK_GREY = '#666666';
 const TEXT = '#1A1A1A';
+const GREEN = '#1A9E4A';
 
 const BASE_URL = 'https://contriba-backend-production.up.railway.app';
 
@@ -26,6 +27,8 @@ export default function PaymentConfirmScreen({ navigation, route }) {
   const [selectedMethod, setSelectedMethod] = useState('mtn');
   const [isLoading, setIsLoading]           = useState(false);
   const [statusMessage, setStatusMessage]   = useState('');
+  const [timedOut, setTimedOut]             = useState(false);
+  const [lastRef, setLastRef]               = useState(null);
 
   const cleanAmount = parseInt(String(amount).replace(/,/g, '')) || 0;
   const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
@@ -35,6 +38,57 @@ export default function PaymentConfirmScreen({ navigation, route }) {
     { id: 'airtel', label: 'Airtel Money',      logo: require('../../assets/airtel.jpg') },
     { id: 'visa',   label: 'Visa / Card',       logo: require('../../assets/Visa.png')   },
   ];
+
+  const pollStatus = async (ref, attempts = 0, maxAttempts = 60) => {
+    attempts++;
+    try {
+      const statusRes = await fetch(`${BASE_URL}/api/payments/status/${ref}`);
+      const statusData = await statusRes.json();
+
+      console.log(`Poll attempt ${attempts}: status=${statusData.status}`);
+
+      if (statusData.status === 'successful') {
+        setIsLoading(false);
+        setStatusMessage('');
+        setTimedOut(false);
+        navigation.navigate('PaymentSuccess', {
+          event,
+          amount: cleanAmount,
+          paymentMethod: selectedMethod,
+          phoneNumber: contribution?.contributor_phone,
+          transaction_ref: ref,
+          total: cleanAmount,
+        });
+      } else if (statusData.status === 'failed') {
+        setIsLoading(false);
+        setStatusMessage('');
+        setTimedOut(false);
+        Alert.alert('Payment Failed', 'Your payment was not confirmed. Please try again.');
+      } else if (attempts < maxAttempts) {
+        // Still pending — keep polling
+        const seconds = attempts * 3;
+        if (seconds < 60) {
+          setStatusMessage(`Waiting for confirmation... (${seconds}s)`);
+        } else {
+          setStatusMessage(`Still waiting... (${Math.floor(seconds / 60)}m ${seconds % 60}s)`);
+        }
+        setTimeout(() => pollStatus(ref, attempts, maxAttempts), 3000);
+      } else {
+        // Timed out
+        setIsLoading(false);
+        setStatusMessage('');
+        setTimedOut(true);
+      }
+    } catch (err) {
+      if (attempts < maxAttempts) {
+        setTimeout(() => pollStatus(ref, attempts, maxAttempts), 3000);
+      } else {
+        setIsLoading(false);
+        setStatusMessage('');
+        setTimedOut(true);
+      }
+    }
+  };
 
   const handlePayNow = async () => {
     if (selectedMethod === 'visa') {
@@ -48,6 +102,7 @@ export default function PaymentConfirmScreen({ navigation, route }) {
     }
 
     setIsLoading(true);
+    setTimedOut(false);
     setStatusMessage('Sending payment request...');
 
     try {
@@ -69,51 +124,9 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
       if (result.success) {
         const ref = result.transaction_ref;
-        setStatusMessage('Check your phone to confirm payment...');
-
-        let attempts = 0;
-        const maxAttempts = 20; // 60 seconds total
-
-        const pollStatus = async () => {
-          attempts++;
-          try {
-            const statusRes = await fetch(`${BASE_URL}/api/payments/status/${ref}`);
-            const statusData = await statusRes.json();
-
-            if (statusData.status === 'successful') {
-              setIsLoading(false);
-              setStatusMessage('');
-              navigation.navigate('PaymentSuccess', {
-                event,
-                amount: cleanAmount,
-                paymentMethod: selectedMethod,
-                phoneNumber: contribution.contributor_phone,
-                transaction_ref: ref,
-                total: cleanAmount,
-              });
-            } else if (statusData.status === 'failed') {
-              setIsLoading(false);
-              setStatusMessage('');
-              Alert.alert('Payment Failed', 'Your payment was not confirmed. Please try again.');
-            } else if (attempts < maxAttempts) {
-              setStatusMessage(`Waiting for confirmation... (${attempts * 3}s)`);
-              setTimeout(pollStatus, 3000);
-            } else {
-              setIsLoading(false);
-              setStatusMessage('');
-              Alert.alert('Timeout', 'Payment is taking too long. Please check your phone and try again.');
-            }
-          } catch (err) {
-            if (attempts < maxAttempts) {
-              setTimeout(pollStatus, 3000);
-            } else {
-              setIsLoading(false);
-              setStatusMessage('');
-            }
-          }
-        };
-
-        setTimeout(pollStatus, 3000);
+        setLastRef(ref);
+        setStatusMessage('Check your phone to confirm payment... 📱');
+        setTimeout(() => pollStatus(ref, 0, 60), 3000);
       } else {
         setIsLoading(false);
         setStatusMessage('');
@@ -124,6 +137,17 @@ export default function PaymentConfirmScreen({ navigation, route }) {
       setStatusMessage('');
       Alert.alert('Error', 'Something went wrong. Please try again.');
     }
+  };
+
+  const handleRetry = () => {
+    if (!lastRef) {
+      handlePayNow();
+      return;
+    }
+    setIsLoading(true);
+    setTimedOut(false);
+    setStatusMessage('Checking payment status...');
+    pollStatus(lastRef, 0, 20);
   };
 
   return (
@@ -199,11 +223,22 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           <View style={styles.divider} />
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Owner Receives</Text>
-            <Text style={[styles.breakdownValue, { color: '#2EAD4B', fontWeight: '700' }]}>
+            <Text style={[styles.breakdownValue, { color: GREEN, fontWeight: '700' }]}>
               RWF {(cleanAmount - Math.round(cleanAmount * 0.01)).toLocaleString()}
             </Text>
           </View>
         </View>
+
+        {/* Timeout message */}
+        {timedOut && (
+          <View style={styles.timeoutBox}>
+            <Ionicons name="time-outline" size={24} color={WINE} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.timeoutTitle}>Payment is taking longer than expected</Text>
+              <Text style={styles.timeoutSub}>If you confirmed on your phone, tap "Check Status" below. Otherwise try again.</Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.securityNote}>
           <View style={styles.shieldBubble}>
@@ -217,27 +252,49 @@ export default function PaymentConfirmScreen({ navigation, route }) {
       </ScrollView>
 
       <View style={styles.footer}>
+        {/* Status message */}
         {isLoading && statusMessage ? (
           <View style={styles.statusBox}>
             <ActivityIndicator color={WINE} size="small" />
             <Text style={styles.statusText}>{statusMessage}</Text>
           </View>
         ) : null}
-        <TouchableOpacity
-          style={[styles.payBtn, isLoading && styles.payBtnLoading]}
-          onPress={handlePayNow}
-          disabled={isLoading}
-          activeOpacity={0.85}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={WHITE} size="small" />
-          ) : (
-            <>
-              <Text style={styles.payBtnText}>Pay Now {formatAmount(cleanAmount)}</Text>
-              <Ionicons name="arrow-forward" size={20} color={WHITE} />
-            </>
-          )}
-        </TouchableOpacity>
+
+        {/* Retry button after timeout */}
+        {timedOut && !isLoading ? (
+          <TouchableOpacity style={styles.retryBtn} onPress={handleRetry} activeOpacity={0.85}>
+            <Ionicons name="refresh-outline" size={20} color={WINE} />
+            <Text style={styles.retryBtnText}>Check Status / Try Again</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {/* Pay Now button */}
+        {!timedOut ? (
+          <TouchableOpacity
+            style={[styles.payBtn, isLoading && styles.payBtnLoading]}
+            onPress={handlePayNow}
+            disabled={isLoading}
+            activeOpacity={0.85}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={WHITE} size="small" />
+            ) : (
+              <>
+                <Text style={styles.payBtnText}>Pay Now {formatAmount(cleanAmount)}</Text>
+                <Ionicons name="arrow-forward" size={20} color={WHITE} />
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.payBtn}
+            onPress={handlePayNow}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.payBtnText}>Pay Again {formatAmount(cleanAmount)}</Text>
+            <Ionicons name="arrow-forward" size={20} color={WHITE} />
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -274,12 +331,17 @@ const styles = StyleSheet.create({
   totalDivider: { height: 1, backgroundColor: MID_GREY, marginVertical: 8 },
   totalLabel: { fontSize: 15, fontWeight: '700', color: TEXT },
   totalValue: { fontSize: 15, fontWeight: '700', color: TEXT },
+  timeoutBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: '#FDF0F3', borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: WINE },
+  timeoutTitle: { fontSize: 14, fontWeight: '700', color: WINE, marginBottom: 4 },
+  timeoutSub: { fontSize: 12, color: DARK_GREY, lineHeight: 18 },
   securityNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: LIGHT_GREY, borderRadius: 14, padding: 14, marginBottom: 8 },
   shieldBubble: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   securityText: { fontSize: 13, color: DARK_GREY, flex: 1, lineHeight: 18 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: LIGHT_GREY },
-  statusBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, backgroundColor: '#FDF0F3', borderRadius: 10, padding: 10 },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: LIGHT_GREY, gap: 10 },
+  statusBox: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDF0F3', borderRadius: 10, padding: 10 },
   statusText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
+  retryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderColor: WINE, borderRadius: 14, paddingVertical: 14 },
+  retryBtnText: { fontSize: 15, fontWeight: '700', color: WINE },
   payBtn: { backgroundColor: WINE, borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   payBtnLoading: { backgroundColor: '#A0354A' },
   payBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
