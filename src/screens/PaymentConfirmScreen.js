@@ -25,8 +25,8 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
   const [selectedMethod, setSelectedMethod] = useState('mtn');
   const [isLoading, setIsLoading]           = useState(false);
+  const [statusMessage, setStatusMessage]   = useState('');
 
-  // ✅ Always clean the amount properly
   const cleanAmount = parseInt(String(amount).replace(/,/g, '')) || 0;
   const formatAmount = (val) => 'RWF ' + (val || 0).toLocaleString('en-RW');
 
@@ -48,6 +48,8 @@ export default function PaymentConfirmScreen({ navigation, route }) {
     }
 
     setIsLoading(true);
+    setStatusMessage('Sending payment request...');
+
     try {
       let phone = contribution.contributor_phone;
       if (phone.startsWith('+250')) phone = phone.replace('+250', '250');
@@ -66,22 +68,61 @@ export default function PaymentConfirmScreen({ navigation, route }) {
       const result = await response.json();
 
       if (result.success) {
-        // ✅ Pass cleanAmount (number) not amount (string with commas)
-        navigation.navigate('PaymentSuccess', {
-          event,
-          amount: cleanAmount,
-          paymentMethod: selectedMethod,
-          phoneNumber: contribution.contributor_phone,
-          transaction_ref: result.transaction_ref,
-          total: cleanAmount,
-        });
+        const ref = result.transaction_ref;
+        setStatusMessage('Check your phone to confirm payment...');
+
+        let attempts = 0;
+        const maxAttempts = 20; // 60 seconds total
+
+        const pollStatus = async () => {
+          attempts++;
+          try {
+            const statusRes = await fetch(`${BASE_URL}/api/payments/status/${ref}`);
+            const statusData = await statusRes.json();
+
+            if (statusData.status === 'successful') {
+              setIsLoading(false);
+              setStatusMessage('');
+              navigation.navigate('PaymentSuccess', {
+                event,
+                amount: cleanAmount,
+                paymentMethod: selectedMethod,
+                phoneNumber: contribution.contributor_phone,
+                transaction_ref: ref,
+                total: cleanAmount,
+              });
+            } else if (statusData.status === 'failed') {
+              setIsLoading(false);
+              setStatusMessage('');
+              Alert.alert('Payment Failed', 'Your payment was not confirmed. Please try again.');
+            } else if (attempts < maxAttempts) {
+              setStatusMessage(`Waiting for confirmation... (${attempts * 3}s)`);
+              setTimeout(pollStatus, 3000);
+            } else {
+              setIsLoading(false);
+              setStatusMessage('');
+              Alert.alert('Timeout', 'Payment is taking too long. Please check your phone and try again.');
+            }
+          } catch (err) {
+            if (attempts < maxAttempts) {
+              setTimeout(pollStatus, 3000);
+            } else {
+              setIsLoading(false);
+              setStatusMessage('');
+            }
+          }
+        };
+
+        setTimeout(pollStatus, 3000);
       } else {
+        setIsLoading(false);
+        setStatusMessage('');
         Alert.alert('Payment Failed', result.message || 'Please try again');
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    } finally {
       setIsLoading(false);
+      setStatusMessage('');
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
@@ -99,7 +140,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* CONTRIBUTOR INFO */}
         {contribution && (
           <View style={styles.contributorCard}>
             <Ionicons name="person-circle-outline" size={20} color={WINE} />
@@ -109,14 +149,12 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* YOU ARE SENDING */}
         <View style={styles.amountBlock}>
           <Text style={styles.youAreSending}>You are sending</Text>
           <Text style={styles.bigAmount}>{formatAmount(cleanAmount)}</Text>
           <Text style={styles.toEvent}>to {event?.title || 'this event'}</Text>
         </View>
 
-        {/* CHOOSE PAYMENT METHOD */}
         <Text style={styles.sectionTitle}>Choose Payment Method</Text>
         <View style={styles.methodsCard}>
           {paymentMethods.map((m, index) => (
@@ -141,7 +179,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           ))}
         </View>
 
-        {/* ✅ AMOUNT BREAKDOWN with 1% fee */}
         <View style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Amount</Text>
@@ -156,7 +193,7 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           </View>
           <View style={styles.totalDivider} />
           <View style={styles.breakdownRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>Total Paid</Text>
             <Text style={styles.totalValue}>{formatAmount(cleanAmount)}</Text>
           </View>
           <View style={styles.divider} />
@@ -168,7 +205,6 @@ export default function PaymentConfirmScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* SECURITY NOTE */}
         <View style={styles.securityNote}>
           <View style={styles.shieldBubble}>
             <Ionicons name="shield-checkmark-outline" size={20} color={WINE} />
@@ -180,8 +216,13 @@ export default function PaymentConfirmScreen({ navigation, route }) {
 
       </ScrollView>
 
-      {/* PAY NOW BUTTON */}
       <View style={styles.footer}>
+        {isLoading && statusMessage ? (
+          <View style={styles.statusBox}>
+            <ActivityIndicator color={WINE} size="small" />
+            <Text style={styles.statusText}>{statusMessage}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity
           style={[styles.payBtn, isLoading && styles.payBtnLoading]}
           onPress={handlePayNow}
@@ -237,6 +278,8 @@ const styles = StyleSheet.create({
   shieldBubble: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFE4E9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   securityText: { fontSize: 13, color: DARK_GREY, flex: 1, lineHeight: 18 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: LIGHT_GREY },
+  statusBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, backgroundColor: '#FDF0F3', borderRadius: 10, padding: 10 },
+  statusText: { fontSize: 13, color: WINE, fontWeight: '600', flex: 1 },
   payBtn: { backgroundColor: WINE, borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: WINE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   payBtnLoading: { backgroundColor: '#A0354A' },
   payBtnText: { color: WHITE, fontSize: 17, fontWeight: '700' },
