@@ -65,7 +65,8 @@ export default function RegisterScreen({ navigation }) {
     if (phone.length < 8) { Alert.alert('Error', 'Please enter a valid phone number'); return; }
     if (pin.length < 4) { Alert.alert('Error', 'PIN must be at least 4 digits'); return; }
     if (pin !== confirmPin) { Alert.alert('Error', 'PINs do not match!'); return; }
-    const fullPhone = `+${selectedCountry.callingCode}${phone}`;
+    const cleanPhone = phone.startsWith('0') ? phone.slice(1) : phone;
+const fullPhone = `+${selectedCountry.callingCode}${cleanPhone}`;
     setLoading(true);
     try {
       const result = await registerWithPin(name, fullPhone, pin);

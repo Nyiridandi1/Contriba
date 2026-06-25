@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, StatusBar, Alert, TextInput, Modal, ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -116,7 +117,7 @@ export default function ProfileScreen({ navigation }) {
         const updatedUser = { ...user, avatar_url: avatarUrl };
         await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
-        Alert.alert('Success! ✅', 'Profile photo updated!');
+        Alert.alert('Success!', 'Profile photo updated!');
       } else {
         Alert.alert('Error', 'Failed to save photo to database');
       }
@@ -149,6 +150,19 @@ export default function ProfileScreen({ navigation }) {
     return '?';
   };
 
+  const getMemberSince = () => {
+    if (user?.created_at) {
+      const date = new Date(user.created_at);
+      return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    }
+    return 'Contriba Member';
+  };
+
+  const getUserId = () => {
+    if (user?.id) return `COB-${user.id.toString().slice(0, 8).toUpperCase()}`;
+    return 'COB-2025-0001';
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]} edges={['top', 'bottom']}>
       <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={CARD} />
@@ -173,38 +187,90 @@ export default function ProfileScreen({ navigation }) {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-          {/* PROFILE CARD */}
-          <View style={[styles.profileCard, { backgroundColor: CARD, borderColor: BORDER, borderWidth: 1 }]}>
-            <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickPhoto} activeOpacity={0.8}>
-              {uploadingPhoto ? (
-                <View style={[styles.avatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
-                  <ActivityIndicator color={WHITE} size="small" />
+          {/* ✅ ID CARD */}
+          <View style={styles.idCard}>
+            {/* RED TOP — CO watermark + photo */}
+            <ImageBackground
+              source={require('../../assets/auth-bg.png')}
+              style={styles.idCardTop}
+              resizeMode="cover"
+            >
+              {/* Logo row */}
+              <View style={styles.idCardLogoRow}>
+                <View style={styles.idCardLogoLeft}>
+                  <Image source={require('../../assets/co-logo.png')} style={styles.idCardLogo} resizeMode="contain" />
+                  <Text style={styles.idCardBrand}>{'contriba'}</Text>
                 </View>
-              ) : user?.avatar_url ? (
-                <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' }]}>
-                  <Text style={styles.avatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
-                </View>
-              )}
-              <View style={styles.cameraBtn}>
-                <Ionicons name="camera" size={14} color={WHITE} />
+                <Ionicons name="wifi-outline" size={22} color="rgba(255,255,255,0.8)" style={{ transform: [{ rotate: '90deg' }] }} />
               </View>
-            </TouchableOpacity>
-            <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: TEXT }]}>{user?.name || 'Add your name'}</Text>
-              {user?.email ? <Text style={[styles.profileDetail, { color: SUB }]}>{user.email}</Text> : null}
-              <Text style={[styles.profileDetail, { color: SUB }]}>{user?.phone || ''}</Text>
-              <TouchableOpacity onPress={handlePickPhoto}>
-                <Text style={styles.changePhotoText}>
-                  {language === 'Kinyarwanda' ? 'Kanda ifoto guhindura' : 'Tap photo to change'}
+
+              {/* Profile photo */}
+              <TouchableOpacity style={styles.idCardAvatarWrap} onPress={handlePickPhoto} activeOpacity={0.85}>
+                {uploadingPhoto ? (
+                  <View style={styles.idCardAvatar}>
+                    <ActivityIndicator color={WINE} size="small" />
+                  </View>
+                ) : user?.avatar_url ? (
+                  <Image source={{ uri: user.avatar_url }} style={styles.idCardAvatar} />
+                ) : (
+                  <View style={[styles.idCardAvatar, { backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={styles.idCardAvatarInitials}>{getInitials(user?.name, user?.phone)}</Text>
+                  </View>
+                )}
+                <View style={styles.idCardCameraBtn}>
+                  <Ionicons name="camera" size={12} color={WHITE} />
+                </View>
+              </TouchableOpacity>
+            </ImageBackground>
+
+            {/* WHITE BOTTOM */}
+            <View style={[styles.idCardBottom, { backgroundColor: CARD }]}>
+              {/* Name + role */}
+              <Text style={[styles.idCardName, { color: TEXT }]}>{user?.name || 'Your Name'}</Text>
+              <Text style={styles.idCardRole}>{'EVENT ORGANIZER'}</Text>
+              <View style={styles.idCardDividerLine} />
+
+              {/* Details */}
+              {[
+                { icon: 'person-outline', label: 'ID Number', value: getUserId() },
+                { icon: 'call-outline', label: 'Phone', value: user?.phone || 'Not provided' },
+                { icon: 'mail-outline', label: 'Email', value: user?.email || 'Not provided' },
+                { icon: 'calendar-outline', label: 'Member Since', value: getMemberSince() },
+              ].map((item, i, arr) => (
+                <View key={i}>
+                  <View style={styles.idCardRow}>
+                    <View style={styles.idCardIconBox}>
+                      <Ionicons name={item.icon} size={16} color={WHITE} />
+                    </View>
+                    <View>
+                      <Text style={[styles.idCardLabel, { color: SUB }]}>{item.label}</Text>
+                      <Text style={[styles.idCardValue, { color: TEXT }]}>{item.value}</Text>
+                    </View>
+                  </View>
+                  {i < arr.length - 1 && <View style={[styles.idCardRowDivider, { backgroundColor: BORDER }]} />}
+                </View>
+              ))}
+
+              {/* Edit button */}
+              <TouchableOpacity
+                style={styles.idCardEditBtn}
+                onPress={() => { setEditName(user?.name || ''); setEditModal(true); }}
+              >
+                <Ionicons name="pencil-outline" size={14} color={WINE} />
+                <Text style={styles.idCardEditBtnText}>
+                  {language === 'Kinyarwanda' ? 'Hindura Amazina' : 'Edit Profile'}
                 </Text>
               </TouchableOpacity>
+
+              {/* Footer */}
+              <View style={styles.idCardFooter}>
+                <View style={[styles.idCardFooterLeft, { backgroundColor: WINE }]}>
+                  <Image source={require('../../assets/co-logo.png')} style={{ width: 20, height: 20 }} resizeMode="contain" />
+                  <Text style={styles.idCardFooterText}>{'Building Community.\nPowering Contributions.'}</Text>
+                </View>
+                <Image source={require('../../assets/QR code.png')} style={styles.idCardQR} resizeMode="contain" />
+              </View>
             </View>
-            <TouchableOpacity style={styles.editBtn} onPress={() => { setEditName(user?.name || ''); setEditModal(true); }}>
-              <Ionicons name="pencil-outline" size={14} color={WINE} />
-              <Text style={styles.editBtnText}>{language === 'Kinyarwanda' ? 'Hindura' : 'Edit'}</Text>
-            </TouchableOpacity>
           </View>
 
           {/* WALLET BALANCE CARD */}
@@ -257,9 +323,7 @@ export default function ProfileScreen({ navigation }) {
                 <View style={[styles.overviewIcon, { backgroundColor: '#E8F5E9' }]}>
                   <Ionicons name="arrow-down" size={20} color="#1A9E4A" />
                 </View>
-                <Text style={[styles.overviewLabel, { color: SUB }]}>
-                  {language === 'Kinyarwanda' ? 'Injiye' : 'Total In'}
-                </Text>
+                <Text style={[styles.overviewLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Injiye' : 'Total In'}</Text>
                 <Text style={[styles.overviewValue, { color: '#1A9E4A' }]}>{formatAmount(wallet?.total_in)}</Text>
               </View>
               <View style={[styles.overviewDivider, { backgroundColor: BORDER }]} />
@@ -267,9 +331,7 @@ export default function ProfileScreen({ navigation }) {
                 <View style={[styles.overviewIcon, { backgroundColor: '#FFE4E9' }]}>
                   <Ionicons name="arrow-up" size={20} color={WINE} />
                 </View>
-                <Text style={[styles.overviewLabel, { color: SUB }]}>
-                  {language === 'Kinyarwanda' ? 'Sohotse' : 'Total Out'}
-                </Text>
+                <Text style={[styles.overviewLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Sohotse' : 'Total Out'}</Text>
                 <Text style={[styles.overviewValue, { color: WINE }]}>{formatAmount(wallet?.total_out)}</Text>
               </View>
               <View style={[styles.overviewDivider, { backgroundColor: BORDER }]} />
@@ -277,10 +339,8 @@ export default function ProfileScreen({ navigation }) {
                 <View style={[styles.overviewIcon, { backgroundColor: '#EDE7F6' }]}>
                   <Ionicons name="card-outline" size={20} color="#7C3AED" />
                 </View>
-                <Text style={[styles.overviewLabel, { color: SUB }]}>
-                  {language === 'Kinyarwanda' ? 'Bitegereje' : 'Pending'}
-                </Text>
-                <Text style={[styles.overviewValue, { color: '#7C3AED' }]}>RWF 0</Text>
+                <Text style={[styles.overviewLabel, { color: SUB }]}>{language === 'Kinyarwanda' ? 'Bitegereje' : 'Pending'}</Text>
+                <Text style={[styles.overviewValue, { color: '#7C3AED' }]}>{'RWF 0'}</Text>
               </View>
             </View>
           </View>
@@ -379,7 +439,7 @@ export default function ProfileScreen({ navigation }) {
                     await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
                     setUser(updatedUser);
                     setEditModal(false);
-                    Alert.alert('Success! ✅', 'Profile updated!');
+                    Alert.alert('Success!', 'Profile updated!');
                   } catch (error) {
                     Alert.alert('Error', 'Failed to update profile');
                   }
@@ -405,17 +465,39 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontWeight: '700' },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
-  profileCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderRadius: 16, padding: 14 },
-  avatarWrapper: { position: 'relative', marginRight: 12 },
-  avatar: { width: 70, height: 70, borderRadius: 35 },
-  avatarInitials: { fontSize: 24, fontWeight: '800', color: WHITE },
-  cameraBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: WINE, borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: 16, fontWeight: '800', marginBottom: 3 },
-  profileDetail: { fontSize: 12, marginBottom: 2 },
-  changePhotoText: { fontSize: 11, color: WINE, fontWeight: '600', marginTop: 4 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: WINE, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
-  editBtnText: { fontSize: 12, fontWeight: '600', color: WINE, marginLeft: 4 },
+
+  // ✅ ID CARD
+  idCard: { borderRadius: 24, overflow: 'hidden', marginBottom: 16, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+
+  // Red top section
+  idCardTop: { backgroundColor: WINE, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 60, alignItems: 'center' },
+  idCardLogoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 16 },
+  idCardLogoLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  idCardLogo: { width: 28, height: 28 },
+  idCardBrand: { fontSize: 16, fontWeight: '900', color: WHITE, letterSpacing: -0.5 },
+  idCardAvatarWrap: { position: 'relative' },
+  idCardAvatar: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: WHITE, backgroundColor: '#F5F5F5' },
+  idCardAvatarInitials: { fontSize: 28, fontWeight: '900', color: WINE },
+  idCardCameraBtn: { position: 'absolute', bottom: 2, right: 2, backgroundColor: WINE, borderRadius: 12, width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: WHITE },
+
+  // White bottom section
+  idCardBottom: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
+  idCardName: { fontSize: 22, fontWeight: '900', textAlign: 'center', marginBottom: 4 },
+  idCardRole: { fontSize: 11, fontWeight: '800', color: WINE, textAlign: 'center', letterSpacing: 1.5, marginBottom: 10 },
+  idCardDividerLine: { width: 32, height: 3, backgroundColor: WINE, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  idCardRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  idCardIconBox: { width: 34, height: 34, borderRadius: 17, backgroundColor: WINE, justifyContent: 'center', alignItems: 'center' },
+  idCardLabel: { fontSize: 11, marginBottom: 2 },
+  idCardValue: { fontSize: 14, fontWeight: '700' },
+  idCardRowDivider: { height: 1, marginLeft: 46 },
+  idCardEditBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderColor: WINE, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 10, marginTop: 14, marginBottom: 14 },
+  idCardEditBtnText: { fontSize: 13, fontWeight: '700', color: WINE },
+  idCardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  idCardFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flex: 1, marginRight: 12 },
+  idCardFooterText: { fontSize: 10, color: WHITE, fontWeight: '600', lineHeight: 14, flex: 1 },
+  idCardQR: { width: 70, height: 70 },
+
+  // WALLET
   walletCard: { backgroundColor: WINE, borderRadius: 16, padding: 18, marginBottom: 16 },
   walletTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   walletLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 6 },
@@ -428,6 +510,8 @@ const styles = StyleSheet.create({
   walletActionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   walletActionText: { fontSize: 11, color: WHITE, fontWeight: '600', textAlign: 'center' },
   walletActionDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)' },
+
+  // OVERVIEW
   overviewCard: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 20 },
   overviewTitle: { fontSize: 16, fontWeight: '800', marginBottom: 14 },
   overviewGrid: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
@@ -436,6 +520,8 @@ const styles = StyleSheet.create({
   overviewLabel: { fontSize: 12, marginBottom: 4 },
   overviewValue: { fontSize: 14, fontWeight: '700' },
   overviewDivider: { width: 1, height: 60 },
+
+  // SETTINGS
   sectionTitle: { fontSize: 17, fontWeight: '800', marginBottom: 12 },
   settingsCard: { borderRadius: 16, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
   settingsRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
@@ -444,14 +530,20 @@ const styles = StyleSheet.create({
   settingsLabel: { fontSize: 14, fontWeight: '600' },
   settingsSub: { fontSize: 12, marginTop: 2 },
   rowDivider: { height: 1, marginHorizontal: 14 },
+
+  // INVITE
   inviteCard: { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderWidth: 1 },
   inviteLeft: { flex: 1 },
   inviteTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
   inviteSub: { fontSize: 12, marginBottom: 12, lineHeight: 18 },
   inviteBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: WINE, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, alignSelf: 'flex-start' },
   inviteBtnText: { fontSize: 13, fontWeight: '600', color: WINE },
+
+  // LOGOUT
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: WINE, borderRadius: 14, paddingVertical: 14, marginBottom: 8, backgroundColor: '#FDF0F3' },
   logoutText: { fontSize: 15, fontWeight: '700', color: WINE, marginLeft: 6 },
+
+  // MODAL
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16 },

@@ -58,7 +58,8 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     if (phone.length < 8) { Alert.alert('Error', 'Please enter your phone number'); return; }
     if (pin.length < 4) { Alert.alert('Error', 'Please enter your PIN'); return; }
-    const fullPhone = `+${selectedCountry.callingCode}${phone}`;
+    const cleanPhone = phone.startsWith('0') ? phone.slice(1) : phone;
+const fullPhone = `+${selectedCountry.callingCode}${cleanPhone}`;
     setLoading(true);
     try {
       const result = await loginWithPin(fullPhone, pin);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Switch, Alert, Image, Platform, Modal,
+  StatusBar, Switch, Alert, Image, Platform, Modal, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,8 @@ const GRAY       = '#888888';
 const LIGHT_GREY = '#F5F5F5';
 const MID_GREY   = '#E0E0E0';
 const GREEN      = '#1A9E4A';
+
+const SUPPORT_EMAIL = 'support@contriba.online';
 
 const PRIVACY_POLICY = `Last updated: June 2026
 
@@ -77,8 +79,7 @@ Contriba is not intended for users under 18 years of age.
 
 9. CONTACT US
 For privacy concerns, contact us at:
-privacy@contriba.rw
-support@contriba.rw
+${SUPPORT_EMAIL}
 
 Contriba is proudly made in Rwanda.`;
 
@@ -148,8 +149,7 @@ These terms are governed by the laws of the Republic of Rwanda.
 
 12. CONTACT US
 For questions about these terms:
-legal@contriba.rw
-support@contriba.rw
+${SUPPORT_EMAIL}
 
 Contriba — Contribute Easily. Smart & Secure.`;
 
@@ -173,6 +173,21 @@ export default function SettingsScreen({ navigation }) {
   const loadUser = async () => {
     const userData = await AsyncStorage.getItem('user');
     if (userData) setUser(JSON.parse(userData));
+  };
+
+  const openEmail = (subject = '') => {
+    const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
+    Linking.canOpenURL(url).then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Alert.alert(
+          'Contact Support',
+          `Email us at:\n\n${SUPPORT_EMAIL}\n\nWe respond within 24 hours.`,
+          [{ text: 'OK' }]
+        );
+      }
+    });
   };
 
   const handleLanguageChange = async (lang) => {
@@ -227,13 +242,11 @@ export default function SettingsScreen({ navigation }) {
     <Text style={[styles.sectionTitle, { color: SUB }]}>{title}</Text>
   );
 
-  // ✅ Legal Modal with Logo — no emojis
   const LegalModal = ({ visible, onClose, title, content, icon, iconColor, iconBg }) => (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={[styles.legalModalBox, { backgroundColor: CARD }]}>
 
-          {/* Wine red logo header */}
           <View style={styles.legalLogoHeader}>
             <Image
               source={require('../../assets/icon.png')}
@@ -246,7 +259,6 @@ export default function SettingsScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Title Row */}
           <View style={[styles.legalModalHeader, { borderBottomColor: BORDER }]}>
             <View style={styles.legalModalTitleRow}>
               <View style={[styles.legalModalIcon, { backgroundColor: iconBg }]}>
@@ -262,13 +274,11 @@ export default function SettingsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <ScrollView showsVerticalScrollIndicator={false} style={styles.legalScrollView}>
             <Text style={[styles.legalContent, { color: TEXT }]}>{content}</Text>
             <View style={{ height: 40 }} />
           </ScrollView>
 
-          {/* Bottom Button */}
           <TouchableOpacity style={styles.legalCloseFooterBtn} onPress={onClose}>
             <Text style={styles.legalCloseFooterText}>
               {language === 'Kinyarwanda' ? 'Nsohoye' : 'I Understand'}
@@ -412,8 +422,8 @@ export default function SettingsScreen({ navigation }) {
           <SettingRow
             icon="lock-closed-outline" iconBg="#EDE7F6" iconColor="#7C3AED"
             label={language === 'Kinyarwanda' ? 'Umutekano' : 'Security'}
-            sub="OTP-based authentication"
-            onPress={() => Alert.alert('Security', 'Your account is protected with OTP-based authentication via email. No passwords are stored on our servers.')}
+            sub="PIN-based authentication"
+            onPress={() => Alert.alert('Security', 'Your account is protected with a PIN. No passwords are stored on our servers.')}
           />
         </View>
 
@@ -423,22 +433,22 @@ export default function SettingsScreen({ navigation }) {
           <SettingRow icon="help-circle-outline" iconBg="#FFF3E0" iconColor="#F59E0B"
             label={language === 'Kinyarwanda' ? 'Ikigo cy\'Ubufasha' : 'Help Center'}
             sub="FAQs and guides"
-            onPress={() => Alert.alert('Help Center', 'For help, contact us at support@contriba.rw')} />
+            onPress={() => openEmail('Help Request')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
           <SettingRow icon="chatbubble-outline" iconBg="#E3F2FD" iconColor="#1877F2"
             label={language === 'Kinyarwanda' ? 'Twandikire' : 'Contact Us'}
-            sub="support@contriba.rw"
-            onPress={() => Alert.alert('Contact Us', 'Email us at support@contriba.rw\nWe respond within 24 hours.')} />
+            sub={SUPPORT_EMAIL}
+            onPress={() => openEmail('Contact Us')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
           <SettingRow icon="bug-outline" iconBg="#FCE4EC" iconColor={WINE}
             label={language === 'Kinyarwanda' ? 'Tanga Ikibazo' : 'Report a Problem'}
             sub={language === 'Kinyarwanda' ? 'Dufashe kunoza Contriba' : 'Help us improve Contriba'}
-            onPress={() => Alert.alert('Report a Problem', 'Email us at bugs@contriba.rw')} />
+            onPress={() => openEmail('Report a Problem')} />
           <View style={[styles.rowDivider, { backgroundColor: DIV }]} />
           <SettingRow icon="star-outline" iconBg="#FFF3E0" iconColor="#F59E0B"
             label={language === 'Kinyarwanda' ? 'Tuhe Amanota' : 'Rate the App'}
             sub={language === 'Kinyarwanda' ? 'Ukunda Contriba? Tuhe amanota' : 'Love Contriba? Rate us'}
-            onPress={() => Alert.alert('Rate Us', 'Thank you for using Contriba! Rating will be available once we launch on App Store & Play Store.')} />
+            onPress={() => Alert.alert('Coming Soon', 'Rating will be available once we launch on the Play Store!')} />
         </View>
 
         {/* ABOUT */}
